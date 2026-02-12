@@ -8,11 +8,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-6">
-              <div className="bg-red-600 p-1.5 rounded-lg">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold tracking-tight text-white">
-                Vibe<span className="text-red-600">Studio</span>
+              <span className="text-xl font-bold tracking-tighter text-white">
+                Vibe<span className="text-primary">Studio</span>
               </span>
             </div>
             <p className="text-zinc-500 max-w-sm mb-8 leading-relaxed">
@@ -20,13 +17,13 @@ export function Footer() {
               Built for the next generation of designers who don't want to code.
             </p>
             <div className="flex gap-4">
-              <Link href="#" className="p-3 bg-zinc-900 rounded-full text-zinc-400 hover:text-red-500 hover:bg-zinc-800 transition-all">
+              <Link href="#" className="p-3 bg-zinc-900 rounded-lg text-zinc-400 hover:text-primary hover:bg-zinc-800 transition-all">
                 <Twitter className="w-5 h-5" />
               </Link>
-              <Link href="#" className="p-3 bg-zinc-900 rounded-full text-zinc-400 hover:text-red-500 hover:bg-zinc-800 transition-all">
+              <Link href="#" className="p-3 bg-zinc-900 rounded-lg text-zinc-400 hover:text-primary hover:bg-zinc-800 transition-all">
                 <Instagram className="w-5 h-5" />
               </Link>
-              <Link href="#" className="p-3 bg-zinc-900 rounded-full text-zinc-400 hover:text-red-500 hover:bg-zinc-800 transition-all">
+              <Link href="#" className="p-3 bg-zinc-900 rounded-lg text-zinc-400 hover:text-primary hover:bg-zinc-800 transition-all">
                 <Github className="w-5 h-5" />
               </Link>
             </div>

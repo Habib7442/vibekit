@@ -25,8 +25,8 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className="scroll-smooth">
-        <body className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-black text-white`}>
+      <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+        <body className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-black text-white`} suppressHydrationWarning>
           {children}
         </body>
       </html>
