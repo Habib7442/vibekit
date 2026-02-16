@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAppDesignerStore, DesignerMode } from '@/lib/store/useAppBuilderStore';
+import { useAppDesignerStore, DesignerMode } from '@/lib/store/useAppDesignerStore';
 import { AppDesignerChatPanel } from '@/components/studio/AppBuilderChatPanel';
 import { AppDesignerGallery } from '@/components/studio/AppBuilderGallery';
 import { Loader2 } from 'lucide-react';

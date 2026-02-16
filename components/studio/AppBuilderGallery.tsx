@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
-import { useAppDesignerStore, GeneratedScreen } from '@/lib/store/useAppBuilderStore';
+import { useAppDesignerStore, GeneratedScreen } from '@/lib/store/useAppDesignerStore';
 import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, ImageIcon, Smartphone, Globe } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { cn } from '@/lib/utils';

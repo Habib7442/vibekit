@@ -21,7 +21,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useAppDesignerStore, AppDesignerMessage, GeneratedScreen, DesignerMode } from '@/lib/store/useAppBuilderStore';
+import { useAppDesignerStore, AppDesignerMessage, GeneratedScreen, DesignerMode } from '@/lib/store/useAppDesignerStore';
 import { cn } from '@/lib/utils';
 import { planAppAction } from '@/lib/actions/ai.actions';
 import { useSearchParams, useRouter } from 'next/navigation';
