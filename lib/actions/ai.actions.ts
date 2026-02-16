@@ -247,8 +247,6 @@ Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, second
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   
-  console.log("[planAppAction] Raw Gemini response:", text.substring(0, 500));
-  
   if (!text.trim()) {
     console.error("[planAppAction] Empty response from Gemini");
     throw new Error("Empty response from AI");

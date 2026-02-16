@@ -30,8 +30,17 @@ async function fetchWithRetry(
   throw new Error('Max retries exceeded');
 }
 
+import { createClient } from "@/lib/supabase/server";
+
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     if (!API_KEY) return new NextResponse("GEMINI_API_KEY not configured", { status: 500 });
 
     const params = await req.json();

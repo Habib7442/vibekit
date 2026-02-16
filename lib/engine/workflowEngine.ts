@@ -64,8 +64,6 @@ export const nodeExecutors: Record<string, (id: string, inputs: any, config: any
     const finalAspectRatio = aspectRatioFromInput || config?.aspectRatio || '1:1';
     
     // Call the server action
-    console.log(`[Imagen] Calling generateAIImage | Prompt: ${prompt.slice(0, 50)}... | Ratio: ${finalAspectRatio}`);
-    
     const data = await generateAIImage({
       prompt,
       aspectRatio: finalAspectRatio
@@ -103,8 +101,6 @@ export const nodeExecutors: Record<string, (id: string, inputs: any, config: any
     const screenIndex = config.screenIndex || 1;
     const totalScreens = config.totalScreens || 1;
 
-    console.log(`[AppScreen] Generating "${screenName}" (${screenIndex}/${totalScreens}) | Color: ${colorHex || 'auto'}`);
-    
     // Call the server action
     const data = await generateScreenImageAction({
       appDescription, 

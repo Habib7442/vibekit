@@ -133,8 +133,6 @@ export function useWorkflowExecution() {
               inputs[handleId] = typeof output === 'object' 
                 ? (output[edge.sourceHandle || ''] ?? output) 
                 : output;
-              
-              console.log(`[Engine] Node ${node.id} received input for "${handleId}":`, inputs[handleId]);
             }
           });
 
