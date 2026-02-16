@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Smartphone, ImageIcon, Globe, Calendar, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PrivacyToggle } from '@/components/studio/PrivacyToggle';
+import { RetryButton } from '@/components/studio/RetryButton';
 
 export default async function GenerationsPage() {
   const supabase = await createClient();
@@ -34,7 +35,7 @@ export default async function GenerationsPage() {
         </div>
         <h1 className="text-xl font-bold mb-2 uppercase tracking-tight">Vault Access Failed</h1>
         <p className="text-zinc-500 mb-8 max-w-xs text-sm font-medium">We couldn't retrieve your saved designs. This might be a temporary connection issue.</p>
-        <Link href="/studio/generations" className="px-8 py-3 bg-zinc-900 border border-zinc-800 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-800 transition-all">Try Again</Link>
+        <RetryButton />
       </div>
     );
   }

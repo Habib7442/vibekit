@@ -139,7 +139,7 @@ export default async function CanvasDetailPage({ params }: PageProps) {
           <div className="flex-1 overflow-y-auto p-6 md:p-12 scrollbar-none">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-7xl mx-auto">
                 {screens.map((screen) => (
-                   <div key={screen.id} className="flex flex-col gap-6 group">
+                   <div key={screen.id} className="flex flex-col gap-6">
                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center">
@@ -170,11 +170,7 @@ export default async function CanvasDetailPage({ params }: PageProps) {
                           <ReadOnlyPreview code={screen.code} type={canvas.type as any} />
                         )}
                         
-                        {/* Hover Overlay Actions */}
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-4 pointer-events-none rounded-[40px]">
-                           <div className="px-6 py-2.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest">Live Preview</div>
-                        </div>
-                     </div>
+                      </div>
                   </div>
                 ))}
              </div>

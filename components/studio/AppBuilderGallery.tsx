@@ -530,6 +530,7 @@ export function AppDesignerGallery() {
       }
 
       setSaveSuccess(true);
+      if (saveSuccessTimeoutRef.current) clearTimeout(saveSuccessTimeoutRef.current);
       saveSuccessTimeoutRef.current = setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
       console.error('[Save All] Error:', err);
