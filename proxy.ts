@@ -1,9 +1,11 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
   })
 
   const supabase = createServerClient(
@@ -11,39 +13,68 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
   )
 
-  // Do not run middleware on static files or API routes
-  if (
-    request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/api') ||
-    request.nextUrl.pathname.includes('.')
-  ) {
-    return supabaseResponse
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Protect /studio routes
+  if (request.nextUrl.pathname.startsWith('/studio')) {
+    // Exceptions: We might want to allow public generations to be viewed
+    // However, the user request says to restrict /studio/visual, builder, etc.
+    // If you want to allow /studio/generations/[id] specifically, we could add a check.
+    // But for now, let's follow the strict "restrict it" instruction for studio tools.
+    
+    // Check if it's a tool route or the vault listing
+    const isToolRoute = 
+      request.nextUrl.pathname.startsWith('/studio/visual') || 
+      request.nextUrl.pathname.startsWith('/studio/builder') ||
+      request.nextUrl.pathname === '/studio/generations'; // Vault listing should also be protected
+
+    if (!user && isToolRoute) {
+      return NextResponse.redirect(new URL('/?auth=true', request.url))
+    }
   }
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  return supabaseResponse
+  return response
 }
 
 export const config = {

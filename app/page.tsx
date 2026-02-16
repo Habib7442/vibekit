@@ -3,16 +3,24 @@
 import Link from 'next/link';
 import { Sparkles, ArrowRight, Paperclip, ChevronDown, Smartphone, Code2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { AuthModal } from '@/components/studio/AuthModal';
+import { signOut } from '@/lib/auth-actions';
 import { ShowcaseGrid } from '@/components/studio/ShowcaseGrid';
 
 export default function LandingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [prompt, setPrompt] = useState('');
+  
+  useEffect(() => {
+    if (searchParams.get('auth') === 'true') {
+      setShowAuthModal(true);
+    }
+  }, [searchParams]);
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [type, setType] = useState<'app' | 'ui' | 'web' | 'image'>('app');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -84,6 +92,15 @@ export default function LandingPage() {
           
           <div className="flex items-center gap-4 md:gap-8">
             <Link href="/pricing" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Pricing</Link>
+            <Link href="/testimonials" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Reviews</Link>
+            {user && (
+              <button 
+                onClick={() => signOut()}
+                className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-red-400 transition-colors"
+              >
+                Sign Out
+              </button>
+            )}
             <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-[10px] md:text-[11px] font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
               <span className="hidden sm:inline">Launch Studio</span>
               <span className="sm:hidden">Launch</span>

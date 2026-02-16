@@ -129,15 +129,13 @@ export default function StudioLayout({
                      </div>
                    )}
                    <div className="flex items-center gap-3">
-                     {isMobile && (
-                       <button 
-                         onClick={() => signOut()}
-                         className="p-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 transition-all active:scale-90"
-                         title="Sign Out"
-                       >
-                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                       </button>
-                     )}
+                     <button 
+                       onClick={() => signOut()}
+                       className="p-2.5 rounded-full bg-zinc-900 border border-white/5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all active:scale-90 shadow-xl"
+                       title="Sign Out"
+                     >
+                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                     </button>
                      <div className="w-9 h-9 rounded-full border border-white/5 overflow-hidden shadow-2xl ring-1 ring-white/10 transition-all hover:ring-white/20 shrink-0">
                        {user.user_metadata.avatar_url ? (
                          <img 
