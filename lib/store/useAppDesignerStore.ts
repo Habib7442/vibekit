@@ -40,6 +40,8 @@ interface AppDesignerState {
   setBuilderMode: (mode: DesignerMode) => void;
   clearChat: () => void;
   clearGallery: () => void;
+  savedCanvasId: string | null;
+  setSavedCanvasId: (id: string | null) => void;
 }
 
 export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
@@ -48,6 +50,7 @@ export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
   isGenerating: false,
   activeScreenId: null,
   builderMode: 'app',
+  savedCanvasId: null,
 
   addMessage: (msg) => set({ messages: [...get().messages, msg] }),
   updateMessage: (id, updates) => set({
@@ -75,5 +78,6 @@ export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
   setIsGenerating: (v) => set({ isGenerating: v }),
   setBuilderMode: (mode) => set({ builderMode: mode }),
   clearChat: () => set({ messages: [] }),
-  clearGallery: () => set({ galleryScreens: [], activeScreenId: null }),
+  clearGallery: () => set({ galleryScreens: [], activeScreenId: null, savedCanvasId: null }),
+  setSavedCanvasId: (id) => set({ savedCanvasId: id }),
 }));

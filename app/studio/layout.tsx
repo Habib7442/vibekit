@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Smartphone, Sparkles, ImageIcon, User } from 'lucide-react';
+import { Smartphone, Sparkles, ImageIcon, User, Library } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -43,6 +43,7 @@ export default function StudioLayout({
 
   const isImageMode = pathname.includes('/studio/visual');
   const isDesignerMode = pathname.includes('/studio/builder');
+  const isLibraryMode = pathname.includes('/studio/generations');
 
   return (
     <main className="w-full h-screen overflow-hidden bg-[#050505] flex flex-col">
@@ -89,6 +90,18 @@ export default function StudioLayout({
           >
             <Smartphone size={14} className={cn("transition-transform duration-300", isDesignerMode && "scale-110")} />
             App Designer
+          </Link>
+          <Link
+            href="/studio/generations"
+            className={cn(
+              "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
+              isLibraryMode
+                ? "bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+            )}
+          >
+            <Library size={14} className={cn("transition-transform duration-300", isLibraryMode && "scale-110")} />
+            Vault
           </Link>
         </div>
 

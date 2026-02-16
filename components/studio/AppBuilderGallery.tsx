@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useAppDesignerStore, GeneratedScreen } from '@/lib/store/useAppDesignerStore';
-import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, ImageIcon, Smartphone, Globe } from 'lucide-react';
+import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, ImageIcon, Smartphone, Globe, Cloud, CloudOff } from 'lucide-react';
+import { saveCanvasAction } from '@/lib/actions/studio.actions';
 import { toPng } from 'html-to-image';
 import { cn } from '@/lib/utils';
 import { deductCredit } from '@/lib/credits-actions';
@@ -426,10 +427,12 @@ function EditOverlay({
 }
 
 export function AppDesignerGallery() {
-  const { galleryScreens, removeGalleryScreen, updateGalleryScreen, builderMode } = useAppDesignerStore();
+  const { galleryScreens, removeGalleryScreen, updateGalleryScreen, builderMode, savedCanvasId, setSavedCanvasId } = useAppDesignerStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; screen: GeneratedScreen } | null>(null);
   const [editingScreenId, setEditingScreenId] = useState<string | null>(null);
   const [activeScreenId, setActiveScreenId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Auto-focus latest screen when new ones are added
   const prevCountRef = useRef(galleryScreens.length);
@@ -493,6 +496,42 @@ export function AppDesignerGallery() {
     }
   };
 
+  const handleSaveAll = async () => {
+    if (galleryScreens.length === 0 || isSaving) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+
+    try {
+      // Use the first screen's prompt as the canvas name/description
+      const firstPrompt = galleryScreens[0]?.prompt || 'New Application';
+      
+      const result = await saveCanvasAction({
+        canvasId: savedCanvasId || undefined,
+        name: firstPrompt.slice(0, 50),
+        type: builderMode,
+        screens: galleryScreens.map((s, idx) => ({
+          id: s.id,
+          screenName: s.screenName,
+          code: s.code,
+          prompt: s.prompt,
+          order: idx
+        }))
+      });
+
+      if (result.canvasId) {
+        setSavedCanvasId(result.canvasId);
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      console.error('[Save All] Error:', err);
+      alert(`Save failed: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div 
       className="w-full h-full bg-[#050505] relative overflow-hidden flex flex-col"
@@ -524,21 +563,51 @@ export function AppDesignerGallery() {
       {galleryScreens.length > 0 && (
         <div className="flex-1 flex flex-col min-h-0">
           {/* Screen Navigation Tabs */}
-          <div className="shrink-0 px-6 py-3 border-b border-white/[0.04] bg-[#0A0A0F]/50 flex items-center gap-2 overflow-x-auto scrollbar-none">
-            {galleryScreens.map((scr, idx) => (
-              <button
-                key={scr.id}
-                onClick={() => setActiveScreenId(scr.id)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border whitespace-nowrap",
-                  activeScreenId === scr.id 
-                    ? "bg-white text-black border-white shadow-lg" 
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                )}
-              >
-                {scr.screenName}
-              </button>
-            ))}
+          <div className="shrink-0 px-6 py-3 border-b border-white/[0.04] bg-[#0A0A0F]/50 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
+              {galleryScreens.map((scr, idx) => (
+                <button
+                  key={scr.id}
+                  onClick={() => setActiveScreenId(scr.id)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border whitespace-nowrap",
+                    activeScreenId === scr.id 
+                      ? "bg-white text-black border-white shadow-lg" 
+                      : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  {scr.screenName}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className={cn(
+                "hidden md:flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
+                saveSuccess 
+                  ? "bg-emerald-500 text-white" 
+                  : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20"
+              )}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Saving...
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <Check size={12} />
+                  Saved to Cloud
+                </>
+              ) : (
+                <>
+                  <Cloud size={12} />
+                  Save to Cloud
+                </>
+              )}
+            </button>
           </div>
 
           <div className={cn(

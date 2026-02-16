@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { AuthModal } from '@/components/studio/AuthModal';
+import { ShowcaseGrid } from '@/components/studio/ShowcaseGrid';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -237,6 +238,9 @@ export default function LandingPage() {
            </div>
         </div>
       </section>
+
+      {/* Community Showcase */}
+      <ShowcaseGrid />
 
       {/* Final CTA Area */}
       <section className="mx-6 mb-24 max-w-5xl md:mx-auto rounded-[3rem] bg-[#f5e1c8] p-12 md:p-24 text-center text-black shadow-2xl">

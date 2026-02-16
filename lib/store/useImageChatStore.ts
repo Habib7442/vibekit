@@ -33,12 +33,15 @@ interface ImageChatState {
   setIsGenerating: (v: boolean) => void;
   clearChat: () => void;
   clearGallery: () => void;
+  savedCanvasId: string | null;
+  setSavedCanvasId: (id: string | null) => void;
 }
 
 export const useImageChatStore = create<ImageChatState>((set, get) => ({
   messages: [],
   galleryImages: [],
   isGenerating: false,
+  savedCanvasId: null,
 
   addMessage: (msg) => set({ messages: [...get().messages, msg] }),
   
@@ -61,5 +64,6 @@ export const useImageChatStore = create<ImageChatState>((set, get) => ({
   setIsGenerating: (v) => set({ isGenerating: v }),
   
   clearChat: () => set({ messages: [] }),
-  clearGallery: () => set({ galleryImages: [] }),
+  clearGallery: () => set({ galleryImages: [], savedCanvasId: null }),
+  setSavedCanvasId: (id: string | null) => set({ savedCanvasId: id }),
 }));

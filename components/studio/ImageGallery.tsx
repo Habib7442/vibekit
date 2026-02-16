@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useImageChatStore, GeneratedImage } from '@/lib/store/useImageChatStore';
-import { Download, Edit3, Trash2, Maximize2, X, Loader2, Copy } from 'lucide-react';
+import { Download, Edit3, Trash2, Maximize2, X, Loader2, Copy, Cloud, Check } from 'lucide-react';
+import { saveCanvasAction, uploadImageToStudio } from '@/lib/actions/studio.actions';
 import { cn } from '@/lib/utils';
 import { generateAIImage } from '@/lib/actions/ai.actions';
 import { deductCredit } from '@/lib/credits-actions';
@@ -15,13 +16,15 @@ function downloadImage(base64: string, mimeType: string, filename: string) {
 }
 
 export function ImageGallery() {
-  const { galleryImages, updateGalleryImage, removeGalleryImage } = useImageChatStore();
+  const { galleryImages, updateGalleryImage, removeGalleryImage, savedCanvasId, setSavedCanvasId } = useImageChatStore();
   const [lightboxImage, setLightboxImage] = useState<GeneratedImage | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; image: GeneratedImage } | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Auto-focus latest image when new ones are added
   const prevCountRef = useRef(galleryImages.length);
@@ -70,6 +73,45 @@ export function ImageGallery() {
     }
   };
 
+  const handleSaveAll = async () => {
+    if (galleryImages.length === 0 || isSaving) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+
+    try {
+      // 1. Upload all images to storage and get URLs
+      const imageUploads = await Promise.all(
+        galleryImages.map(img => uploadImageToStudio(img.image, `img_${img.id}.png`))
+      );
+
+      // 2. Save canvas and image metadata
+      const firstPrompt = galleryImages[0]?.prompt || 'New Visual Arts';
+      
+      const result = await saveCanvasAction({
+        canvasId: savedCanvasId || undefined,
+        name: firstPrompt.slice(0, 50),
+        type: 'visual',
+        images: galleryImages.map((img, idx) => ({
+          imageUrl: imageUploads[idx],
+          prompt: img.prompt,
+          aspectRatio: img.aspectRatio
+        }))
+      });
+
+      if (result.canvasId) {
+        setSavedCanvasId(result.canvasId);
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      console.error('[Save All Images] Error:', err);
+      alert(`Save failed: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="w-full h-full bg-[#050505] relative overflow-hidden" onClick={closeContextMenu}>
       
@@ -90,7 +132,8 @@ export function ImageGallery() {
       {galleryImages.length > 0 && (
         <div className="flex-1 flex flex-col min-h-0">
           {/* Image Navigation Tabs */}
-          <div className="shrink-0 px-6 py-3 border-b border-zinc-800/50 bg-[#0A0A0F]/50 flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="shrink-0 px-6 py-3 border-b border-zinc-800/50 bg-[#0A0A0F]/50 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
             {galleryImages.map((img, idx) => (
               <button
                 key={img.id}
@@ -105,6 +148,35 @@ export function ImageGallery() {
                 {img.prompt.slice(0, 20)}...
               </button>
             ))}
+            </div>
+
+            <button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className={cn(
+                "hidden md:flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
+                saveSuccess 
+                  ? "bg-emerald-500 text-white" 
+                  : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20"
+              )}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Saving...
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <Check size={12} />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Cloud size={12} />
+                  Save to Cloud
+                </>
+              )}
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex justify-center items-start scrollbar-none">
