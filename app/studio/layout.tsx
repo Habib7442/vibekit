@@ -42,7 +42,7 @@ export default function StudioLayout({
   }
 
   const isImageMode = pathname.includes('/studio/visual');
-  const isBuilderMode = pathname.includes('/studio/builder');
+  const isDesignerMode = pathname.includes('/studio/builder');
 
   return (
     <main className="w-full h-screen overflow-hidden bg-[#050505] flex flex-col">
@@ -82,13 +82,13 @@ export default function StudioLayout({
             href="/studio/builder"
             className={cn(
               "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
-              isBuilderMode
+              isDesignerMode
                 ? "bg-cyan-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
             )}
           >
-            <Smartphone size={14} className={cn("transition-transform duration-300", isBuilderMode && "scale-110")} />
-            App Builder
+            <Smartphone size={14} className={cn("transition-transform duration-300", isDesignerMode && "scale-110")} />
+            App Designer
           </Link>
         </div>
 

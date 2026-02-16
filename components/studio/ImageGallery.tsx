@@ -107,28 +107,26 @@ export function ImageGallery() {
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 lg:p-10 scrollbar-none flex justify-center items-start">
+          <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex justify-center items-start scrollbar-none">
             {galleryImages.filter(i => i.id === activeImageId).map((img) => (
-              <div key={img.id} className="relative group w-full max-w-2xl" onContextMenu={(e) => handleContextMenu(e, img)}>
-                {/* Image */}
-                <div className="relative rounded-2xl overflow-hidden border border-zinc-800/30 hover:border-zinc-700/50 transition-all shadow-2xl shadow-black/60">
-                  <img
-                    src={`data:${img.mimeType};base64,${img.image}`}
-                    alt={img.prompt}
-                    className={cn(
-                      "w-full object-contain cursor-pointer transition-all duration-300",
-                      editingImage === img.id && "opacity-40"
-                    )}
-                    onClick={() => setLightboxImage(img)}
-                    style={{ maxHeight: '80vh' }}
-                  />
+              <div key={img.id} className="relative group w-fit mx-auto max-w-full" onContextMenu={(e) => handleContextMenu(e, img)}>
+                {/* Image Container */}
+                <div className="relative rounded-2xl overflow-hidden border border-zinc-800/30 hover:border-zinc-700/50 transition-all shadow-2xl shadow-black/60 bg-black/20 flex justify-center">
+                    <img
+                      src={`data:${img.mimeType};base64,${img.image}`}
+                      alt={img.prompt}
+                      className={cn(
+                        "max-w-full max-h-[calc(100vh-180px)] object-contain cursor-pointer transition-all duration-300",
+                        editingImage === img.id && "opacity-40"
+                      )}
+                      onClick={() => setLightboxImage(img)}
+                    />
 
-                  {/* Hover Actions */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  {/* Actions Overlay — Static on mobile, hover on desktop */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                       <div className="flex-1 mr-4">
-                        <span className="text-[10px] text-white/90 font-medium leading-tight block truncate mb-1">{img.prompt}</span>
-                        <span className="text-[8px] text-white/50 font-mono uppercase tracking-widest">{img.aspectRatio}</span>
+                        <span className="text-[10px] text-white/50 font-mono uppercase tracking-widest">{img.aspectRatio}</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button 

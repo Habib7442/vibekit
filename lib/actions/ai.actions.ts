@@ -284,6 +284,62 @@ Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, second
   };
 }
 
+export async function planVisualAction(prompt: string) {
+  if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
+
+  const systemInstructions = `You are a world-class Prompt Engineer and Creative Director specialized in Midjourney, DALL-E 3, and Gemini Image generation. 
+
+YOUR TASK: The user gives you a SHORT idea for an image. You must expand it into a MASTERPIECE PROMPT.
+- Focus on: Cinematic lighting, specific camera lenses (e.g., 85mm f/1.8), atmospheric details (smoke, dust motes), high-end textures, and specific artistic styles.
+- Professional terminology: Use words like 'octane render', 'ray tracing', 'hyper-realistic', 'editorial photoshoot', 'rembrandt lighting'.
+- Tone: Sophisticated, detailed, and visually evocative.
+
+Return ONLY a valid JSON object:
+{
+  "detailedPrompt": "Your 4-6 sentence master-level image generation brief here"
+}`;
+
+  const requestBody = {
+    systemInstruction: {
+      parts: [{ text: systemInstructions }]
+    },
+    contents: [{ 
+      parts: [
+        { text: `IMAGE IDEA: "${prompt}"\n\nRespond with ONLY a JSON object containing: detailedPrompt.` }
+      ] 
+    }],
+    generationConfig: {
+      temperature: 0.9,
+      topP: 0.95,
+      responseMimeType: "application/json",
+    }
+  };
+
+  const response = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to expand image prompt");
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  
+  try {
+    const parsed = JSON.parse(text);
+    return {
+      detailedPrompt: parsed.detailedPrompt || text
+    };
+  } catch {
+    return {
+      detailedPrompt: text.substring(0, 1000) || prompt
+    };
+  }
+}
+
 export async function generateScreenImageAction(params: {
   appDescription: string;
   screenName: string;

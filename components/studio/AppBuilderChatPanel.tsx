@@ -21,13 +21,20 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useAppBuilderStore, AppBuilderMessage, GeneratedScreen, BuilderMode } from '@/lib/store/useAppBuilderStore';
+import { useAppDesignerStore, AppDesignerMessage, GeneratedScreen, DesignerMode } from '@/lib/store/useAppBuilderStore';
 import { cn } from '@/lib/utils';
 import { planAppAction } from '@/lib/actions/ai.actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { deductCredit } from '@/lib/credits-actions';
 import { AuthModal } from '@/components/studio/AuthModal';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const DEFAULT_APP_SCREENS = ['Welcome', 'Login', 'Home', 'Profile', 'Settings'];
 const DEFAULT_WEB_SCREENS = ['Landing', 'Features', 'Pricing', 'About', 'Contact'];
@@ -96,8 +103,8 @@ function ColorInput({ label, value, onChange, placeholder, dotColor, disabled }:
   );
 }
 
-export function AppBuilderChatPanel() {
-  const { messages, isGenerating, addMessage, updateMessage, addGalleryScreens, setIsGenerating, builderMode, setBuilderMode, clearGallery } = useAppBuilderStore();
+export function AppDesignerChatPanel() {
+  const { messages, isGenerating, addMessage, updateMessage, addGalleryScreens, setIsGenerating, builderMode, setBuilderMode, clearGallery } = useAppDesignerStore();
   const { user, profile } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -113,7 +120,7 @@ export function AppBuilderChatPanel() {
 
   const [screens, setScreens] = useState<string[]>(builderMode === 'web' ? DEFAULT_WEB_SCREENS : DEFAULT_APP_SCREENS);
 
-  const updateMode = (mode: BuilderMode) => {
+  const updateMode = (mode: DesignerMode) => {
     if (mode === builderMode) return;
     clearGallery();
     setBuilderMode(mode);
@@ -147,7 +154,7 @@ export function AppBuilderChatPanel() {
     if (hasProcessedUrl.current) return;
     
     // 1. Sync builder mode from URL type param if present
-    const urlType = searchParams.get('type') as BuilderMode | null;
+    const urlType = searchParams.get('type') as DesignerMode | null;
     if (urlType && urlType !== builderMode) {
       setBuilderMode(urlType);
       return;
@@ -235,6 +242,19 @@ export function AppBuilderChatPanel() {
   };
 
   const handleScrapeAndPlan = async (url: string, userPrompt: string, isPlanAction: boolean = false) => {
+    if (url.trim() && !url.trim().toLowerCase().startsWith('https://')) {
+      const asstMsgId = `msg_err_${Date.now()}`;
+      addMessage({ id: `msg_u_err_${Date.now()}`, role: 'user', content: `Analyze URL: ${url}`, timestamp: Date.now() });
+      addMessage({ 
+        id: asstMsgId, 
+        role: 'assistant', 
+        content: '❌ Security Error: Please provide a secure URL starting with https:// for redesigning.', 
+        isLoading: false, 
+        timestamp: Date.now() 
+      });
+      return;
+    }
+
     setIsPlanning(true);
     setAppDescription(`⚡ Redesigning ${url}...`);
     
@@ -262,7 +282,7 @@ export function AppBuilderChatPanel() {
         setSecondaryColor(selected.s.replace('#', ''));
         setAccentColor(selected.a.replace('#', ''));
 
-        const richPrompt = `DEEP LUXURY FULL-WIDTH REDESIGN: ${data.title}\n\nSOURCE CODE foundation: \n${truncatedHtml}\n\nCONTENT (DO NOT CHANGE): \n${data.text}\n\nSTYLE GOAL: ${userPrompt || 'Create a world-class, sexy, professional luxury redesign.'}\n\nINSTRUCTION: REDESIGN THE PROVIDED CODE INTO A FULL-WIDTH MASTERPIECE. \n– Use the provided color palette: Primary ${selected.p}.\n– Layout: ULTRA-WIDE, FULL DEPTH, Bento Grid complexity.\n– Aesthetic: Sophisticated glassmorphism, fluid typography, mesh gradients.\n– Viewport: Design must be FULL WIDTH (w-full, max-w-none) for a cinematic desktop experience.`;
+        const richPrompt = `DEEP LUXURY RESPONSIVE REDESIGN: ${data.title}\n\nSOURCE CODE foundation: \n${truncatedHtml}\n\nCONTENT (DO NOT CHANGE): \n${data.text}\n\nSTYLE GOAL: ${userPrompt || 'Create a world-class, sexy, professional luxury redesign.'}\n\nINSTRUCTION: REDESIGN THE PROVIDED CODE INTO A RESPONSIVE MASTERPIECE. \n– Use the provided color palette: Primary ${selected.p}.\n– Layout: BENTO GRID complexity, perfectly responsive (mobile to desktop).\n– Aesthetic: Sophisticated glassmorphism, fluid typography, mesh gradients.\n– Viewport: Use Tailwind responsive prefixes (sm:, md:, lg:) to ensure it looks stunning on both iPhone and Ultra-wide monitors.`;
         
         // We set the user-facing description to something clean
         setAppDescription(`⚡ Expertly redesigning ${data.title} with a luxury aesthetic...`);
@@ -378,7 +398,7 @@ export function AppBuilderChatPanel() {
 
     try {
       updateMessage(asstMsgId, { content: `Allocating studio resources...`, isLoading: true });
-      await deductCredit(2); // Flat 2 credits for whole app building
+      await deductCredit(2); // Flat 2 credits for whole app designing
     } catch (err: any) {
       updateMessage(asstMsgId, { content: err.message, isLoading: false });
       setIsGenerating(false);
@@ -653,7 +673,7 @@ export function AppBuilderChatPanel() {
         screenName,
         prompt: appDescription,
         timestamp: Date.now(),
-        mode: 'app',
+        mode: builderMode,
       };
       addGalleryScreens([screen]);
 
@@ -667,19 +687,20 @@ export function AppBuilderChatPanel() {
   };
 
   const handleGenerate = (builderMode === 'app' || builderMode === 'web') ? handleGenerateApp : handleGenerateComponent;
-  const canGenerate = appDescription.trim() && !isGenerating && !isPlanning;
+  const isProjectStarted = (builderMode === 'app' || builderMode === 'web') && messages.length > 0;
+  const canGenerate = appDescription.trim() && !isGenerating && !isPlanning && !isProjectStarted;
 
   if (isMobile) {
     return (
       <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-4 pb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {(['app', 'web', 'component'] as BuilderMode[]).map((mode) => (
+            {(['app', 'web', 'component'] as DesignerMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => updateMode(mode)}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shrink-0",
+                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 whitespace-nowrap",
                   builderMode === mode 
                     ? (mode === 'app' ? "bg-cyan-600 border-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]" :
                        mode === 'web' ? "bg-amber-600 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]" :
@@ -687,7 +708,7 @@ export function AppBuilderChatPanel() {
                     : "bg-zinc-900 border-zinc-800 text-zinc-500"
                 )}
               >
-                {mode === 'component' ? 'UI Element' : mode}
+                {mode === 'component' ? 'UI Element' : mode === 'app' ? 'App Designer' : 'Web Designer'}
               </button>
             ))}
           </div>
@@ -794,9 +815,13 @@ export function AppBuilderChatPanel() {
             value={appDescription}
             onChange={(e) => setAppDescription(e.target.value)}
             onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-            placeholder={`Describe your ${builderMode}...`}
+            disabled={isGenerating || isPlanning || isProjectStarted}
+            placeholder={isProjectStarted ? "Project locked. Use 'Add Screen' below." : `Describe your ${builderMode}...`}
             rows={1}
-            className="w-full bg-zinc-900 border border-white/5 rounded-[24px] py-4 pl-12 pr-20 text-xs text-white focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all resize-none shadow-2xl"
+            className={cn(
+              "w-full bg-zinc-900 border border-white/5 rounded-[24px] py-4 pl-12 pr-20 text-xs text-white focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all resize-none shadow-2xl",
+              isProjectStarted && "opacity-50 cursor-not-allowed"
+            )}
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
              <button onClick={() => fileInputRef.current?.click()} className="p-2 text-zinc-500 hover:text-white transition-colors">
@@ -829,34 +854,33 @@ export function AppBuilderChatPanel() {
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0A0A0F]">
-      {/* Mode Switcher */}
-      <div className="shrink-0 px-6 py-4 flex items-center justify-between border-b border-white/5 bg-[#0D0D12]/50 backdrop-blur-md">
-        <div className="flex bg-white/[0.03] border border-white/5 rounded-xl p-1 shadow-2xl">
-          <button
-            onClick={() => updateMode('app')}
-            className={cn(
-              "flex items-center gap-2.5 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300",
-              builderMode === 'app'
-                ? "bg-cyan-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-            )}
-          >
-            <Smartphone size={14} className={cn("transition-transform duration-300", builderMode === 'app' && "scale-110")} />
-            Web & App Builder
-          </button>
-          <button
-            onClick={() => updateMode('component')}
-            className={cn(
-              "flex items-center gap-2.5 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300",
-              builderMode === 'component'
-                ? "bg-violet-600 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)]"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-            )}
-          >
-            <Code2 size={14} className={cn("transition-transform duration-300", builderMode === 'component' && "scale-110")} />
-            UI Component
-          </button>
-        </div>
+      {/* Mode Switcher - Dropdown */}
+      <div className="shrink-0 px-6 py-4 border-b border-white/5 bg-[#0D0D12]/50 backdrop-blur-md">
+        <Select value={builderMode} onValueChange={(v) => updateMode(v as DesignerMode)}>
+          <SelectTrigger className="w-full bg-white/[0.03] border-white/5 rounded-xl h-12 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all shadow-2xl">
+            <SelectValue placeholder="Select Designer Mode" />
+          </SelectTrigger>
+          <SelectContent position="popper" side="bottom" className="bg-[#0D0D12] border-white/5 text-white mt-2">
+            <SelectItem value="app" className="py-3 focus:bg-cyan-600/20 focus:text-cyan-400">
+              <div className="flex items-center gap-3">
+                <Smartphone size={14} className="text-cyan-500" />
+                <span>App Designer</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="web" className="py-3 focus:bg-amber-600/20 focus:text-amber-400">
+              <div className="flex items-center gap-3">
+                <Globe size={14} className="text-amber-500" />
+                <span>Web Designer</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="component" className="py-3 focus:bg-violet-600/20 focus:text-violet-400">
+              <div className="flex items-center gap-3">
+                <Code2 size={14} className="text-violet-500" />
+                <span>UI Component</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Messages */}
@@ -908,9 +932,11 @@ export function AppBuilderChatPanel() {
       {/* Configuration & Input Bottom Section */}
       <div className="shrink-0 p-4 border-t border-zinc-800/50 space-y-3 bg-black/20">
         {/* Add Screen input — only show after initial generation has happened */}
-        {builderMode === 'app' && messages.length > 0 && !isGenerating && (
+        {(builderMode === 'app' || builderMode === 'web') && messages.length > 0 && !isGenerating && (
           <div>
-            <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-1.5 block px-1">Add Screen</label>
+            <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-1.5 block px-1">
+              {builderMode === 'web' ? 'Add Page' : 'Add Screen'}
+            </label>
             <div className="flex gap-2">
               <input
                 value={addScreenInput}
@@ -995,9 +1021,10 @@ export function AppBuilderChatPanel() {
               onChange={(e) => setAppDescription(e.target.value)}
               onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
               onPaste={handlePaste}
-              disabled={isGenerating || isPlanning}
+              disabled={isGenerating || isPlanning || isProjectStarted}
               placeholder={
-                builderMode === 'app' ? "What app are we building?" : 
+                isProjectStarted ? "Project brief locked. Use 'Add Screen' to expand." :
+                builderMode === 'app' ? "What app are we designing?" : 
                 builderMode === 'web' ? "Describe your landing page or website vision..." :
                 "Describe a UI element..."
               }
@@ -1006,7 +1033,8 @@ export function AppBuilderChatPanel() {
                 "w-full bg-[#111118] border rounded-xl py-3 pl-4 pr-12 text-white text-xs resize-none transition-all leading-relaxed",
                 builderMode === 'app' ? "border-zinc-800/60 focus:border-cyan-500/40" :
                 builderMode === 'web' ? "border-zinc-800/60 focus:border-amber-500/40" :
-                "border-zinc-800/60 focus:border-violet-500/40"
+                "border-zinc-800/60 focus:border-violet-500/40",
+                isProjectStarted && "opacity-40 cursor-not-allowed"
               )}
             />
             <div className="absolute right-3 bottom-3 flex items-center gap-1.5">

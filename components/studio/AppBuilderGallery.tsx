@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useAppBuilderStore, GeneratedScreen } from '@/lib/store/useAppBuilderStore';
-import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, ImageIcon } from 'lucide-react';
+import { useState, useEffect, useRef, memo, useMemo } from 'react';
+import { useAppDesignerStore, GeneratedScreen } from '@/lib/store/useAppBuilderStore';
+import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, ImageIcon, Smartphone, Globe } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { cn } from '@/lib/utils';
 import { deductCredit } from '@/lib/credits-actions';
@@ -209,14 +209,40 @@ const downloadImage = async (screen: GeneratedScreen) => {
   }
 };
 
-function ScreenCard({ screen, onRemove, onEdit }: { screen: GeneratedScreen; onRemove: () => void; onEdit: () => void }) {
+const ScreenCard = memo(({ 
+  screen, 
+  onRemove, 
+  onEdit 
+}: { 
+  screen: GeneratedScreen; 
+  onRemove: () => void; 
+  onEdit: () => void;
+}) => {
   const [copied, setCopied] = useState(false);
+  const [viewport, setViewport] = useState<'mobile' | 'desktop'>(screen.mode === 'web' ? 'desktop' : 'mobile');
 
   const handleCopy = () => {
     navigator.clipboard.writeText(screen.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const sandpackFiles = useMemo(() => ({
+    "/index.html": {
+      code: screen.code.includes('<head>') 
+        ? screen.code.replace('</head>', `<style>
+            *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+            * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+            body { overflow-x: hidden; }
+          </style></head>`)
+        : `<!DOCTYPE html><html><head><style>
+            *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+            * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+            body { font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
+          </style></head><body>${screen.code}</body></html>`,
+      active: true,
+    },
+  }), [screen.code, screen.id]);
 
   return (
     <div className="rounded-[28px] border border-white/[0.06] bg-[#0C0C11] overflow-hidden group shadow-2xl shadow-black/60 hover:border-white/10 transition-all">
@@ -267,6 +293,30 @@ function ScreenCard({ screen, onRemove, onEdit }: { screen: GeneratedScreen; onR
         </div>
       </div>
 
+      {/* Viewport Toggle (Web Only) */}
+      {screen.mode === 'web' && (
+        <div className="flex items-center justify-center py-4 bg-[#080810]/50 border-b border-white/[0.04] gap-2">
+          <button
+            onClick={() => setViewport('mobile')}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all transition-all flex items-center gap-2",
+              viewport === 'mobile' ? "bg-amber-500 text-black shadow-lg" : "bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            <Smartphone size={12} /> Mobile
+          </button>
+          <button
+            onClick={() => setViewport('desktop')}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              viewport === 'desktop' ? "bg-amber-500 text-black shadow-lg" : "bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            <Globe size={12} /> Desktop
+          </button>
+        </div>
+      )}
+
       {/* Sandpack Preview */}
       <div className={cn(
         "relative overflow-hidden flex justify-center",
@@ -274,12 +324,12 @@ function ScreenCard({ screen, onRemove, onEdit }: { screen: GeneratedScreen; onR
       )}>
         {/* Mobile Device Frame (app mode only) */}
         <div className={cn(
-          screen.mode === 'app'
-            ? "relative w-[390px] rounded-[3rem] border-[3px] border-zinc-700/60 bg-black overflow-hidden shadow-[0_0_60px_-15px_rgba(0,0,0,0.8),inset_0_0_0_1px_rgba(255,255,255,0.05)]"
+          (screen.mode === 'app' || (screen.mode === 'web' && viewport === 'mobile'))
+            ? "relative w-[390px] rounded-[3rem] border-[3px] border-zinc-700/60 bg-black overflow-hidden shadow-[0_0_60px_-15px_rgba(0,0,0,0.8),inset_0_0_0_1px_rgba(255,255,255,0.05)] my-8"
             : "w-full"
         )}>
-          {/* Phone Notch (app mode only) */}
-          {screen.mode === 'app' && (
+          {/* Phone Notch (app or web-mobile mode) */}
+          {(screen.mode === 'app' || (screen.mode === 'web' && viewport === 'mobile')) && (
             <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[120px] h-[28px] bg-black rounded-b-2xl flex items-center justify-center">
               <div className="w-[60px] h-[4px] bg-zinc-800 rounded-full" />
             </div>
@@ -289,29 +339,14 @@ function ScreenCard({ screen, onRemove, onEdit }: { screen: GeneratedScreen; onR
             key={screen.id}
             template="static"
             theme="dark"
-            files={{
-              "/index.html": {
-                code: screen.code.includes('<head>') 
-                  ? screen.code.replace('</head>', `<style>
-                      *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
-                      * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-                      body { overflow-x: hidden; }
-                    </style></head>`)
-                  : `<!DOCTYPE html><html><head><style>
-                      *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
-                      * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-                      body { font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
-                    </style></head><body>${screen.code}</body></html>`,
-                active: true,
-              },
-            }}
+            files={sandpackFiles}
           >
             <SandpackLayout style={{ border: "none", borderRadius: 0, background: "transparent" }}>
               <SandpackPreview
                 style={{
                   height: screen.mode === 'component' ? "600px" : 
-                          screen.mode === 'web' ? "900px" : "844px",
-                  width: screen.mode === 'app' ? "390px" : "100%",
+                          screen.mode === 'web' ? (viewport === 'mobile' ? "844px" : "900px") : "844px",
+                  width: (screen.mode === 'app' || (screen.mode === 'web' && viewport === 'mobile')) ? "390px" : "100%",
                   border: "none",
                 }}
                 showOpenInCodeSandbox={false}
@@ -322,22 +357,78 @@ function ScreenCard({ screen, onRemove, onEdit }: { screen: GeneratedScreen; onR
             <SandpackErrorGuard />
           </SandpackProvider>
 
-          {/* Home Indicator (app mode only) */}
-          {screen.mode === 'app' && (
+          {/* Home Indicator (app or web-mobile mode) */}
+          {(screen.mode === 'app' || (screen.mode === 'web' && viewport === 'mobile')) && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 w-[130px] h-[5px] bg-white/20 rounded-full" />
           )}
         </div>
       </div>
     </div>
   );
+});
+
+function EditOverlay({ 
+  screen, 
+  onClose, 
+  onUpdate 
+}: { 
+  screen: GeneratedScreen; 
+  onClose: () => void; 
+  onUpdate: (prompt: string) => Promise<void> 
+}) {
+  const [editPrompt, setEditPrompt] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  return (
+    <div className="absolute inset-x-6 bottom-6 z-20 animate-in slide-in-from-bottom-2 duration-300">
+      <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
+        <textarea
+          value={editPrompt}
+          onChange={(e) => setEditPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { 
+              e.preventDefault(); 
+              setIsUpdating(true);
+              onUpdate(editPrompt).finally(() => setIsUpdating(false)); 
+            }
+            if (e.key === 'Escape') { onClose(); }
+          }}
+          placeholder="What should we change? (e.g. 'Make the buttons larger', 'Change to blue theme')"
+          rows={2}
+          autoFocus
+          className="w-full bg-transparent border-none text-white text-[12px] focus:outline-none resize-none placeholder:text-zinc-500 leading-relaxed"
+        />
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-[10px] text-zinc-600 font-medium italic">Enter to update · Esc to cancel</span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 text-[10px] text-zinc-500 hover:text-white rounded-lg transition-colors font-bold uppercase tracking-wider"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setIsUpdating(true);
+                onUpdate(editPrompt).finally(() => setIsUpdating(false));
+              }}
+              disabled={!editPrompt.trim() || isUpdating}
+              className="px-4 py-1.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 text-white rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-wider"
+            >
+              {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              Update Design
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export function AppBuilderGallery() {
-  const { galleryScreens, removeGalleryScreen, updateGalleryScreen, builderMode } = useAppBuilderStore();
+export function AppDesignerGallery() {
+  const { galleryScreens, removeGalleryScreen, updateGalleryScreen, builderMode } = useAppDesignerStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; screen: GeneratedScreen } | null>(null);
   const [editingScreenId, setEditingScreenId] = useState<string | null>(null);
-  const [editPrompt, setEditPrompt] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
   const [activeScreenId, setActiveScreenId] = useState<string | null>(null);
 
   // Auto-focus latest screen when new ones are added
@@ -363,20 +454,19 @@ export function AppBuilderGallery() {
 
   const closeContextMenu = () => setContextMenu(null);
 
-  const handleEdit = async (screen: GeneratedScreen) => {
-    if (!editPrompt.trim() || isEditing) return;
-    setIsEditing(true);
+  const handleEdit = async (screen: GeneratedScreen, prompt: string) => {
+    if (!prompt.trim()) return;
 
     try {
       const isComponent = screen.mode === 'component';
       
       const endpoint = isComponent ? '/api/generate/component' : '/api/generate/screen';
       const body = isComponent ? {
-        instruction: editPrompt,
+        instruction: prompt,
         existingCode: screen.code,
         theme: screen.screenName.toLowerCase().includes('light') ? 'light' : 'dark',
       } : {
-        instruction: editPrompt,
+        instruction: prompt,
         existingCode: screen.code,
         screenName: screen.screenName,
         appDescription: screen.prompt,
@@ -397,12 +487,9 @@ export function AppBuilderGallery() {
 
       updateGalleryScreen(screen.id, { code: data.code });
       setEditingScreenId(null);
-      setEditPrompt('');
     } catch (err: any) {
       console.error('[AppBuilder Edit] Failed:', err);
       alert('Edit failed: ' + err.message);
-    } finally {
-      setIsEditing(false);
     }
   };
 
@@ -479,41 +566,11 @@ export function AppBuilderGallery() {
                 
                 {/* Inline Edit Bar Overlay */}
                 {editingScreenId === scr.id && (
-                  <div className="absolute inset-x-6 bottom-6 z-20 animate-in slide-in-from-bottom-2 duration-300">
-                    <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
-                      <textarea
-                        value={editPrompt}
-                        onChange={(e) => setEditPrompt(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEdit(scr); }
-                          if (e.key === 'Escape') { setEditingScreenId(null); setEditPrompt(''); }
-                        }}
-                        placeholder="What should we change? (e.g. 'Make the buttons larger', 'Change to blue theme')"
-                        rows={2}
-                        autoFocus
-                        className="w-full bg-transparent border-none text-white text-[12px] focus:outline-none resize-none placeholder:text-zinc-500 leading-relaxed"
-                      />
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="text-[10px] text-zinc-600 font-medium italic">Enter to update · Esc to cancel</span>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { setEditingScreenId(null); setEditPrompt(''); }}
-                            className="px-3 py-1.5 text-[10px] text-zinc-500 hover:text-white rounded-lg transition-colors font-bold uppercase tracking-wider"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleEdit(scr)}
-                            disabled={!editPrompt.trim() || isEditing}
-                            className="px-4 py-1.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 text-white rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-wider"
-                          >
-                            {isEditing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                            Update Design
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <EditOverlay 
+                    screen={scr} 
+                    onClose={() => setEditingScreenId(null)}
+                    onUpdate={(prompt) => handleEdit(scr, prompt)}
+                  />
                 )}
               </div>
             ))}

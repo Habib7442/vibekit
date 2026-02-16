@@ -35,6 +35,10 @@ export default function LandingPage() {
   };
 
   const handleEnter = () => {
+    if (type === 'web' && websiteUrl.trim() && !websiteUrl.trim().toLowerCase().startsWith('https://')) {
+      alert('❌ Security Error: Please enter a secure website URL starting with https://');
+      return;
+    }
     const targetUrl = getTargetUrl(false);
     if (!user) {
       setPendingTargetUrl(targetUrl);
@@ -45,6 +49,10 @@ export default function LandingPage() {
   };
 
   const handlePlan = () => {
+    if (type === 'web' && websiteUrl.trim() && !websiteUrl.trim().toLowerCase().startsWith('https://')) {
+      alert('❌ Security Error: Please enter a secure website URL starting with https://');
+      return;
+    }
     const targetUrl = getTargetUrl(true);
     if (!user) {
       setPendingTargetUrl(targetUrl);
@@ -73,7 +81,8 @@ export default function LandingPage() {
             <span className="font-bold text-sm tracking-tight text-white uppercase italic">ImageStudioLab</span>
           </div>
           
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-4 md:gap-8">
+            <Link href="/pricing" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Pricing</Link>
             <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-[10px] md:text-[11px] font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
               <span className="hidden sm:inline">Launch Studio</span>
               <span className="sm:hidden">Launch</span>
@@ -153,9 +162,9 @@ export default function LandingPage() {
                             type === 'web' && "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
                             type === 'image' && "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
                           )} />
-                          {type === 'app' && 'App Builder'}
+                          {type === 'app' && 'App Designer'}
                           {type === 'ui' && 'UI Studio'}
-                          {type === 'web' && 'Web Design'}
+                          {type === 'web' && 'Web Designer'}
                           {type === 'image' && 'AI Photoshoot'}
                         </div>
                         <ChevronDown size={14} className={cn("transition-transform opacity-50", isDropdownOpen && "rotate-180")} />
@@ -168,7 +177,7 @@ export default function LandingPage() {
                             <button onClick={() => { setType('app'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-cyan-400 hover:bg-cyan-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
                               <span className="flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
-                                App Builder
+                                App Designer
                               </span>
                               <Smartphone size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
                             </button>
@@ -182,7 +191,7 @@ export default function LandingPage() {
                             <button onClick={() => { setType('web'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-amber-500 hover:bg-amber-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
                               <span className="flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" />
-                                Web Design
+                                Web Designer
                               </span>
                               <Globe size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
                             </button>
@@ -254,7 +263,8 @@ export default function LandingPage() {
           </div>
           <span className="font-bold text-[10px] tracking-tight text-white uppercase italic">ImageStudioLab</span>
         </div>
-        <div className="flex justify-center gap-8 mb-8">
+        <div className="flex justify-center flex-wrap gap-8 mb-8 px-6">
+           <Link href="/pricing" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Pricing</Link>
            <Link href="/privacy" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Privacy</Link>
            <Link href="/terms" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
            <Link href="/cookies" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>

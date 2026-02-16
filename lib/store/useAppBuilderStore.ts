@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type BuilderMode = 'app' | 'component' | 'web';
+export type DesignerMode = 'app' | 'component' | 'web';
 
 export interface GeneratedScreen {
   id: string;
@@ -8,13 +8,13 @@ export interface GeneratedScreen {
   code: string;          // React/Tailwind code
   prompt: string;        // original app description
   timestamp: number;
-  mode: BuilderMode;     // what mode generated this
+  mode: DesignerMode;     // what mode generated this
   // Legacy image fields (kept for backward compat)
   image?: string;
   mimeType?: string;
 }
 
-export interface AppBuilderMessage {
+export interface AppDesignerMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -23,26 +23,26 @@ export interface AppBuilderMessage {
   timestamp: number;
 }
 
-interface AppBuilderState {
-  messages: AppBuilderMessage[];
+interface AppDesignerState {
+  messages: AppDesignerMessage[];
   galleryScreens: GeneratedScreen[];
   isGenerating: boolean;
   activeScreenId: string | null;
-  builderMode: BuilderMode;
+  builderMode: DesignerMode;
 
-  addMessage: (msg: AppBuilderMessage) => void;
-  updateMessage: (id: string, updates: Partial<AppBuilderMessage>) => void;
+  addMessage: (msg: AppDesignerMessage) => void;
+  updateMessage: (id: string, updates: Partial<AppDesignerMessage>) => void;
   addGalleryScreens: (screens: GeneratedScreen[]) => void;
   removeGalleryScreen: (id: string) => void;
   updateGalleryScreen: (id: string, updates: Partial<GeneratedScreen>) => void;
   setActiveScreenId: (id: string | null) => void;
   setIsGenerating: (v: boolean) => void;
-  setBuilderMode: (mode: BuilderMode) => void;
+  setBuilderMode: (mode: DesignerMode) => void;
   clearChat: () => void;
   clearGallery: () => void;
 }
 
-export const useAppBuilderStore = create<AppBuilderState>((set, get) => ({
+export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
   messages: [],
   galleryScreens: [],
   isGenerating: false,

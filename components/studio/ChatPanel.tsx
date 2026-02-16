@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, ImageIcon, Sparkles, Loader2, Paperclip, X, Settings2, MessageSquare, LayoutGrid } from 'lucide-react';
+import { Send, ImageIcon, Sparkles, Loader2, Paperclip, X, Settings2, MessageSquare, LayoutGrid, Wand2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useImageChatStore, ChatMessage, GeneratedImage } from '@/lib/store/useImageChatStore';
 import { cn } from '@/lib/utils';
-import { generateAIImage } from '@/lib/actions/ai.actions';
+import { generateAIImage, planVisualAction } from '@/lib/actions/ai.actions';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { deductCredit } from '@/lib/credits-actions';
@@ -57,6 +57,7 @@ export function ChatPanel() {
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [selectedImages, setSelectedImages] = useState<{ data: string; mimeType: string }[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
+  const [isPlanning, setIsPlanning] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -115,6 +116,23 @@ export function ChatPanel() {
 
   const removeImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePlan = async () => {
+    if (!input.trim() || isPlanning) return;
+    setIsPlanning(true);
+
+    try {
+      const data = await planVisualAction(input);
+      if (data.detailedPrompt) {
+        setInput(data.detailedPrompt);
+      }
+    } catch (err: any) {
+      console.error('[Visual Plan] Error:', err);
+      alert(`Magic Plan failed: ${err.message}`);
+    } finally {
+      setIsPlanning(false);
+    }
   };
 
   const handleGenerate = async (overridePrompt?: string) => {
@@ -360,6 +378,15 @@ export function ChatPanel() {
                   <Paperclip size={18} />
                 </button>
              </div>
+             
+             <button 
+                onClick={handlePlan}
+                disabled={!input.trim() || isPlanning}
+                className="w-12 h-12 rounded-full bg-zinc-800 text-indigo-400 flex items-center justify-center shadow-xl border border-white/5 active:scale-90 disabled:opacity-50 transition-all shrink-0"
+              >
+               {isPlanning ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+             </button>
+
              <button 
                 onClick={() => handleGenerate()}
                 disabled={(!input.trim() && selectedImages.length === 0) || isGenerating}
@@ -519,6 +546,13 @@ export function ChatPanel() {
             <div className="absolute right-3 bottom-3 flex items-center gap-1">
                <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors">
                  <Paperclip size={16} />
+               </button>
+               <button 
+                 onClick={handlePlan}
+                 disabled={!input.trim() || isPlanning}
+                 className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-all active:scale-90"
+               >
+                 {isPlanning ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                </button>
                <button 
                  onClick={() => handleGenerate()}

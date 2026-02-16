@@ -83,7 +83,7 @@ export function AppBuilderNode({ id, data, selected }: NodeProps<AppBuilderNodeD
   return (
     <BaseNode
       id={id}
-      title="App Builder"
+      title="App Designer"
       icon={<Smartphone size={16} />}
       selected={selected}
       outputs={[{ id: 'screens', label: 'Screens' }]}
