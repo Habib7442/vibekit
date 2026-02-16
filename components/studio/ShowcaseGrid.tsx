@@ -53,8 +53,7 @@ export function ShowcaseGrid() {
              <div className="w-20 h-20 rounded-3xl bg-zinc-900 flex items-center justify-center mb-6 text-zinc-800">
                 <Globe size={40} />
              </div>
-             <h3 className="text-zinc-500 font-bold mb-2 font-black uppercase tracking-widest text-xs">Nothing Shared Yet</h3>
-             <p className="text-zinc-700 text-[10px] font-bold uppercase tracking-widest max-w-[240px]">Go to your vault and toggle a project to "Public" to see it featured here.</p>
+             <h3 className="text-zinc-500 mb-2 font-black uppercase tracking-widest text-xs">Nothing Shared Yet</h3>             <p className="text-zinc-700 text-[10px] font-bold uppercase tracking-widest max-w-[240px]">Go to your vault and toggle a project to "Public" to see it featured here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">

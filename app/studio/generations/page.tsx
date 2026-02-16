@@ -27,6 +27,16 @@ export default async function GenerationsPage() {
 
   if (error) {
     console.error('[Generations] Error fetching canvases:', error);
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] bg-[#050505] text-white p-6 text-center">
+        <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6 text-red-500">
+          <Calendar size={32} />
+        </div>
+        <h1 className="text-xl font-bold mb-2 uppercase tracking-tight">Vault Access Failed</h1>
+        <p className="text-zinc-500 mb-8 max-w-xs text-sm font-medium">We couldn't retrieve your saved designs. This might be a temporary connection issue.</p>
+        <Link href="/studio/generations" className="px-8 py-3 bg-zinc-900 border border-zinc-800 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-800 transition-all">Try Again</Link>
+      </div>
+    );
   }
 
   return (

@@ -28,8 +28,7 @@ function SandpackErrorGuard() {
     }
     if (hasError && retried) setShowOverlay(true);
     if (!hasError) setShowOverlay(false);
-  }, [hasError, retried]);
-
+  }, [hasError, retried, sandpack]);
   return (
     <>
       <style>{`

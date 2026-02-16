@@ -25,6 +25,13 @@ export function ImageGallery() {
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const saveSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimeoutRef.current) clearTimeout(saveSuccessTimeoutRef.current);
+    };
+  }, []);
 
   // Auto-focus latest image when new ones are added
   const prevCountRef = useRef(galleryImages.length);
@@ -103,7 +110,7 @@ export function ImageGallery() {
       }
 
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      saveSuccessTimeoutRef.current = setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
       console.error('[Save All Images] Error:', err);
       alert(`Save failed: ${err.message}`);
@@ -154,7 +161,7 @@ export function ImageGallery() {
               onClick={handleSaveAll}
               disabled={isSaving}
               className={cn(
-                "hidden md:flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
+                "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
                 saveSuccess 
                   ? "bg-emerald-500 text-white" 
                   : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20"
@@ -163,17 +170,19 @@ export function ImageGallery() {
               {isSaving ? (
                 <>
                   <Loader2 size={12} className="animate-spin" />
-                  Saving...
+                  <span className="hidden sm:inline">Saving...</span>
+                  <span className="sm:hidden">...</span>
                 </>
               ) : saveSuccess ? (
                 <>
                   <Check size={12} />
-                  Saved
+                  <span>Saved</span>
                 </>
               ) : (
                 <>
                   <Cloud size={12} />
-                  Save to Cloud
+                  <span>Save</span>
+                  <span className="hidden md:inline"> to Cloud</span>
                 </>
               )}
             </button>

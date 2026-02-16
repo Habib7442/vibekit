@@ -38,7 +38,7 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
       .from('canvases')
       .update({
         name: params.name,
-        is_public: params.isPublic !== undefined ? params.isPublic : undefined,
+        ...(params.isPublic !== undefined && { is_public: params.isPublic }),
         updated_at: new Date().toISOString(),
       })
       .eq('id', canvasId)
@@ -87,6 +87,7 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
 
     if (screensError) {
       console.error('[saveCanvasAction] Screens Upsert Error:', screensError);
+      throw new Error('Failed to save screens.');
     }
   }
 
@@ -117,6 +118,7 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
 
       if (imagesError) {
         console.error('[saveCanvasAction] Images Error:', imagesError);
+        throw new Error('Failed to save images.');
       }
     }
   }
@@ -133,7 +135,10 @@ export async function uploadImageToStudio(base64: string, filename: string) {
 
   // Convert base64 to Buffer
   const buffer = Buffer.from(base64, 'base64');
-  const path = `${user.id}/${Date.now()}_${filename}`;
+  
+  // Sanitize filename to prevent path traversal
+  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${user.id}/${Date.now()}_${sanitizedFilename}`;
 
   const { data, error } = await supabase.storage
     .from('studio_assets')
