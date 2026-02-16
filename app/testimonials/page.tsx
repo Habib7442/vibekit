@@ -1,12 +1,21 @@
 import { getTestimonialsAction } from '@/lib/actions/testimonials.actions';
-import { TestimonialForm, TestimonialCard } from '@/components/studio/Testimonials';
+import { TestimonialForm, TestimonialCard, type Testimonial } from '@/components/studio/Testimonials';
 import Link from 'next/link';
 import { ChevronLeft, MessageSquareHeart, Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TestimonialsPage() {
-  const testimonials = await getTestimonialsAction();
+  let testimonials: Testimonial[] = [];
+  try {
+    const response = await getTestimonialsAction();
+    testimonials = (response.data || []) as Testimonial[];
+    if (response.error) {
+       console.error('Action error:', response.error);
+    }
+  } catch (err) {
+    console.error('Failed to fetch testimonials:', err);
+  }
 
   return (
     <div className="min-h-screen bg-[#000000] text-white selection:bg-[#f5e1c8]/30 font-sans antialiased overflow-y-auto scrollbar-none pb-20">
@@ -82,7 +91,7 @@ export default async function TestimonialsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((t: any) => (
+                {testimonials.map((t: Testimonial) => (
                   <TestimonialCard key={t.id} testimonial={t} />
                 ))}
               </div>

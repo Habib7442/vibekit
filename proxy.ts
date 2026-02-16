@@ -22,10 +22,14 @@ export async function proxy(request: NextRequest) {
             value,
             ...options,
           })
+          const existingCookies = response.cookies.getAll()
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
+          })
+          existingCookies.forEach(cookie => {
+            response.cookies.set(cookie)
           })
           response.cookies.set({
             name,
@@ -39,10 +43,14 @@ export async function proxy(request: NextRequest) {
             value: '',
             ...options,
           })
+          const existingCookies = response.cookies.getAll()
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
+          })
+          existingCookies.forEach(cookie => {
+            response.cookies.set(cookie)
           })
           response.cookies.set({
             name,

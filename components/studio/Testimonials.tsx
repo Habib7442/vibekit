@@ -68,10 +68,14 @@ export function TestimonialForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+          <label 
+            htmlFor="testimonial-name"
+            className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2"
+          >
             <User size={10} /> Full Name*
           </label>
           <input
+            id="testimonial-name"
             required
             type="text"
             value={name}
@@ -81,10 +85,14 @@ export function TestimonialForm() {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+          <label 
+            htmlFor="testimonial-role"
+            className="text-[10px] font-black text-zinc-500 uppercase tracking-widest"
+          >
             Title/Role (Optional)
           </label>
           <input
+            id="testimonial-role"
             type="text"
             value={role}
             onChange={(e) => setRole(e.target.value)}
@@ -106,6 +114,8 @@ export function TestimonialForm() {
               type="button"
               onClick={() => setRating(star)}
               className="transition-transform active:scale-90"
+              aria-label={`Rate ${star} out of 5 stars`}
+              aria-pressed={star <= rating}
             >
               <Star
                 size={20}
@@ -120,8 +130,14 @@ export function TestimonialForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Your Experience*</label>
+        <label 
+          htmlFor="testimonial-content"
+          className="text-[10px] font-black text-zinc-500 uppercase tracking-widest"
+        >
+          Your Experience*
+        </label>
         <textarea
+          id="testimonial-content"
           required
           rows={4}
           value={content}
@@ -143,7 +159,15 @@ export function TestimonialForm() {
   );
 }
 
-export function TestimonialCard({ testimonial }: { testimonial: any }) {
+export interface Testimonial {
+  id: string;
+  name: string;
+  role?: string;
+  content: string;
+  rating: number;
+}
+
+export function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
     <div className="p-6 rounded-[32px] bg-[#0A0A0F] border border-white/[0.05] flex flex-col gap-4 relative group hover:border-white/10 transition-all hover:bg-[#0C0C14]">
       <div className="absolute top-6 right-6 text-zinc-900 group-hover:text-zinc-800 transition-colors">
@@ -166,7 +190,7 @@ export function TestimonialCard({ testimonial }: { testimonial: any }) {
 
       <div className="flex items-center gap-3 mt-2">
         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-zinc-800 to-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 font-bold text-xs">
-          {testimonial.name.slice(0, 1).toUpperCase()}
+          {testimonial.name?.slice(0, 1).toUpperCase() ?? '?'}
         </div>
         <div>
           <h4 className="text-[11px] font-black text-white uppercase tracking-widest">{testimonial.name}</h4>
