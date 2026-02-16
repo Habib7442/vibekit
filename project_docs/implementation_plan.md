@@ -1,25 +1,34 @@
-# Implementation Plan - Lovable for Media Kits
+# Implementation Plan: Aesthetic Studio
 
-## Phase 1: Foundation & UI
-- [ ] Set up environment variables (`GEMINI_API_KEY`)
-- [ ] Create `app/builder` route
-- [ ] Design the three-pane layout (Chat, Preview, Code)
-- [ ] Set up `lib/gemini.ts` with Vision and Image Generation support
-- [ ] Implement `LivePreview` with iframe isolation
+## Phase 1: Foundation (Current)
+- [x] Create Technical Specification.
+- [x] Clean up old code and packages.
+- [x] Install latest `@xyflow/react`, `zustand`, `lucide-react`.
+- [x] Initialize shadcn (v4 compatible).
+- [x] Set up workflow state store (Zustand).
+- [x] Build `BaseNode` component.
+- [x] Build `TextInputNode`.
+- [x] Build `DirectorNode` (Visual only).
+- [x] Create `Studio` layout and canvas.
 
-## Phase 2: Gemini Integration (Skill-Based)
-- [ ] **Instagram Insights Extraction**: Implement Vision API call to extract metrics from screenshots
-- [ ] **Professional Bio Polishing**: Implement text generation for brand-ready bios
-- [ ] **Component Generation**: Gemini-powered React/Tailwind code generation (Initial & Refinement)
-- [ ] **Visual Asset Creation**: Integrate Gemini Image Generation for headers and banners
+## Phase 2: Execution Engine
+- [ ] Implement topological sorting for node execution.
+- [ ] Create `useWorkflowEngine` hook to process connections.
+- [ ] Handle async status (idle -> running -> completed) visually on nodes.
+- [ ] Connect `DirectorNode` to `lib/gemini.ts`.
+- [ ] Build `ColorNode` and `TypographyNode`.
 
-## Phase 3: Interactive "Vibe-Coding" Experience
-- [ ] Implement Chat logic for iterative refinements
-- [ ] Real-time code syncing with `LivePreview`
-- [ ] Rate Calculator logic implementation (from Skill)
-- [ ] History/Undo support for iterations
+## Phase 3: Visual Generation
+- [ ] Build `ImagenNode` for image generation.
+- [ ] Build `PreviewNode` for final design visualization.
+- [ ] Implement "Run Workflow" global button.
+- [ ] Add "Variable" support between nodes.
 
-## Phase 4: Polish & Export
-- [ ] Export as ZIP/HTML/PDF
-- [ ] Deploy to custom subdomain (Future)
-- [ ] User Portfolio Management
+## Phase 4: Polish & Persistence
+- [ ] Supabase table setup (`workflows`).
+- [ ] Workflow saving/loading UI.
+- [ ] "App Mode" toggle (Simplified UI).
+- [ ] Export to Code / Image options.
+
+---
+**Status**: 🏗️ Building Phase 1 Basic Mechanics

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,8 +13,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "VibeStudio | AI-Generated Media Kits",
-  description: "Ditch the templates. Describe your dream media kit and let AI build it from scratch.",
+  title: "ImageStudioLab | Professional AI Design Studio",
+  description: "Create premium product photography, editorial fashion, and functional mobile apps with the world's most advanced AI creative engine.",
 };
 
 export default function RootLayout({
@@ -24,12 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-        <body className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-black text-white`} suppressHydrationWarning>
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-black text-white`} suppressHydrationWarning>
+        {children}
+      </body>
+    </html>
   );
 }
