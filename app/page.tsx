@@ -131,7 +131,7 @@ export default function LandingPage() {
            </h1>
            
            <p className="text-zinc-500 text-sm md:text-base max-w-xl mx-auto mb-10 leading-relaxed uppercase tracking-widest font-black opacity-80">
-             High-end photography, Web UI & Mobile Apps.
+             High-end photography, Web UI & Mobile App Designs.
            </p>
 
            <div className="w-full max-w-2xl mx-auto mb-16 relative z-10">

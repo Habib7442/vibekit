@@ -1,9 +1,15 @@
+import { type Metadata } from 'next';
 import { getTestimonialsAction } from '@/lib/actions/testimonials.actions';
 import { TestimonialForm, TestimonialCard, type Testimonial } from '@/components/studio/Testimonials';
 import Link from 'next/link';
 import { ChevronLeft, MessageSquareHeart, Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Community Reviews',
+  description: 'See what our community of creators, builders, and artists have to say about ImageStudioLab.',
+};
 
 export default async function TestimonialsPage() {
   let testimonials: Testimonial[] = [];
