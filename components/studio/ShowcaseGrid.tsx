@@ -18,7 +18,7 @@ export function ShowcaseGrid() {
         // Ensure screens are sorted correctly for the preview
         const formattedData = (data || []).map(canvas => ({
           ...canvas,
-          screens: (canvas.screens || []).sort((a: any, b: any) => a.order - b.order)
+          screens: (canvas.screens || []).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
         }));
 
         setCanvases(formattedData);

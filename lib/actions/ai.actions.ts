@@ -147,8 +147,8 @@ export async function generateAIImage(params: {
     const hasIdentity = basePrompt.includes("SUBJECT IDENTITY");
     const text = isEditing 
       ? `TASK: ADVANCED PRODUCT PHOTOGRAPHY & CREATIVE COMPOSITION.
-         PIXEL-LOCK MANDATE: You must treat the main product/subject in the uploaded image as a "Ridig Object". 
-         DO NOT ALTER THE PRODUCT'S SHAPE, LABELS, OR BRANDING VOID OF ITS ORIGINAL PIXELS.
+         PIXEL-LOCK MANDATE: You must treat the main product/subject in the uploaded image as a "Rigid Object". 
+         DO NOT ALTER THE PRODUCT'S SHAPE, LABELS, OR BRANDING FROM ITS ORIGINAL PIXELS.
          PRODUCT-AWARE INPAINTING: Generate the background and environment AROUND the subject.
          
          ${hasIdentity ? "CRITICAL: YOU MUST INCLUDE THE CHARACTER/SUBJECT DESCRIBED IN THE 'SUBJECT IDENTITY' SECTION. THEY MUST BE INTERACTING WITH THE PRODUCTS/ELEMENTS IN THE UPLOADED IMAGES (e.g., holding them, looking at them, or being in the same scene)." : "TRANSFORM THE ENVIRONMENT WHILE PRESERVING THE CORE PRODUCT AUTHENTICITY 100%."}
@@ -403,6 +403,9 @@ export async function generateScreenImageAction(params: {
 export async function convertToReactNativeAction(htmlCode: string) {
   if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
+  const MAX_HTML_LENGTH = 10000;
+  const wasTruncated = htmlCode.length > MAX_HTML_LENGTH;
+
   const systemInstructions = `You are a world-class React Native and Expo Mobile Engineer.
 YOUR TASK: Translate the provided HTML/CSS/Tailwind code into a professional, production-ready React Native component.
 
@@ -421,7 +424,7 @@ OUTPUT: Return the COMPLETE raw .tsx code string.`;
   const requestBody = {
     contents: [{ 
       parts: [
-        { text: `TRANSLATE THIS HTML TO REACT NATIVE: \n\n${htmlCode.slice(0, 10000)}` }
+        { text: `TRANSLATE THIS HTML TO REACT NATIVE: \n\n${htmlCode.slice(0, MAX_HTML_LENGTH)}` }
       ] 
     }],
     systemInstruction: {
@@ -449,5 +452,5 @@ OUTPUT: Return the COMPLETE raw .tsx code string.`;
   // Clean potential markdown blocks
   code = code.replace(/^```(tsx|jsx|javascript|typescript|ts|js)?\n/, '').replace(/\n```$/, '');
   
-  return { code };
+  return { code, wasTruncated };
 }

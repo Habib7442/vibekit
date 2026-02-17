@@ -27,6 +27,11 @@ export function DownloadCodeButton({ code, fileName, mode }: DownloadCodeButtonP
     try {
       setIsConverting(true);
       const result = await convertToReactNativeAction(code);
+      
+      if (result.wasTruncated) {
+        alert("Warning: The HTML code was too large and has been truncated. The React Native output might be incomplete.");
+      }
+
       const blob = new Blob([result.code], { type: 'text/typescript' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
