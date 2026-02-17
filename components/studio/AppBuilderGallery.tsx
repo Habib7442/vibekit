@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useAppDesignerStore, GeneratedScreen } from '@/lib/store/useAppDesignerStore';
-import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, ImageIcon, Smartphone, Globe, Cloud, CloudOff } from 'lucide-react';
+import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, Smartphone, Globe, Cloud, CloudOff } from 'lucide-react';
 import { saveCanvasAction } from '@/lib/actions/studio.actions';
-import { toPng } from 'html-to-image';
 import { cn } from '@/lib/utils';
-import { deductCredit } from '@/lib/credits-actions';
+import { DownloadCodeButton } from '@/components/studio/DownloadCodeButton';
 
 import {
   SandpackProvider,
@@ -115,101 +114,6 @@ function SandpackErrorGuard() {
   );
 }
 
-const downloadImage = async (screen: GeneratedScreen) => {
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '0';
-  container.style.top = '0';
-  container.style.zIndex = '-9999';
-  container.style.opacity = '1';
-  container.style.pointerEvents = 'none';
-  
-  const width = screen.mode === 'app' ? 480 : screen.mode === 'web' ? 1280 : 800;
-  container.style.width = `${width}px`;
-  
-  document.body.appendChild(container);
-
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(screen.code, 'text/html');
-    
-    // Inject all styles
-    const styles = Array.from(doc.querySelectorAll('style')).map(s => s.textContent).join('\n');
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    container.appendChild(styleEl);
-
-    // Transfer links but don't let them block rule reading
-    const links = doc.querySelectorAll('link[rel="stylesheet"]');
-    links.forEach(link => {
-      const l = document.createElement('link');
-      l.rel = 'stylesheet';
-      l.href = link.getAttribute('href') || '';
-      l.dataset.external = "true";
-      container.appendChild(l);
-    });
-
-    // Inject content without restrictive heights
-    const bodyWrapper = document.createElement('div');
-    bodyWrapper.className = doc.body.className || 'bg-[#050505] text-white';
-    bodyWrapper.style.width = '100%';
-    bodyWrapper.style.height = 'auto'; // Allow it to grow
-    bodyWrapper.style.overflow = 'visible';
-    bodyWrapper.innerHTML = doc.body.innerHTML;
-    container.appendChild(bodyWrapper);
-
-    // Wait for assets (fonts/images) to load
-    await new Promise(r => setTimeout(r, 2500)); 
-
-    // Measure the actual rendered height
-    const fullHeight = container.scrollHeight;
-
-    const dataUrl = await toPng(container, {
-      width: width,
-      height: fullHeight, // Use the full measured height
-      backgroundColor: 'transparent', // Let CSS backgrounds handle it
-      skipAutoScale: true,
-      cacheBust: true,
-      pixelRatio: 2,
-      filter: (node) => {
-        if (node instanceof HTMLElement && node.tagName === 'LINK' && (node as HTMLLinkElement).rel === 'stylesheet') {
-          return true;
-        }
-        return true;
-      }
-    });
-
-    const link = document.createElement('a');
-    link.download = `${screen.screenName.toLowerCase().replace(/\s+/g, '-')}.png`;
-    link.href = dataUrl;
-    link.click();
-  } catch (err: any) {
-    console.error('[Capture] Primary capture failed:', err);
-    try {
-      const dataUrl = await toPng(container, {
-        width: width,
-        height: container.scrollHeight,
-        pixelRatio: 1,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left',
-        }
-      });
-      const link = document.createElement('a');
-      link.download = `${screen.screenName.toLowerCase().replace(/\s+/g, '-')}-fallback.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (fallbackErr) {
-      console.error('[Capture] Fallback failed:', fallbackErr);
-      alert('Security policy blocked the full-height capture. Try copying the design or code.');
-    }
-  } finally {
-    if (container.parentNode) {
-      document.body.removeChild(container);
-    }
-  }
-};
-
 const ScreenCard = memo(({ 
   screen, 
   onRemove, 
@@ -271,20 +175,7 @@ const ScreenCard = memo(({
           >
             <Sparkles size={11} />
           </button>
-          <button
-            onClick={() => downloadImage(screen)}
-            className="h-7 w-7 rounded-full bg-white/[0.08] hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-cyan-400 transition-all"
-            title="Download as Image (PNG)"
-          >
-            <ImageIcon size={11} />
-          </button>
-          <button
-            onClick={() => downloadCode(screen.code, `${screen.screenName.toLowerCase().replace(/\s+/g, '-')}.html`)}
-            className="h-7 w-7 rounded-full bg-white/[0.08] hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-white transition-all"
-            title="Download Code"
-          >
-            <Download size={11} />
-          </button>
+          <DownloadCodeButton code={screen.code} fileName={screen.screenName} mode={screen.mode} />
           <button
             onClick={onRemove}
             className="h-7 w-7 rounded-full bg-white/[0.04] hover:bg-red-500/20 flex items-center justify-center text-white/30 hover:text-red-400 transition-all"

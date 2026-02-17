@@ -182,7 +182,7 @@ export default async function CanvasDetailPage({ params }: PageProps) {
                             <h2 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-400 truncate">{screen.name}</h2>
                          </div>
                           <div className="flex items-center gap-2">
-                            <DownloadCodeButton code={screen.code} fileName={screen.name} />
+                            <DownloadCodeButton code={screen.code} fileName={screen.name} mode={canvas.type as any} />
                             <CopyCodeButton code={screen.code} />
                          </div>
                       </div>

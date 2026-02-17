@@ -78,13 +78,21 @@ ${templateId ? `SPECIALIZED MODE: ${templateId.toUpperCase()}` : ''}
 TASK: Generate a masterpiece based on the following:
 CONCEPT: ${userPrompt}
 
-VISUAL DIRECTION:
+PRODUCT INTEGRITY & AUTHENTICITY (CRITICAL):
+– If a product or specific object is present, YOU MUST PRESERVE ITS GEOMETRY, LABELS, AND BRANDING 100% ACCURATELY.
+– DO NOT distort, re-imagine, or blur product details. All text on labels must remain sharp and exactly as provided.
+– The physical shape of the product must remain "locked" and authentic.
+
+LIGHTING & ENVIRONMENT MASTERY:
 – ${direction}
+– REFINED LIGHTING WRAP: The product must feel integrated into the environment. Use subtle "Light Wrapping" (background light bleeding slightly over product edges) for realism.
+– REFLECTION MATCHING: If the background has strong colors or light sources, reflect those accurately but subtly on the product surfaces.
+
+VISUAL EXCELLENCE:
 – Professional color grading: rich tonal range, controlled saturation, harmonious palette
 – Depth of field and compositional mastery (rule of thirds, leading lines, negative space)
 – Premium texture rendering: skin pores, material reflections, surface details
-
-STYLE: ${style}
+– ${style}
 
 TECHNICAL SPECS:
 – ${aspectRatio} aspect ratio
@@ -92,7 +100,7 @@ TECHNICAL SPECS:
 – Clean, artifact-free rendering
 – FULL FRAME RENDERING: Do not leave any borders, white space, pillarboxing, or letterboxing. The image MUST fill the entire canvas area.
 
-ABSOLUTELY AVOID: Stock photo aesthetic, flat lighting, generic compositions, amateur feel, borders, or any form of letterboxing.`;
+ABSOLUTELY AVOID: Product distortion, hallucinated labels, flat lighting, generic compositions, amateur feel, borders, or any form of letterboxing.`;
 }
 
 // --- Server Actions ---
@@ -138,9 +146,13 @@ export async function generateAIImage(params: {
 
     const hasIdentity = basePrompt.includes("SUBJECT IDENTITY");
     const text = isEditing 
-      ? `TASK: ADVANCED CREATIVE COMPOSITION. 
-         ${hasIdentity ? "CRITICAL: YOU MUST INCLUDE THE CHARACTER/SUBJECT DESCRIBED IN THE 'SUBJECT IDENTITY' SECTION. THEY MUST BE INTERACTING WITH THE PRODUCTS/ELEMENTS IN THE UPLOADED IMAGES (e.g., holding them, looking at them, or being in the same scene)." : "TRANSFORM/DEVELOP THE SCENE WHILE PRESERVING THE ELEMENTS IN THE UPLOADED IMAGES."}
-         CRITICAL: FILL THE ENTIRE ${aspectRatio} FRAME. THE IMAGE MUST COMPLETELY FILL THE CANVAS.
+      ? `TASK: ADVANCED PRODUCT PHOTOGRAPHY & CREATIVE COMPOSITION.
+         PIXEL-LOCK MANDATE: You must treat the main product/subject in the uploaded image as a "Ridig Object". 
+         DO NOT ALTER THE PRODUCT'S SHAPE, LABELS, OR BRANDING VOID OF ITS ORIGINAL PIXELS.
+         PRODUCT-AWARE INPAINTING: Generate the background and environment AROUND the subject.
+         
+         ${hasIdentity ? "CRITICAL: YOU MUST INCLUDE THE CHARACTER/SUBJECT DESCRIBED IN THE 'SUBJECT IDENTITY' SECTION. THEY MUST BE INTERACTING WITH THE PRODUCTS/ELEMENTS IN THE UPLOADED IMAGES (e.g., holding them, looking at them, or being in the same scene)." : "TRANSFORM THE ENVIRONMENT WHILE PRESERVING THE CORE PRODUCT AUTHENTICITY 100%."}
+         CRITICAL: FILL THE ENTIRE ${aspectRatio} FRAME. 
          
          CONCEPT: ${basePrompt}
          ${masterPrompt}`
@@ -387,4 +399,55 @@ export async function generateScreenImageAction(params: {
     image: data.images[0].image,
     screenName
   };
+}
+export async function convertToReactNativeAction(htmlCode: string) {
+  if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
+
+  const systemInstructions = `You are a world-class React Native and Expo Mobile Engineer.
+YOUR TASK: Translate the provided HTML/CSS/Tailwind code into a professional, production-ready React Native component.
+
+GUIDELINES:
+1. Use Expo standards.
+2. Translate Tailwind classes to React Native StyleSheet or inline styles.
+3. Use Lucide-react-native for icons.
+4. Ensure the layout matches the visual intent of the HTML (flexbox, spacing, typography).
+5. Output ONLY the code for a single file component (e.g., App.tsx or Screen.tsx).
+6. DO NOT include markdown blocks. DO NOT include chat or meta-talk.
+7. Use 'react-native' components: View, Text, Image, ScrollView, TouchableOpacity, SafeAreaView, etc.
+8. Use TypeScript for all components and styles.
+
+OUTPUT: Return the COMPLETE raw .tsx code string.`;
+
+  const requestBody = {
+    contents: [{ 
+      parts: [
+        { text: `TRANSLATE THIS HTML TO REACT NATIVE: \n\n${htmlCode.slice(0, 10000)}` }
+      ] 
+    }],
+    systemInstruction: {
+      parts: [{ text: systemInstructions }]
+    },
+    generationConfig: {
+      temperature: 0.1, // Low temperature for high precision translation
+      maxOutputTokens: 8192,
+    }
+  };
+
+  const response = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to convert to React Native");
+  }
+
+  const data = await response.json();
+  let code = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  
+  // Clean potential markdown blocks
+  code = code.replace(/^```(tsx|jsx|javascript|typescript|ts|js)?\n/, '').replace(/\n```$/, '');
+  
+  return { code };
 }
