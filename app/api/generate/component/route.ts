@@ -86,11 +86,14 @@ ${accentColor ? `– Accent Color: #${accentColor}` : ''}
 REQUIREMENTS:
 1. FORMAT: Return ONLY the HTML content. DO NOT use React, JSX, or imports.
 2. DESIGN QUALITY: Create a unique, niche-specific masterpiece. DO NOT use generic "SaaS" or "Dashboard" styles. If the niche is tech, use monospaced/sharp aesthetics. If creative, use brutalist/vibrant energy. If luxury, use elegant serifs and deep negative space.
-3. TYPOGRAPHY: Use unique, niche-appropriate fonts (e.g., 'Syne', 'Clash Display', 'Chillax', 'Cabinet Grotesk' style energy from Google Fonts).
-4. VISUAL COMPLETENESS: DO NOT leave any section blank. Use placeholders for every image area.
-5. ICONS: Use inline SVG for icons.
-6. ANIMATIONS: Use standard Tailwind transitions or CSS animations for subtle micro-interactions.
-7. OUTPUT: Return ONLY the raw HTML string. No markdown, no chat.`;
+3. CRITICAL MANDATE FOR IMAGES: 
+   - INITIAL GENERATION: If images are provided and no 'existingCode' is present, YOU MUST extract their 'Visual DNA' and replicate the style EXACTLY.
+   - EDIT/REFINEMENT: If 'existingCode' is present and NEW images are provided, treat these images as 'VISUAL CHANGE REQUESTS' or 'DEFECT REPORTS'. Analyze the images for any markups or annotations and apply those refinements to the code.
+4. TYPOGRAPHY: Use unique, niche-appropriate fonts (e.g., 'Syne', 'Clash Display', 'Chillax', 'Cabinet Grotesk' style energy from Google Fonts).
+5. VISUAL COMPLETENESS: DO NOT leave any section blank. Use placeholders for every image area.
+6. ICONS: Use inline SVG for icons.
+7. ANIMATIONS: Use standard Tailwind transitions or CSS animations for subtle micro-interactions.
+8. OUTPUT: Return ONLY the raw HTML string. No markdown, no chat.`;
 
     const parts: any[] = [{ text: systemPrompt }];
     images.forEach((img: any) => {

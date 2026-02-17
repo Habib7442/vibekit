@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useAppDesignerStore, GeneratedScreen } from '@/lib/store/useAppDesignerStore';
-import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, Smartphone, Globe, Cloud, CloudOff } from 'lucide-react';
+import { Code2, Download, Trash2, Copy, Check, Sparkles, RefreshCw, Loader2, Smartphone, Globe, Cloud, CloudOff, X, Paperclip } from 'lucide-react';
 import { saveCanvasAction } from '@/lib/actions/studio.actions';
 import { cn } from '@/lib/utils';
 import { DownloadCodeButton } from '@/components/studio/DownloadCodeButton';
@@ -266,46 +266,123 @@ function EditOverlay({
 }: { 
   screen: GeneratedScreen; 
   onClose: () => void; 
-  onUpdate: (prompt: string) => Promise<void> 
+  onUpdate: (prompt: string, images: { data: string, mimeType: string }[]) => Promise<void> 
 }) {
   const [editPrompt, setEditPrompt] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [images, setImages] = useState<{ data: string, mimeType: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processFiles = (files: File[]) => {
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setImages(prev => [...prev.slice(0, 3), { data: base64, mimeType: file.type }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) processFiles(Array.from(e.target.files));
+    e.target.value = '';
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length > 0) processFiles(files);
+  };
+
+  const removeImage = (idx: number) => {
+    setImages(prev => prev.filter((_, i) => i !== idx));
+  };
 
   return (
     <div className="absolute inset-x-6 bottom-6 z-20 animate-in slide-in-from-bottom-2 duration-300">
-      <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
+      <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden">
+        
+        {/* Image Previews */}
+        {images.length > 0 && (
+          <div className="flex gap-3 mb-4 animate-in fade-in slide-in-from-bottom-2">
+            {images.map((img, idx) => (
+              <div key={idx} className="relative group/img w-16 h-16 rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                <img src={img.data} className="w-full h-full object-cover" />
+                <button 
+                  onClick={() => removeImage(idx)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-red-500 transition-colors"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <textarea
           value={editPrompt}
           onChange={(e) => setEditPrompt(e.target.value)}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) { 
               e.preventDefault(); 
+              if (!editPrompt.trim() && images.length === 0) return;
               setIsUpdating(true);
-              onUpdate(editPrompt).finally(() => setIsUpdating(false)); 
+              onUpdate(editPrompt, images).finally(() => setIsUpdating(false)); 
             }
             if (e.key === 'Escape') { onClose(); }
           }}
-          placeholder="What should we change? (e.g. 'Make the buttons larger', 'Change to blue theme')"
+          placeholder="Describe the defect or change... (e.g. 'Fix the overlap in this card', 'Make it matching the screenshot')"
           rows={2}
           autoFocus
-          className="w-full bg-transparent border-none text-white text-[12px] focus:outline-none resize-none placeholder:text-zinc-500 leading-relaxed"
+          className="w-full bg-transparent border-none text-white text-[13px] focus:outline-none resize-none placeholder:text-zinc-600 leading-relaxed scrollbar-hide"
         />
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-[10px] text-zinc-600 font-medium italic">Enter to update · Esc to cancel</span>
-          <div className="flex gap-2">
+
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-white/5 gap-4">
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+             <button 
+               onClick={() => fileInputRef.current?.click()}
+               className="flex items-center gap-2 text-zinc-500 hover:text-cyan-400 transition-colors"
+             >
+               <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
+                 <Paperclip size={14} />
+               </div>
+               <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Attach Screenshot</span>
+             </button>
+             <input 
+               ref={fileInputRef}
+               type="file" 
+               multiple 
+               accept="image/*" 
+               className="hidden" 
+               onChange={handleImageUpload} 
+             />
+             <div className="h-4 w-px bg-white/5 hidden sm:block" />
+             <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest hidden lg:block">Paste images or screenshots directly</span>
+          </div>
+
+          <div className="flex gap-3 w-full sm:w-auto">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-[10px] text-zinc-500 hover:text-white rounded-lg transition-colors font-bold uppercase tracking-wider"
+              className="flex-1 sm:flex-none px-4 py-2 text-[10px] text-zinc-500 hover:text-white rounded-xl transition-colors font-black uppercase tracking-widest border border-transparent hover:border-white/5"
             >
               Cancel
             </button>
             <button
               onClick={() => {
                 setIsUpdating(true);
-                onUpdate(editPrompt).finally(() => setIsUpdating(false));
+                onUpdate(editPrompt, images).finally(() => setIsUpdating(false));
               }}
-              disabled={!editPrompt.trim() || isUpdating}
-              className="px-4 py-1.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 text-white rounded-lg transition-all flex items-center gap-2 font-bold uppercase tracking-wider"
+              disabled={(!editPrompt.trim() && images.length === 0) || isUpdating}
+              className="flex-1 sm:flex-none px-6 py-2.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-900 disabled:text-zinc-700 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20"
             >
               {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
               Update Design
@@ -355,8 +432,8 @@ export function AppDesignerGallery() {
 
   const closeContextMenu = () => setContextMenu(null);
 
-  const handleEdit = async (screen: GeneratedScreen, prompt: string) => {
-    if (!prompt.trim()) return;
+  const handleEdit = async (screen: GeneratedScreen, prompt: string, images: { data: string, mimeType: string }[] = []) => {
+    if (!prompt.trim() && images.length === 0) return;
 
     try {
       const isComponent = screen.mode === 'component';
@@ -366,11 +443,13 @@ export function AppDesignerGallery() {
         instruction: prompt,
         existingCode: screen.code,
         theme: screen.screenName.toLowerCase().includes('light') ? 'light' : 'dark',
+        images, // Added image support for component edits
       } : {
         instruction: prompt,
         existingCode: screen.code,
         screenName: screen.screenName,
         appDescription: screen.prompt,
+        images, // Added image support for screen edits
       };
 
       const response = await fetch(endpoint, {
@@ -529,7 +608,7 @@ export function AppDesignerGallery() {
                   <EditOverlay 
                     screen={scr} 
                     onClose={() => setEditingScreenId(null)}
-                    onUpdate={(prompt) => handleEdit(scr, prompt)}
+                    onUpdate={(prompt, images) => handleEdit(scr, prompt, images)}
                   />
                 )}
               </div>

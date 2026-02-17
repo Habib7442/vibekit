@@ -15,7 +15,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://design.imagestudiolab.com'),
+  metadataBase: new URL('https://www.imagestudiolab.com'),
   title: {
     default: "ImageStudioLab | Professional AI Design Studio",
     template: "%s | ImageStudioLab"
@@ -33,13 +33,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://design.imagestudiolab.com',
+    url: 'https://www.imagestudiolab.com',
     siteName: 'ImageStudioLab',
     title: 'ImageStudioLab | Professional AI Design Studio',
     description: "Create premium product photography, editorial fashion, and stunning mobile app designs with the world's most advanced AI creative engine.",
     images: [
       {
-        url: '/og-image.png', // User should ensure this exists
+        url: '/og_image.png',
         width: 1200,
         height: 630,
         alt: 'ImageStudioLab - Professional AI Design Studio',
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     title: 'ImageStudioLab | Professional AI Design Studio',
     description: "Create premium product photography, editorial fashion, and stunning mobile app designs with the world's most advanced AI creative engine.",
     creator: '@imagestudiolab',
-    images: ['/og-image.png'],
+    images: ['/og_image.png'],
   },
   robots: {
     index: true,

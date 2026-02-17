@@ -91,11 +91,10 @@ BRAND KIT CONSTRAINTS:
 - Use Border-Radius: ${rounding || '12px'} for ALL cards, buttons, and inputs.
 - Use Font Family: '${fontFamily || 'Inter'}', sans-serif. Import this from Google Fonts.
 
-CRITICAL MANDATE: If images are provided, you MUST extract their 'Visual DNA' and replicate it EXACTLY. 
-- TYPOGRAPHY: Match the font weight, oversized scales, and stylistic details (e.g., outlined text, specific character spacing).
-- COLOR PALETTE: Replicate the exact color harmony (e.g., high-contrast monochrome, specific accent glows).
-- LAYOUT: Replicate the spatial relationships, editorial overlaps, and negative space patterns.
-- FIDELITY: Your output must be a pixel-perfect conceptual clone of the provided reference.
+CRITICAL MANDATE FOR IMAGES: 
+- INITIAL GENERATION: If images are provided and no 'existingCode' is present, YOU MUST extract their 'Visual DNA' and replicate the style EXACTLY.
+- EDIT/REFINEMENT: If 'existingCode' is present and NEW images are provided, treat these images as 'VISUAL CHANGE REQUESTS' or 'DEFECT REPORTS'. Analyze the images for any markups, annotations, or conceptual shifts. Apply the visual changes seen in the images directly to the code while maintaining the brand consistency established in the styling context.
+- REPLICATION: Match the typography weight, scales, and spatial relationships shown in the most recent visual reference.
 
 <app_description_context>
 ${(appDescription || "").slice(0, 1000)}
