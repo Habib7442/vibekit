@@ -28,7 +28,8 @@ export function DeleteActions({ type, id, canvasId, className, redirectAfterDele
         if (redirectAfterDelete) {
           router.push('/studio/generations');
         }
-      } else if (type === 'image' && canvasId) {
+      } else if (type === 'image') {
+        if (!canvasId) throw new Error('canvasId is required to delete an image');
         await deleteImageAction(id, canvasId);
       }
     } catch (err) {

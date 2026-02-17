@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { PrivacyToggle } from '@/components/studio/PrivacyToggle';
 import { RetryButton } from '@/components/studio/RetryButton';
 import { DeleteActions } from '@/components/studio/DeleteActions';
-import Image from 'next/image';
 
 export default async function GenerationsPage() {
   const supabase = await createClient();

@@ -84,8 +84,14 @@ export function ChatPanel() {
 
       const reader = new FileReader();
       reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (!result) return;
+        
+        const parts = result.split(',');
+        if (parts.length < 2) return;
+
         setSelectedImages(prev => [...prev, {
-          data: (event.target?.result as string).split(',')[1],
+          data: parts[1],
           mimeType: file.type
         }].slice(0, 5));
       };

@@ -326,7 +326,7 @@ Return ONLY a valid JSON object:
     },
     contents: [{ 
       parts: [
-        { text: `IMAGE IDEA: "${prompt}"${identityContext}\n\nRespond with ONLY a JSON object containing: detailedPrompt. The detailedPrompt must explicitly describe the character/subject and how they are positioned in the scene.` }
+        { text: `IMAGE IDEA: "${prompt}"${identityContext}\n\nRespond with ONLY a JSON object containing: detailedPrompt.${identity ? ' The detailedPrompt must explicitly describe the character/subject and how they are positioned in the scene.' : ''}` }
       ] 
     }],
     generationConfig: {

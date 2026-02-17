@@ -179,6 +179,7 @@ export async function deleteCanvasAction(id: string) {
   }
 
   revalidatePath('/studio/generations');
+  return { success: true };
 }
 
 export async function deleteImageAction(id: string, canvasId: string) {

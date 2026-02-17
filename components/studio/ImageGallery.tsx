@@ -369,8 +369,12 @@ export function ImageGallery() {
           onClose={() => setEditorImage(null)}
           onSave={(dataUrl) => {
              // dataUrl is "data:image/png;base64,..."
-             const base64 = dataUrl.split(',')[1];
-             updateGalleryImage(editorImage.id, { image: base64 });
+             const parts = dataUrl.split(',');
+             if (parts.length < 2 || !parts[1]) {
+               console.error('[ImageGallery] Invalid data URL format');
+               return;
+             }
+             updateGalleryImage(editorImage.id, { image: parts[1] });
           }}
         />
       )}

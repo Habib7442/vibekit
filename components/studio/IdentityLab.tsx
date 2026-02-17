@@ -20,9 +20,14 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
 
   const fetchIdentities = async () => {
     setLoading(true);
-    const data = await getMyIdentities();
-    setIdentities(data);
-    setLoading(false);
+    try {
+      const data = await getMyIdentities();
+      setIdentities(data);
+    } catch (err) {
+      console.error('Failed to fetch identities:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -87,6 +92,7 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
                   onSelect(item);
                 }
               }}

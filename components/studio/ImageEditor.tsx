@@ -76,6 +76,7 @@ export function ImageEditor({ initialImage, mimeType, onClose, onSave }: ImageEd
         setIsLoaded(true);
       } catch (err) {
         console.error('Failed to load image:', err);
+        setIsLoaded(true); // Prevent infinite loading overlay if image fails
       }
     };
 
@@ -194,7 +195,10 @@ export function ImageEditor({ initialImage, mimeType, onClose, onSave }: ImageEd
 
   const deleteSelected = () => {
     const active = fabricCanvas.current?.getActiveObject();
-    if (active) fabricCanvas.current?.remove(active);
+    if (active) {
+      fabricCanvas.current?.remove(active);
+      fabricCanvas.current?.renderAll();
+    }
   };
 
   return (
@@ -292,6 +296,19 @@ export function ImageEditor({ initialImage, mimeType, onClose, onSave }: ImageEd
                     <span className="text-sm text-zinc-400">Smaller Subheader</span>
                   </button>
                </div>
+            </div>
+          )}
+
+          {activeTab === 'shapes' && (
+            <div className="space-y-4">
+              <label className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Shape Tools</label>
+              <div className="py-20 flex flex-col items-center justify-center text-center px-6">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center text-zinc-700 mb-4 border border-white/5">
+                  <Sparkles size={20} />
+                </div>
+                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Coming Soon</p>
+                <p className="text-[9px] text-zinc-600 uppercase tracking-tighter leading-relaxed">Vector shapes and brand elements are currently in development.</p>
+              </div>
             </div>
           )}
         </div>

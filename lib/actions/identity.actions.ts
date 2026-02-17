@@ -37,6 +37,11 @@ export async function createIdentityAction(params: {
   type: 'person' | 'product' | 'brand';
   referenceImages?: string[];
 }) {
+  if (!params.name?.trim()) throw new Error('Name is required');
+  if (params.name.length > 100) throw new Error('Name must be 100 characters or less');
+  if (!params.description?.trim()) throw new Error('Description is required');
+  if (params.description.length > 1000) throw new Error('Description must be 1000 characters or less');
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -66,13 +71,18 @@ export async function deleteIdentityAction(id: string) {
 
   if (!user) throw new Error("Unauthorized");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('studio_models')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .select()
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) {
+    throw new Error('Identity not found or already deleted');
+  }
   revalidatePath('/studio/visual');
   return { success: true };
 }
