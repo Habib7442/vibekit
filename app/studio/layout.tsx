@@ -142,7 +142,7 @@ export default function StudioLayout({
                      >
                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                      </button>
-                     <div className="w-9 h-9 rounded-full border border-white/5 overflow-hidden shadow-2xl ring-1 ring-white/10 transition-all hover:ring-white/20 shrink-0">
+                     <Link href="/studio/profile" className="w-9 h-9 rounded-full border border-white/5 overflow-hidden shadow-2xl ring-1 ring-white/10 transition-all hover:ring-white/20 shrink-0 hover:scale-110 active:scale-95">
                        {user.user_metadata.avatar_url ? (
                          <img 
                            src={user.user_metadata.avatar_url} 
@@ -163,7 +163,7 @@ export default function StudioLayout({
                             {(profile?.name || user.user_metadata.full_name || user.email || 'U').charAt(0)}
                           </span>
                        </div>
-                     </div>
+                     </Link>
                    </div>
                  </div>
                ) : (

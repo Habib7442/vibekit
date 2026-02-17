@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Check, ArrowRight, Zap, Shield, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useAuth } from '@/lib/hooks/useAuth';
+
 
 const PLANS = [
   {
@@ -16,7 +18,7 @@ const PLANS = [
       "Full Access to App Designer",
       "Editorial AI Photoshoots",
       "Export to HTML/Tailwind",
-      "Standard GPU priority",
+      "Private Gallery / Vault",
       "Email support"
     ],
     cta: "Start with Explorer",
@@ -33,8 +35,6 @@ const PLANS = [
       "500 Credits / month",
       "Everything in Explorer",
       "Magic Wand Prompt Expansion",
-      "Private Gallery Mode",
-      "High GPU priority",
       "24/7 Priority support"
     ],
     cta: "Go Pro",
@@ -51,8 +51,6 @@ const PLANS = [
       "1,500 Credits / month",
       "Everything in Pro",
       "Team Collaboration Tools",
-      "API Access (Early Beta)",
-      "Ultra-priority rendering",
       "Dedicated account manager"
     ],
     cta: "Scale Agency",
@@ -79,6 +77,14 @@ const LIFETIME = {
 };
 
 export default function PricingPage() {
+  const { user } = useAuth();
+
+  const getCheckoutUrl = (productId: string, credits: string) => {
+    const baseUrl = `/api/checkout?productId=${productId}`;
+    if (!user) return `/auth?next=${encodeURIComponent('/pricing')}`;
+    return `${baseUrl}&userId=${user.id}&credits=${credits}`;
+  };
+
   return (
     <div className="min-h-screen bg-[#000000] text-white selection:bg-[#f5e1c8]/30 font-sans antialiased">
       
@@ -156,7 +162,7 @@ export default function PricingPage() {
                 </div>
 
                 <Link 
-                  href={`/api/checkout?productId=${plan.productId}`}
+                  href={getCheckoutUrl(plan.productId, plan.credits)}
                   className={cn(
                     "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl block",
                     plan.popular
@@ -210,7 +216,7 @@ export default function PricingPage() {
                    </div>
                    
                    <Link 
-                    href={`/api/checkout?productId=${LIFETIME.productId}`}
+                    href={getCheckoutUrl(LIFETIME.productId, "150")}
                     className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-500/30 text-center hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/20 block"
                    >
                      {LIFETIME.cta}

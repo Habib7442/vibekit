@@ -6,12 +6,14 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+
 import { useAuth } from '@/lib/hooks/useAuth';
 import { AuthModal } from '@/components/studio/AuthModal';
 import { signOut } from '@/lib/auth-actions';
 import { ShowcaseGrid } from '@/components/studio/ShowcaseGrid';
 
-export default function LandingPage() {
+function LandingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [prompt, setPrompt] = useState('');
@@ -106,21 +108,21 @@ export default function LandingPage() {
                     Sign Out
                   </button>
                 </div>
-                <div className="w-8 h-8 rounded-full border border-zinc-800 p-0.5 bg-gradient-to-tr from-zinc-800 to-zinc-900 group relative">
+                <Link href="/studio/profile" className="w-8 h-8 rounded-full border border-zinc-800 p-0.5 bg-gradient-to-tr from-zinc-800 to-zinc-900 group relative transition-transform hover:scale-110 active:scale-95 shadow-xl">
                    {user.user_metadata?.avatar_url ? (
                      <Image 
                        src={user.user_metadata.avatar_url} 
                        alt="Profile" 
                        width={32} 
                        height={32} 
-                       className="w-full h-full rounded-full object-cover transition-transform group-hover:scale-110"
+                       className="w-full h-full rounded-full object-cover"
                      />
                    ) : (
                      <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-[10px] font-black text-[#f5e1c8] uppercase">
                         {(user.user_metadata?.full_name?.[0] || user.email?.[0] || '?')}
                      </div>
                    )}
-                </div>
+                </Link>
               </div>
             )}
             <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-[10px] md:text-[11px] font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
@@ -179,10 +181,8 @@ export default function LandingPage() {
                  className="w-full bg-transparent border-none focus:ring-0 text-sm md:text-base text-zinc-100 placeholder:text-zinc-700 resize-none h-24 mb-2 scrollbar-hide"
                />
                
-               <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-zinc-800/40 gap-4">
-                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                   {/* Upload removed as requested */}
-                   
+                <div className="flex flex-col sm:flex-row items-center justify-between w-full pt-4 border-t border-zinc-800/40 gap-4">
+                  {/* Left: Type Selector */}
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <div className="relative flex-1 sm:flex-none flex items-center gap-2">
                        <button 
@@ -207,14 +207,6 @@ export default function LandingPage() {
                            <span className="xs:hidden">{type === 'app' ? 'App' : type === 'ui' ? 'UI' : type === 'web' ? 'Web' : 'Photo'}</span>
                          </div>
                          <ChevronDown size={14} className={cn("transition-transform opacity-50", isDropdownOpen && "rotate-180")} />
-                       </button>
-
-                       <button 
-                         onClick={handlePlan}
-                         disabled={!prompt.trim()}
-                         className="flex items-center justify-center px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                       >
-                         Plan
                        </button>
 
                        {isDropdownOpen && (
@@ -255,15 +247,26 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <button 
-                    onClick={handleEnter}
-                    disabled={!prompt.trim()}
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Enter Studio
-                    <ArrowRight size={12} />
-                  </button>
-                </div> 
+                  {/* Right: Plan + Enter Studio */}
+                  <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto sm:justify-end">
+                    <button 
+                      onClick={handlePlan}
+                      disabled={!prompt.trim()}
+                      className="px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      Plan
+                    </button>
+
+                    <button 
+                      onClick={handleEnter}
+                      disabled={!prompt.trim()}
+                      className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      Enter Studio
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -276,7 +279,7 @@ export default function LandingPage() {
                </span>
              ))}
            </div>
-        </div>
+        
       </section>
 
       {/* Community Showcase */}
@@ -322,5 +325,13 @@ export default function LandingPage() {
         next={pendingTargetUrl || undefined}
       />
     </div>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <LandingPageContent />
+    </Suspense>
   );
 }
