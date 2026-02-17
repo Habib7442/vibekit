@@ -19,7 +19,15 @@ const isValidBase64 = (str: string) => {
 };
 
 export const POST = Webhooks({
-  webhookKey: (webhookKey && isValidBase64(webhookKey)) ? webhookKey : "dGVzdF93ZWJob29rX3NlY3JldF9mb3JfYnVpbGRfcGhhc2VfdG8=",
+  webhookKey: (() => {
+    if (!webhookKey) {
+      throw new Error("DODO_PAYMENTS_WEBHOOK_KEY is not set");
+    }
+    if (!isValidBase64(webhookKey)) {
+      throw new Error("DODO_PAYMENTS_WEBHOOK_KEY is not valid base64");
+    }
+    return webhookKey;
+  })(),
   onPayload: async (payload: any) => {
     console.log("Dodo Payments Webhook received:", payload);
 
@@ -33,34 +41,19 @@ export const POST = Webhooks({
       
       // Determine credits to add (this might depend on product_id)
       // For now, let's assume a default or check metadata
-      const creditsToAdd = parseInt(metadata.credits || "50");
+      const creditsToAdd = parseInt(metadata.credits || "50", 10);
 
       if (userId) {
         console.log(`Adding ${creditsToAdd} credits to user ${userId}`);
         
-        // Update user credits in Supabase
-        const { data: profile, error: fetchError } = await supabaseAdmin
-          .from('profiles')
-          .select('credits')
-          .eq('id', userId)
-          .single();
+        const { error: rpcError } = await supabaseAdmin
+          .rpc('increment_credits', { user_id: userId, amount: creditsToAdd });
 
-        if (!fetchError && profile) {
-          const newCredits = (profile.credits || 0) + creditsToAdd;
-          
-          const { error: updateError } = await supabaseAdmin
-            .from('profiles')
-            .update({ credits: newCredits })
-            .eq('id', userId);
-
-          if (updateError) {
-            console.error("Error updating credits:", updateError);
-          } else {
-            console.log("Credits updated successfully");
-          }
-        } else {
-          console.error("User profile not found or fetch error:", fetchError);
+        if (rpcError) {
+          console.error("Error updating credits:", rpcError);
+          throw new Error(`Failed to update credits: ${rpcError.message}`);
         }
+        console.log("Credits updated successfully");
       } else {
         console.warn("No user_id found in webhook payload metadata");
       }

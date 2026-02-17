@@ -80,9 +80,9 @@ export default function PricingPage() {
   const { user } = useAuth();
 
   const getCheckoutUrl = (productId: string, credits: string) => {
-    const baseUrl = `/api/checkout?productId=${productId}`;
+    const baseUrl = `/api/checkout?productId=${encodeURIComponent(productId)}`;
     if (!user) return `/auth?next=${encodeURIComponent('/pricing')}`;
-    return `${baseUrl}&userId=${user.id}&credits=${credits}`;
+    return `${baseUrl}&userId=${encodeURIComponent(user.id)}&credits=${encodeURIComponent(credits)}`;
   };
 
   return (

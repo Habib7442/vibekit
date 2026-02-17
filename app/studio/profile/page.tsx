@@ -113,7 +113,7 @@ export default function ProfilePage() {
                 <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
                   <UserIcon size={20} className="text-[#f5e1c8]" />
                 </div>
-                <h2 className="text-lg font-bold tracking-tight uppercase tracking-widest">Personal Info</h2>
+                <h2 className="text-lg font-bold uppercase tracking-widest">Personal Info</h2>
               </div>
               
               <div className="space-y-6">
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                 <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
                   <Zap size={20} className="text-amber-400" />
                 </div>
-                <h2 className="text-lg font-bold tracking-tight uppercase tracking-widest">Quick Studio</h2>
+                <h2 className="text-lg font-bold uppercase tracking-widest">Quick Studio</h2>
               </div>
 
               <div className="space-y-4">
@@ -207,7 +207,7 @@ export default function ProfilePage() {
                     <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
                       <CreditCard size={20} className="text-indigo-400" />
                     </div>
-                    <h2 className="text-lg font-bold tracking-tight uppercase tracking-widest">Active Plan</h2>
+                    <h2 className="text-lg font-bold uppercase tracking-widest">Active Plan</h2>
                   </div>
                   
                   <div className="mb-8">

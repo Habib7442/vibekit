@@ -10,9 +10,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
   }
 
-  const bearerToken = process.env.DODO_PAYMENTS_API_KEY!;
-  const returnUrl = process.env.DODO_PAYMENTS_RETURN_URL!;
+  const bearerToken = process.env.DODO_PAYMENTS_API_KEY;
+  const returnUrl = process.env.DODO_PAYMENTS_RETURN_URL;
   const environment = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
+  
+  if (!bearerToken || !returnUrl) {
+    console.error("Missing required environment variables: DODO_PAYMENTS_API_KEY or DODO_PAYMENTS_RETURN_URL");
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  }
   
   const isTest = environment === "test_mode";
   const apiUrl = isTest 
@@ -30,22 +35,30 @@ export async function GET(request: Request) {
         product_id: productId,
         quantity: 1,
         return_url: returnUrl,
-        metadata: {
-          user_id: userId,
-          credits: credits
-        },
-        customer: {
-          external_id: userId
-        }
+        ...(userId && {
+          metadata: {
+            user_id: userId,
+            credits: credits
+          },
+          customer: {
+            external_id: userId
+          }
+        })
       }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Dodo API Error:", response.status, errorData);
+      return NextResponse.json({ error: "Payment service error" }, { status: 502 });
+    }
 
     const data = await response.json();
     
     if (data.url) {
       return NextResponse.redirect(data.url);
     } else {
-      console.error("Dodo Checkout Error:", data);
+      console.error("Dodo Checkout Error: No URL returned", data);
       return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });
     }
   } catch (error) {
