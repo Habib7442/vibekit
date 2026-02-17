@@ -44,10 +44,15 @@ export const POST = Webhooks({
       const creditsToAdd = parseInt(metadata.credits || "50", 10);
 
       if (userId) {
-        console.log(`Adding ${creditsToAdd} credits to user ${userId}`);
+        const paymentId = data.payment_id || data.id;
+        console.log(`Adding ${creditsToAdd} credits to user ${userId} (Payment ID: ${paymentId})`);
         
         const { error: rpcError } = await supabaseAdmin
-          .rpc('increment_credits', { user_id: userId, amount: creditsToAdd });
+          .rpc('increment_credits_idempotent', { 
+            p_user_id: userId, 
+            p_amount: creditsToAdd,
+            p_payment_id: paymentId 
+          });
 
         if (rpcError) {
           console.error("Error updating credits:", rpcError);

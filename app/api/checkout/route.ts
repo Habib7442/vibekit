@@ -38,7 +38,7 @@ export async function GET(request: Request) {
         ...(userId && {
           metadata: {
             user_id: userId,
-            credits: credits
+            ...(credits && { credits })
           },
           customer: {
             external_id: userId
