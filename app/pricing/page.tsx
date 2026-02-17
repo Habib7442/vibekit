@@ -161,17 +161,16 @@ export default function PricingPage() {
                   ))}
                 </div>
 
-                <Link 
-                  href={getCheckoutUrl(plan.productId, plan.credits)}
+                <div 
                   className={cn(
-                    "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl block",
+                    "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl block opacity-50 cursor-not-allowed",
                     plan.popular
-                      ? "bg-[#f5e1c8] text-black hover:bg-[#ebd5b8] shadow-[#f5e1c8]/20"
-                      : "bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800"
+                      ? "bg-[#f5e1c8] text-black shadow-[#f5e1c8]/20"
+                      : "bg-zinc-900 text-white border border-zinc-800"
                   )}
                 >
-                  {plan.cta}
-                </Link>
+                  Coming Soon
+                </div>
               </div>
             ))}
           </div>
@@ -215,12 +214,11 @@ export default function PricingPage() {
                       </div>
                    </div>
                    
-                   <Link 
-                    href={getCheckoutUrl(LIFETIME.productId, "150")}
-                    className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-500/30 text-center hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/20 block"
+                   <div 
+                    className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600/50 text-white/50 text-[11px] font-black uppercase tracking-[0.2em] border border-white/5 text-center transition-all shadow-2xl cursor-not-allowed block"
                    >
-                     {LIFETIME.cta}
-                   </Link>
+                     Coming Soon
+                   </div>
                    <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic">Limited to the first 500 members only.</p>
                 </div>
              </div>
