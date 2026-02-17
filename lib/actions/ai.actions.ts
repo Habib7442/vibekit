@@ -221,6 +221,7 @@ YOUR TASK: The user gives you a SHORT idea for either a full app or a single UI 
 1. EXPAND it into a world-class, extremely detailed design brief. If it's a component, describe its layout, micro-interactions, and visual style. If it's an app, describe the theme and 5 key screens. 
    - Demand ultra-premium aesthetics: Bento grids, sophisticated glassmorphism, fluid typography, and professional layouts.
    - Mention specific colors, spacing, and smooth CSS-based animations.
+   - Explicitly state that for mobile apps, the "Welcome", "Login", and "Register" screens must NOT have a bottom tab bar, ensuring a clean entry flow. Navigation (tab bar) should strictly start from the "Home" screen.
    - DO NOT suggest any external libraries or React-specific code. Everything must be plain HTML and Tailwind CSS.
 
 2. PICK THE PERFECT COLOR PALETTE — 3 hex colors tailored to the vibe:

@@ -126,7 +126,7 @@ CRITICAL DESIGN REQUIREMENTS (MATCH THESE EXACTLY):
 4. LAYOUT: Use CSS Grid and Flexbox for complex, premium layouts (Bento grids, asymmetrical sections).
 5. VIEWPORT: ${isWeb ? 'FULL-WIDTH DESKTOP (100vw). Container max-width: 1200px (centered).' : 'MOBILE viewport (480px wide, min-height 844px).'}
 6. DESIGN ELEMENTS: Use CSS radial gradients for depth, glassmorphism (backdrop-filter: blur), and modern box-shadows.
-7. NAVIGATION: ${isWeb ? 'Use a standard top navigation bar and a professional footer. DO NOT use mobile bottom tab bars.' : 'Bottom tab bars MUST be pinned to the bottom of the viewport (e.g., position: fixed; bottom: 20px). NEVER let them float in content.'}
+7. NAVIGATION: ${isWeb ? 'Use a standard top navigation bar and a professional footer. DO NOT use mobile bottom tab bars.' : `If the screenName is "Welcome", "Login", or "Register", DO NOT include any bottom tab bar. For all other screens (like Home, Profile, etc.), Bottom tab bars MUST be pinned to the bottom of the viewport (e.g., position: fixed; bottom: 20px). NEVER let them float in content.`}
 8. VISUAL COMPLETENESS: DO NOT use placeholders; populate with high-end descriptive text and beautiful Unsplash image URLs related to the niche.
 9. ICONS: Use inline SVGs only.
 10. OUTPUT: Return the COMPLETE raw HTML code string. No markdown, no chat. Starting with <!DOCTYPE html>.`;
