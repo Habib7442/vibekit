@@ -274,11 +274,17 @@ function EditOverlay({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFiles = (files: File[]) => {
-    Array.from(files).forEach(file => {
+    files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        setImages(prev => [...prev.slice(0, 3), { data: base64, mimeType: file.type }]);
+        setImages(prev => {
+          if (prev.length >= 3) return prev; // Enforce limit
+          return [...prev, { data: base64, mimeType: file.type }];
+        });
+      };
+      reader.onerror = () => {
+        console.error('Failed to read file:', file.name);
       };
       reader.readAsDataURL(file);
     });
@@ -315,7 +321,7 @@ function EditOverlay({
           <div className="flex gap-3 mb-4 animate-in fade-in slide-in-from-bottom-2">
             {images.map((img, idx) => (
               <div key={idx} className="relative group/img w-16 h-16 rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                <img src={img.data} className="w-full h-full object-cover" />
+                <img src={img.data} alt={`Attached image ${idx + 1}`} className="w-full h-full object-cover" />
                 <button 
                   onClick={() => removeImage(idx)}
                   className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-red-500 transition-colors"
