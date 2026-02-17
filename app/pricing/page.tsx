@@ -21,7 +21,8 @@ const PLANS = [
     ],
     cta: "Start with Explorer",
     popular: false,
-    color: "zinc"
+    color: "zinc",
+    productId: "pdt_explorer" // Update with real Dodo Product ID
   },
   {
     name: "Professional",
@@ -38,7 +39,8 @@ const PLANS = [
     ],
     cta: "Go Pro",
     popular: true,
-    color: "indigo"
+    color: "indigo",
+    productId: "pdt_pro" // Update with real Dodo Product ID
   },
   {
     name: "Agency",
@@ -55,7 +57,8 @@ const PLANS = [
     ],
     cta: "Scale Agency",
     popular: false,
-    color: "amber"
+    color: "amber",
+    productId: "pdt_agency" // Update with real Dodo Product ID
   }
 ];
 
@@ -71,7 +74,8 @@ const LIFETIME = {
     "Direct discord contact",
     "All future UI templates included"
   ],
-  cta: "Claim Lifetime Access"
+  cta: "Claim Lifetime Access",
+  productId: "pdt_lifetime" // Update with real Dodo Product ID
 };
 
 export default function PricingPage() {
@@ -151,17 +155,17 @@ export default function PricingPage() {
                   ))}
                 </div>
 
-                <button 
-                  disabled
+                <Link 
+                  href={`/api/checkout?productId=${plan.productId}`}
                   className={cn(
-                    "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl cursor-not-allowed",
+                    "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl block",
                     plan.popular
-                      ? "bg-[#f5e1c8]/50 text-black/50"
-                      : "bg-zinc-900/50 text-white/30 border border-zinc-800/50"
+                      ? "bg-[#f5e1c8] text-black hover:bg-[#ebd5b8] shadow-[#f5e1c8]/20"
+                      : "bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800"
                   )}
                 >
-                  Join Waitlist
-                </button>
+                  {plan.cta}
+                </Link>
               </div>
             ))}
           </div>
@@ -205,12 +209,12 @@ export default function PricingPage() {
                       </div>
                    </div>
                    
-                   <button 
-                    disabled
-                    className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600/50 text-white/50 text-[11px] font-black uppercase tracking-[0.2em] cursor-not-allowed border border-white/5"
+                   <Link 
+                    href={`/api/checkout?productId=${LIFETIME.productId}`}
+                    className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-500/30 text-center hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/20 block"
                    >
-                     Launching Soon
-                   </button>
+                     {LIFETIME.cta}
+                   </Link>
                    <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic">Limited to the first 500 members only.</p>
                 </div>
              </div>

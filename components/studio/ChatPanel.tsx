@@ -233,120 +233,7 @@ export function ChatPanel() {
 
   if (isMobile) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0A0A0F]/90 backdrop-blur-xl border-t border-white/5 p-4 pb-8 space-y-4">
-        {/* Floating Toggle for History/Settings */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((count) => (
-              <button
-                key={count}
-                onClick={() => setImageCount(count)}
-                className={cn(
-                  "w-8 h-8 rounded-lg text-[10px] font-black transition-all border flex items-center justify-center",
-                  imageCount === count
-                    ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                )}
-              >
-                {count}
-              </button>
-            ))}
-          </div>
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <button className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-all">
-                <MessageSquare size={18} />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[85vh] bg-[#050505] border-t-zinc-800/50 p-0 overflow-hidden flex flex-col">
-              <SheetHeader className="p-4 border-b border-white/5 shrink-0">
-                <SheetTitle className="text-white text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                  <Sparkles size={16} className="text-indigo-400" />
-                  Studio History & Style
-                </SheetTitle>
-              </SheetHeader>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-10">
-                {/* Messages in Sheet */}
-                <div className="space-y-6">
-                  {messages.length === 0 ? (
-                    <div className="py-20 flex flex-col items-center justify-center text-center opacity-30">
-                       <MessageSquare size={40} className="mb-4 text-zinc-600" />
-                       <p className="text-xs font-bold uppercase tracking-widest">No history yet</p>
-                    </div>
-                  ) : (
-                    messages.map((msg) => (
-                      <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
-                        <div className={cn(
-                          "max-w-[90%] rounded-2xl px-4 py-3 text-[11px] leading-relaxed",
-                          msg.role === 'user' 
-                            ? "bg-indigo-600 text-white shadow-lg" 
-                            : "bg-zinc-900 text-zinc-300 border border-zinc-800"
-                        )}>
-                          {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
-                        </div>
-                        {msg.images && msg.images.length > 0 && (
-                          <div className="grid grid-cols-2 gap-2 mt-1">
-                            {msg.images.map((img, i) => (
-                              <img 
-                               key={i} 
-                               src={`data:${img.mimeType};base64,${img.image}`} 
-                               className="w-full aspect-square object-cover rounded-xl border border-zinc-800 shadow-2xl"
-                               alt="AI result"
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="h-px bg-zinc-800/50 w-full" />
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Quick Settings */}
-        <div className="space-y-4">
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {ASPECT_RATIOS.map((r) => (
-              <button
-                key={r.value}
-                onClick={() => setAspectRatio(r.value)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0",
-                  aspectRatio === r.value 
-                    ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                )}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {TEMPLATES.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
-                className={cn(
-                  "px-4 py-2.5 rounded-2xl text-[10px] font-bold border flex items-center gap-2 shrink-0 transition-all",
-                  currentTemplate === t.id 
-                    ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
-                )}
-              >
-                <span className="text-sm">{t.icon}</span>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
+      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-4 pb-8">
         {/* Input Area */}
         <div className="relative">
           {selectedImages.length > 0 && (
@@ -360,37 +247,136 @@ export function ChatPanel() {
             </div>
           )}
           
-          <div className="flex items-end gap-3">
+          <div className="flex items-center gap-2">
+             <Sheet>
+               <SheetTrigger asChild>
+                 <button className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-indigo-400 shadow-xl active:scale-95">
+                   <Settings2 size={20} />
+                 </button>
+               </SheetTrigger>
+               <SheetContent side="bottom" className="h-[80vh] bg-[#050505] border-t-zinc-800/50 p-0 overflow-hidden flex flex-col rounded-t-[2rem]">
+                 <SheetHeader className="p-6 border-b border-white/5 shrink-0">
+                   <SheetTitle className="text-white text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                     <Settings2 size={16} className="text-indigo-400" />
+                     Studio Settings & Style
+                   </SheetTitle>
+                 </SheetHeader>
+                 
+                 <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-12">
+                   {/* Aspect Ratio */}
+                   <div className="space-y-3">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Aspect Ratio</label>
+                     <div className="grid grid-cols-4 gap-2">
+                       {ASPECT_RATIOS.map((r) => (
+                         <button
+                           key={r.value}
+                           onClick={() => setAspectRatio(r.value)}
+                           className={cn(
+                             "py-3 rounded-xl text-[10px] font-black transition-all border",
+                             aspectRatio === r.value 
+                               ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
+                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
+                           )}
+                         >
+                           {r.label}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Image Count */}
+                   <div className="space-y-3">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Variants Count</label>
+                     <div className="grid grid-cols-5 gap-2">
+                       {[1, 2, 3, 4, 5].map((count) => (
+                         <button
+                           key={count}
+                           onClick={() => setImageCount(count)}
+                           className={cn(
+                             "py-3 rounded-xl text-[10px] font-black transition-all border",
+                             imageCount === count
+                               ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
+                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
+                           )}
+                         >
+                           {count}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Style Templates */}
+                   <div className="space-y-3">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Creative Mode</label>
+                     <div className="grid grid-cols-2 gap-2">
+                       {TEMPLATES.map((t) => (
+                         <button
+                           key={t.id}
+                           onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
+                           className={cn(
+                             "p-4 rounded-2xl text-[10px] font-bold border flex flex-col items-center gap-2 transition-all",
+                             currentTemplate === t.id 
+                               ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
+                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
+                           )}
+                         >
+                           <span className="text-xl">{t.icon}</span>
+                           {t.label}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+
+                   <div className="h-px bg-zinc-800/50 w-full my-4" />
+
+                   {/* History Section in same sheet */}
+                   <div className="space-y-4">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">History</label>
+                     <div className="space-y-4">
+                        {messages.length === 0 ? (
+                          <div className="py-10 text-center opacity-30">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">No sessions yet</p>
+                          </div>
+                        ) : (
+                          messages.map((msg) => (
+                            <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
+                              <div className={cn(
+                                "max-w-[85%] rounded-2xl px-4 py-3 text-[11px] leading-relaxed",
+                                msg.role === 'user' ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-300 border border-zinc-800"
+                              )}>
+                                {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                     </div>
+                   </div>
+                 </div>
+               </SheetContent>
+             </Sheet>
+
              <div className="relative flex-1">
                 <textarea
                   ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe your vision..."
+                  placeholder="Describe vision..."
                   rows={1}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-[24px] py-4 pl-12 pr-4 text-xs text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none shadow-2xl"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-[20px] py-3.5 pl-10 pr-4 text-[13px] text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none shadow-2xl"
                 />
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 hover:text-white"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-zinc-500 hover:text-white"
                 >
-                  <Paperclip size={18} />
+                  <Paperclip size={16} />
                 </button>
              </div>
              
              <button 
-                onClick={handlePlan}
-                disabled={!input.trim() || isPlanning}
-                className="w-12 h-12 rounded-full bg-zinc-800 text-indigo-400 flex items-center justify-center shadow-xl border border-white/5 active:scale-90 disabled:opacity-50 transition-all shrink-0"
-              >
-               {isPlanning ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
-             </button>
-
-             <button 
                 onClick={() => handleGenerate()}
                 disabled={(!input.trim() && selectedImages.length === 0) || isGenerating}
-                className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-600/20 active:scale-90 disabled:opacity-50 transition-all shrink-0"
+                className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50 transition-all shrink-0"
               >
                {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
              </button>

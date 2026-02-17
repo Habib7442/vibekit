@@ -87,19 +87,41 @@ export default function LandingPage() {
                 className="object-contain"
               />
             </div>
-            <span className="font-bold text-sm tracking-tight text-white uppercase italic">ImageStudioLab</span>
+            <span className="font-bold text-sm tracking-tight text-white uppercase italic hidden sm:inline-block">ImageStudioLab</span>
           </div>
           
-          <div className="flex items-center gap-4 md:gap-8">
-            <Link href="/pricing" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Pricing</Link>
-            <Link href="/testimonials" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Reviews</Link>
+          <div className="flex items-center gap-3 md:gap-8">
+            <Link href="/pricing" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Pricing</Link>
+            <Link href="/testimonials" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Reviews</Link>
             {user && (
-              <button 
-                onClick={() => signOut()}
-                className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-red-400 transition-colors"
-              >
-                Sign Out
-              </button>
+              <div className="flex items-center gap-3 pr-2 border-r border-zinc-800/50 mr-2">
+                <div className="flex flex-col items-end hidden lg:flex">
+                  <span className="text-[9px] font-black text-white uppercase tracking-tighter leading-none italic">
+                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  </span>
+                  <button 
+                    onClick={() => signOut()}
+                    className="text-[8px] font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest mt-1"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+                <div className="w-8 h-8 rounded-full border border-zinc-800 p-0.5 bg-gradient-to-tr from-zinc-800 to-zinc-900 group relative">
+                   {user.user_metadata?.avatar_url ? (
+                     <Image 
+                       src={user.user_metadata.avatar_url} 
+                       alt="Profile" 
+                       width={32} 
+                       height={32} 
+                       className="w-full h-full rounded-full object-cover transition-transform group-hover:scale-110"
+                     />
+                   ) : (
+                     <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-[10px] font-black text-[#f5e1c8] uppercase">
+                        {(user.user_metadata?.full_name?.[0] || user.email?.[0] || '?')}
+                     </div>
+                   )}
+                </div>
+              </div>
             )}
             <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-[10px] md:text-[11px] font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
               <span className="hidden sm:inline">Launch Studio</span>
@@ -158,92 +180,93 @@ export default function LandingPage() {
                />
                
                <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-zinc-800/40 gap-4">
-                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                    {/* Upload removed as requested */}
                    
-                   <div className="relative w-full sm:w-auto">
-                      <button 
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-2 rounded-xl border transition-all cursor-pointer uppercase tracking-widest text-[10px] font-black min-w-[160px] justify-between shadow-lg",
-                          type === 'app' && "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20 shadow-cyan-500/10",
-                          type === 'ui' && "bg-violet-500/10 border-violet-500/40 text-violet-400 hover:bg-violet-500/20 shadow-violet-500/10",
-                          type === 'web' && "bg-amber-500/10 border-amber-500/40 text-amber-500 hover:bg-amber-500/20 shadow-amber-500/10",
-                          type === 'image' && "bg-rose-500/10 border-rose-500/40 text-rose-400 hover:bg-rose-500/20 shadow-rose-500/10"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-1.5 h-1.5 rounded-full",
-                            type === 'app' && "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]",
-                            type === 'ui' && "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]",
-                            type === 'web' && "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
-                            type === 'image' && "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
-                          )} />
-                          {type === 'app' && 'App Designer'}
-                          {type === 'ui' && 'UI Studio'}
-                          {type === 'web' && 'Web Designer'}
-                          {type === 'image' && 'AI Photoshoot'}
-                        </div>
-                        <ChevronDown size={14} className={cn("transition-transform opacity-50", isDropdownOpen && "rotate-180")} />
-                      </button>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:flex-none flex items-center gap-2">
+                       <button 
+                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                         className={cn(
+                           "flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all cursor-pointer uppercase tracking-widest text-[10px] font-black min-w-[140px] md:min-w-[160px] justify-between shadow-lg",
+                           type === 'app' && "bg-cyan-500/10 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20 shadow-cyan-500/10",
+                           type === 'ui' && "bg-violet-500/10 border-violet-500/40 text-violet-400 hover:bg-violet-500/20 shadow-violet-500/10",
+                           type === 'web' && "bg-amber-500/10 border-amber-500/40 text-amber-500 hover:bg-amber-500/20 shadow-amber-500/10",
+                           type === 'image' && "bg-rose-500/10 border-rose-500/40 text-rose-400 hover:bg-rose-500/20 shadow-rose-500/10"
+                         )}
+                       >
+                         <div className="flex items-center gap-2">
+                           <div className={cn(
+                             "w-1.5 h-1.5 rounded-full",
+                             type === 'app' && "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]",
+                             type === 'ui' && "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]",
+                             type === 'web' && "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
+                             type === 'image' && "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
+                           )} />
+                           <span className="hidden xs:inline">{type === 'app' ? 'App Designer' : type === 'ui' ? 'UI Studio' : type === 'web' ? 'Web Designer' : 'AI Photoshoot'}</span>
+                           <span className="xs:hidden">{type === 'app' ? 'App' : type === 'ui' ? 'UI' : type === 'web' ? 'Web' : 'Photo'}</span>
+                         </div>
+                         <ChevronDown size={14} className={cn("transition-transform opacity-50", isDropdownOpen && "rotate-180")} />
+                       </button>
 
-                      {isDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-50" onClick={() => setIsDropdownOpen(false)} />
-                          <div className="absolute bottom-full left-0 mb-3 w-56 bg-[#0C0C11] border border-white/10 rounded-2xl overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-2 duration-200 z-[60] backdrop-blur-2xl">
-                            <button onClick={() => { setType('app'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-cyan-400 hover:bg-cyan-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
-                              <span className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
-                                App Designer
-                              </span>
-                              <Smartphone size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                            <button onClick={() => { setType('ui'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-violet-400 hover:bg-violet-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
-                              <span className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
-                                UI Studio
-                              </span>
-                              <Code2 size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                            <button onClick={() => { setType('web'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-amber-500 hover:bg-amber-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
-                              <span className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" />
-                                Web Designer
-                              </span>
-                              <Globe size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                            <button onClick={() => { setType('image'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 flex items-center justify-between uppercase tracking-widest transition-all group">
-                              <span className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
-                                AI Photoshoot
-                              </span>
-                              <Sparkles size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                          </div>
-                        </>
-                      )}
+                       <button 
+                         onClick={handlePlan}
+                         disabled={!prompt.trim()}
+                         className="flex items-center justify-center px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                       >
+                         Plan
+                       </button>
+
+                       {isDropdownOpen && (
+                         <>
+                           <div className="fixed inset-0 z-50" onClick={() => setIsDropdownOpen(false)} />
+                           <div className="absolute bottom-full left-0 mb-3 w-56 bg-[#0C0C11] border border-white/10 rounded-2xl overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-2 duration-200 z-[60] backdrop-blur-2xl">
+                             <button onClick={() => { setType('app'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-cyan-400 hover:bg-cyan-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
+                               <span className="flex items-center gap-3">
+                                 <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
+                                 App Designer
+                               </span>
+                               <Smartphone size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                             </button>
+                             <button onClick={() => { setType('ui'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-violet-400 hover:bg-violet-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
+                               <span className="flex items-center gap-3">
+                                 <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
+                                 UI Studio
+                               </span>
+                               <Code2 size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                             </button>
+                             <button onClick={() => { setType('web'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-amber-500 hover:bg-amber-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
+                               <span className="flex items-center gap-3">
+                                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" />
+                                 Web Designer
+                               </span>
+                               <Globe size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                             </button>
+                             <button onClick={() => { setType('image'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 flex items-center justify-between uppercase tracking-widest transition-all group">
+                               <span className="flex items-center gap-3">
+                                 <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
+                                 AI Photoshoot
+                               </span>
+                               <Sparkles size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                             </button>
+                           </div>
+                         </>
+                       )}
                     </div>
-                 </div>
+                  </div>
 
-                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                   <button 
-                     onClick={handlePlan}
-                     className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl"
-                   >
-                     Plan
-                   </button>
-                   <button 
-                     onClick={handleEnter}
-                     className="flex-[2] sm:flex-none px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10"
-                   >
-                     Enter Studio
-                     <ArrowRight size={12} />
-                   </button>
-                 </div>
-               </div>
-             </div>
-           </div>
+                  <button 
+                    onClick={handleEnter}
+                    disabled={!prompt.trim()}
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Enter Studio
+                    <ArrowRight size={12} />
+                  </button>
+                </div> 
+              </div>
+            </div>
+          </div>
 
            {/* Expertise Tags */}
            <div className="flex flex-wrap justify-center gap-2 max-w-3xl">

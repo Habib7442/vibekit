@@ -256,7 +256,7 @@ const ScreenCard = memo(({
           )} />
           <span className="text-[12px] text-white font-semibold tracking-tight">{screen.screenName}</span>
         </div>
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+        <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200">
           <button
             onClick={handleCopy}
             className="h-7 px-2.5 rounded-full bg-white/[0.08] hover:bg-white/15 flex items-center gap-1.5 text-white/70 hover:text-white text-[10px] font-medium transition-all"
@@ -571,20 +571,20 @@ export function AppDesignerGallery() {
       {galleryScreens.length > 0 && (
         <div className="flex-1 flex flex-col min-h-0">
           {/* Screen Navigation Tabs */}
-          <div className="shrink-0 px-6 py-3 border-b border-white/[0.04] bg-[#0A0A0F]/50 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
+          <div className="shrink-0 px-4 md:px-6 py-3 border-b border-white/[0.04] bg-[#0A0A0F]/50 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
               {galleryScreens.map((scr, idx) => (
                 <button
                   key={scr.id}
                   onClick={() => setActiveScreenId(scr.id)}
                   className={cn(
-                    "px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border whitespace-nowrap",
+                    "px-3 md:px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border whitespace-nowrap",
                     activeScreenId === scr.id 
                       ? "bg-white text-black border-white shadow-lg" 
                       : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
                   )}
                 >
-                  {scr.screenName}
+                  {scr.screenName.split(' — ')[0].slice(0, 10)}...
                 </button>
               ))}
             </div>
@@ -593,36 +593,26 @@ export function AppDesignerGallery() {
               onClick={handleSaveAll}
               disabled={isSaving}
               className={cn(
-                "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
                 saveSuccess 
                   ? "bg-emerald-500 text-white" 
                   : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20"
               )}
             >
               {isSaving ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" />
-                  <span className="hidden sm:inline">Saving...</span>
-                  <span className="sm:hidden">...</span>
-                </>
+                <Loader2 size={12} className="animate-spin" />
               ) : saveSuccess ? (
-                <>
-                  <Check size={12} />
-                  <span>Saved</span>
-                </>
+                <Check size={12} />
               ) : (
-                <>
-                  <Cloud size={12} />
-                  <span>Save</span>
-                  <span className="hidden md:inline"> to Cloud</span>
-                </>
+                <Cloud size={12} />
               )}
+              <span className="xs:inline hidden ml-1">{saveSuccess ? 'Saved' : 'Save'}</span>
             </button>
           </div>
 
           <div className={cn(
-            "flex-1 overflow-y-auto scrollbar-none flex justify-center",
-            galleryScreens.find(s => s.id === activeScreenId)?.mode === 'web' ? "p-0" : "p-6 lg:p-10"
+            "flex-1 overflow-y-auto scrollbar-none flex justify-center pb-32 md:pb-10",
+            galleryScreens.find(s => s.id === activeScreenId)?.mode === 'web' ? "p-0" : "p-4 md:p-10"
           )}>
             {galleryScreens.filter(s => s.id === activeScreenId).map((scr) => (
               <div key={scr.id} className={cn(

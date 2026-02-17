@@ -140,20 +140,20 @@ export function ImageGallery() {
       {galleryImages.length > 0 && (
         <div className="flex-1 flex flex-col min-h-0">
           {/* Image Navigation Tabs */}
-          <div className="shrink-0 px-6 py-3 border-b border-zinc-800/50 bg-[#0A0A0F]/50 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
+          <div className="shrink-0 px-4 md:px-6 py-3 border-b border-zinc-800/50 bg-[#0A0A0F]/50 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
             {galleryImages.map((img, idx) => (
               <button
                 key={img.id}
                 onClick={() => setActiveImageId(img.id)}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border whitespace-nowrap",
+                  "px-3 md:px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border whitespace-nowrap",
                   activeImageId === img.id 
                     ? "bg-white text-black border-white shadow-lg" 
                     : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
                 )}
               >
-                {img.prompt.slice(0, 20)}...
+                {img.prompt.slice(0, 15)}...
               </button>
             ))}
             </div>
@@ -162,7 +162,7 @@ export function ImageGallery() {
               onClick={handleSaveAll}
               disabled={isSaving}
               className={cn(
-                "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
                 saveSuccess 
                   ? "bg-emerald-500 text-white" 
                   : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20"
@@ -171,25 +171,26 @@ export function ImageGallery() {
               {isSaving ? (
                 <>
                   <Loader2 size={12} className="animate-spin" />
-                  <span className="hidden sm:inline">Saving...</span>
-                  <span className="sm:hidden">...</span>
+                  <span className="xs:inline hidden">Saving...</span>
+                  <span className="xs:hidden">...</span>
                 </>
               ) : saveSuccess ? (
                 <>
                   <Check size={12} />
-                  <span>Saved</span>
+                  <span className="xs:inline hidden">Saved</span>
+                  <span className="xs:hidden"></span>
                 </>
               ) : (
                 <>
                   <Cloud size={12} />
-                  <span>Save</span>
-                  <span className="hidden md:inline"> to Cloud</span>
+                  <span className="xs:inline hidden">Save</span>
+                  <span className="xs:hidden">Save</span>
                 </>
               )}
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex justify-center items-start scrollbar-none">
+          <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex justify-center items-start scrollbar-none pb-32 md:pb-8">
             {galleryImages.filter(i => i.id === activeImageId).map((img) => (
               <div key={img.id} className="relative group w-fit mx-auto max-w-full" onContextMenu={(e) => handleContextMenu(e, img)}>
                 {/* Image Container */}
@@ -198,7 +199,7 @@ export function ImageGallery() {
                       src={`data:${img.mimeType};base64,${img.image}`}
                       alt={img.prompt}
                       className={cn(
-                        "max-w-full max-h-[calc(100vh-180px)] object-contain cursor-pointer transition-all duration-300",
+                        "max-w-full max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-180px)] object-contain cursor-pointer transition-all duration-300",
                         editingImage === img.id && "opacity-40"
                       )}
                       onClick={() => setLightboxImage(img)}

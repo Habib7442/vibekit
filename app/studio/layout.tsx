@@ -66,42 +66,48 @@ export default function StudioLayout({
           </Link>
         </div>
 
-        <div className="shrink-0 bg-white/[0.03] border border-white/5 rounded-2xl p-1 flex items-center gap-1 shadow-2xl backdrop-blur-md">
+        <div className="shrink-0 bg-white/[0.03] border border-white/5 rounded-2xl p-1 flex items-center gap-1 shadow-2xl backdrop-blur-md overflow-x-auto scrollbar-hide max-w-[280px] sm:max-w-none">
           <Link
             href="/studio/visual"
             className={cn(
-              "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
+              "px-3 sm:px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
               isImageMode
                 ? "bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
             )}
+            title="Visual Artist"
           >
             <ImageIcon size={14} className={cn("transition-transform duration-300", isImageMode && "scale-110")} />
-            Visual Artist
+            <span className="hidden xs:inline">Visual Artist</span>
+            <span className="xs:hidden">Visual</span>
           </Link>
           <Link
             href="/studio/builder"
             className={cn(
-              "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
+              "px-3 sm:px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
               isDesignerMode
                 ? "bg-cyan-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
             )}
+            title="App Designer"
           >
             <Smartphone size={14} className={cn("transition-transform duration-300", isDesignerMode && "scale-110")} />
-            App Designer
+            <span className="hidden xs:inline">App Designer</span>
+            <span className="xs:hidden">App</span>
           </Link>
           <Link
             href="/studio/generations"
             className={cn(
-              "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
+              "px-3 sm:px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
               isLibraryMode
                 ? "bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
             )}
+            title="Vault"
           >
             <Library size={14} className={cn("transition-transform duration-300", isLibraryMode && "scale-110")} />
-            Vault
+            <span className="hidden xs:inline">Vault</span>
+            <span className="xs:hidden text-[9px]">Vault</span>
           </Link>
         </div>
 

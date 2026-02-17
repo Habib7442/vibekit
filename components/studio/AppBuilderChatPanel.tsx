@@ -693,161 +693,150 @@ export function AppDesignerChatPanel() {
   if (isMobile) {
     return (
       <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-4 pb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {(['app', 'web', 'component'] as DesignerMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => updateMode(mode)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 whitespace-nowrap",
-                  builderMode === mode 
-                    ? (mode === 'app' ? "bg-cyan-600 border-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]" :
-                       mode === 'web' ? "bg-amber-600 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]" :
-                       "bg-violet-600 border-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]")
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                )}
-              >
-                {mode === 'component' ? 'UI Element' : mode === 'app' ? 'App Designer' : 'Web Designer'}
-              </button>
-            ))}
-          </div>
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <button className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-all shadow-xl">
-                <Settings2 size={18} />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[85vh] bg-[#050505] p-0 overflow-hidden flex flex-col border-t border-white/5">
-              <SheetHeader className="p-4 border-b border-white/5 shrink-0">
-                <SheetTitle className="text-white text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Sparkles size={16} className={cn(
-                    builderMode === 'app' ? "text-cyan-400" : 
-                    builderMode === 'web' ? "text-amber-400" : 
-                    "text-violet-400"
-                  )} />
-                  Studio Blueprint & History
-                </SheetTitle>
-              </SheetHeader>
-              <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-10">
-                {/* Chat History in Sheet */}
-                <div className="space-y-6">
-                   {messages.length === 0 ? (
-                     <div className="py-20 flex flex-col items-center justify-center text-center opacity-20">
-                        <MessageSquare size={40} className="mb-4" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">No history yet</p>
-                     </div>
-                   ) : messages.map((m) => (
-                     <div key={m.id} className={cn("flex flex-col gap-2", m.role === 'user' ? 'items-end' : 'items-start')}>
-                        <div className={cn(
-                          "max-w-[90%] rounded-2xl px-4 py-3 text-[11px] leading-relaxed",
-                          m.role === 'user' 
-                            ? (builderMode === 'app' ? "bg-cyan-600 text-white" : 
-                               builderMode === 'web' ? "bg-amber-600 text-white" : 
-                               "bg-violet-600 text-white") 
-                            : "bg-zinc-900 text-zinc-300 border border-zinc-800"
-                        )}>
-                          {m.isLoading ? <Loader2 size={12} className="animate-spin" /> : m.content}
-                        </div>
-                     </div>
-                   ))}
-                </div>
-
-                <div className="h-px bg-zinc-800/50 w-full" />
-
-                {/* Screens Blueprint in Sheet */}
-                <div className="space-y-6">
-                  <div>
-                     <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-4 block underline decoration-zinc-800 underline-offset-8">Output Blueprint</label>
-                     <div className="space-y-2">
-                        {screens.map((s, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-800/50 rounded-xl px-3 py-2 group">
-                             <div className="w-5 h-5 rounded bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 font-mono">{idx + 1}</div>
-                             <input 
-                               value={s}
-                               onChange={(e) => {
-                                 const next = [...screens];
-                                 next[idx] = e.target.value;
-                                 setScreens(next);
-                               }}
-                               className="bg-transparent border-none p-0 text-white text-[11px] font-bold focus:ring-0 flex-1"
-                             />
-                             <button onClick={() => setScreens(screens.filter((_, i) => i !== idx))} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/50 hover:text-red-500 transition-all"><X size={14} /></button>
-                          </div>
-                        ))}
-                        <button onClick={() => setScreens([...screens, 'New Screen'])} className="w-full py-3 border border-dashed border-zinc-800 rounded-xl text-[10px] text-zinc-600 font-black uppercase hover:bg-zinc-800/50 transition-all flex items-center justify-center gap-2">
-                           <PlusCircle size={14} /> Add Screen
-                        </button>
-                     </div>
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Design Identity above textarea */}
-        <div className="mb-4">
-           <div className="flex gap-2">
-              <ColorInput 
-                label="Primary" 
-                value={primaryColor} 
-                onChange={setPrimaryColor} 
-                placeholder="Primary" 
-                dotColor={builderMode === 'app' ? "#06b6d4" : builderMode === 'web' ? "#f59e0b" : "#8b5cf6"} 
-                disabled={isGenerating}
-              />
-              <ColorInput 
-                label="Accent" 
-                value={secondaryColor} 
-                onChange={setSecondaryColor} 
-                placeholder="Accent" 
-                dotColor={builderMode === 'app' ? "#0891b2" : builderMode === 'web' ? "#d97706" : "#7c3aed"} 
-                disabled={isGenerating}
-              />
-           </div>
-        </div>
-
+        {/* Input Area */}
         <div className="relative">
-          <textarea
-            ref={textareaRef}
-            value={appDescription}
-            onChange={(e) => setAppDescription(e.target.value)}
-            onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-            disabled={isGenerating || isPlanning || isProjectStarted}
-            placeholder={isProjectStarted ? "Project locked. Use 'Add Screen' below." : `Describe your ${builderMode}...`}
-            rows={1}
-            className={cn(
-              "w-full bg-zinc-900 border border-white/5 rounded-[24px] py-4 pl-12 pr-20 text-xs text-white focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all resize-none shadow-2xl",
-              isProjectStarted && "opacity-50 cursor-not-allowed"
-            )}
-          />
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-             <button onClick={() => fileInputRef.current?.click()} className="p-2 text-zinc-500 hover:text-white transition-colors">
-               <Paperclip size={18} />
-             </button>
-          </div>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {imageDatas.length > 0 && (
+            <div className="absolute bottom-full left-0 right-0 p-2 flex gap-2 overflow-x-auto bg-[#0A0A0F]/80 backdrop-blur-md border border-white/5 rounded-t-2xl mb-2">
+              {imageDatas.map((img, idx) => (
+                <div key={idx} className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-white/10 shadow-xl">
+                  <img src={img.data} className="w-full h-full object-cover" />
+                  <button onClick={() => removeImage(idx)} className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center text-white"><X size={8} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+             <Sheet>
+               <SheetTrigger asChild>
+                 <button className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-cyan-400 shadow-xl active:scale-95">
+                   <Settings2 size={20} />
+                 </button>
+               </SheetTrigger>
+               <SheetContent side="bottom" className="h-[80vh] bg-[#050505] border-t-zinc-800/50 p-0 overflow-hidden flex flex-col rounded-t-[2rem]">
+                 <SheetHeader className="p-6 border-b border-white/5 shrink-0">
+                   <SheetTitle className="text-white text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                     <Settings2 size={16} className="text-cyan-400" />
+                     Designer Settings
+                   </SheetTitle>
+                 </SheetHeader>
+                 
+                 <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-12">
+                   {/* Mode Switcher */}
+                   <div className="space-y-3">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Output Type</label>
+                     <div className="grid grid-cols-3 gap-2">
+                       {(['app', 'web', 'component'] as DesignerMode[]).map((mode) => (
+                         <button
+                           key={mode}
+                           onClick={() => updateMode(mode)}
+                           className={cn(
+                             "py-3 rounded-xl text-[10px] font-black transition-all border uppercase",
+                             builderMode === mode 
+                               ? "bg-cyan-600 border-cyan-500 text-white shadow-lg" 
+                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
+                           )}
+                         >
+                           {mode}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Theme Colors */}
+                   <div className="space-y-3">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Brand Colors</label>
+                     <div className="space-y-3 p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800/50">
+                        <ColorInput label="Primary Color" value={primaryColor} onChange={setPrimaryColor} placeholder="FF0000" dotColor="#06b6d4" disabled={isGenerating} />
+                        <ColorInput label="Secondary Color" value={secondaryColor} onChange={setSecondaryColor} placeholder="00FF00" dotColor="#14b8a6" disabled={isGenerating} />
+                        <ColorInput label="Accent Style" value={accentColor} onChange={setAccentColor} placeholder="FFFFFF" dotColor="#f5e1c8" disabled={isGenerating} />
+                     </div>
+                   </div>
+
+                   <div className="h-px bg-zinc-800/50 w-full my-4" />
+
+                   {/* Blueprint & History */}
+                   <div className="space-y-4">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Session Log</label>
+                     <div className="space-y-4">
+                        {messages.length === 0 ? (
+                          <div className="py-10 text-center opacity-30">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">No session history</p>
+                          </div>
+                        ) : (
+                          messages.map((msg) => (
+                            <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
+                              <div className={cn(
+                                "max-w-[85%] rounded-2xl px-4 py-3 text-[11px] leading-relaxed",
+                                msg.role === 'user' ? "bg-cyan-600 text-white" : "bg-zinc-900 text-zinc-300 border border-zinc-800"
+                              )}>
+                                {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                     </div>
+                   </div>
+                 </div>
+               </SheetContent>
+             </Sheet>
+
+             <div className="relative flex-1">
+                <textarea
+                  ref={textareaRef}
+                  value={appDescription}
+                  onChange={(e) => setAppDescription(e.target.value)}
+                  disabled={isGenerating || isPlanning || isProjectStarted}
+                  placeholder={isProjectStarted ? "Locked" : "Describe app/web..."}
+                  rows={1}
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-[20px] py-3.5 pl-10 pr-4 text-[13px] text-white focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all resize-none shadow-2xl"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-zinc-500 hover:text-white"
+                >
+                  <Paperclip size={16} />
+                </button>
+             </div>
+             
              <button 
                 onClick={() => sourceUrl.trim() && builderMode === 'web' ? handleScrapeAndPlan(sourceUrl, appDescription, true) : handlePlan()}
                 disabled={(!appDescription.trim() && !sourceUrl.trim()) || isPlanning}
-                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-cyan-400 hover:bg-zinc-700 transition-all active:scale-90"
+                className="w-11 h-11 rounded-xl bg-zinc-800 text-cyan-400 flex items-center justify-center shadow-lg border border-white/5 active:scale-95 disabled:opacity-50 transition-all shrink-0"
               >
-                {isPlanning ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+               {isPlanning ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
              </button>
+
              <button 
                 onClick={() => handleGenerate()}
                 disabled={!canGenerate}
-                className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                className="w-11 h-11 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-lg shadow-cyan-600/20 active:scale-95 disabled:opacity-50 transition-all shrink-0"
               >
-               {isGenerating ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />}
+               {isGenerating ? <RefreshCw size={18} className="animate-spin" /> : <Zap size={18} />}
              </button>
           </div>
-          <input type="file" ref={fileInputRef} onChange={handleImageUpload} multiple accept="image/*" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
+          
+          {builderMode === 'web' && !isProjectStarted && (
+             <div className="mt-3 px-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900/40 border border-amber-500/20 rounded-xl">
+                  <Globe size={12} className="text-amber-500/60" />
+                  <input 
+                    type="url"
+                    value={sourceUrl}
+                    onChange={(e) => setSourceUrl(e.target.value)}
+                    placeholder="Website URL to redesign..."
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-[10px] text-amber-500 placeholder:text-zinc-700 uppercase tracking-widest font-black"
+                  />
+                </div>
+             </div>
+          )}
         </div>
 
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => setShowAuthModal(false)}
+        />
       </div>
     );
   }
