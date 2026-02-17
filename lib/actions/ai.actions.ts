@@ -90,8 +90,9 @@ TECHNICAL SPECS:
 – ${aspectRatio} aspect ratio
 – Sharp focus on subject, intentional bokeh where appropriate  
 – Clean, artifact-free rendering
+– FULL FRAME RENDERING: Do not leave any borders, white space, pillarboxing, or letterboxing. The image MUST fill the entire canvas area.
 
-ABSOLUTELY AVOID: Stock photo aesthetic, flat lighting, generic compositions, amateur feel.`;
+ABSOLUTELY AVOID: Stock photo aesthetic, flat lighting, generic compositions, amateur feel, borders, or any form of letterboxing.`;
 }
 
 // --- Server Actions ---
@@ -113,7 +114,8 @@ export async function generateAIImage(params: {
   
   const isEditing = uploadedImages.length > 0;
 
-  const promises = Array.from({ length: imageCount }, async (_, i) => {
+  const results = [];
+  for (let i = 0; i < imageCount; i++) {
     const parts: any[] = [];
     
     uploadedImages.forEach((img: any) => {
@@ -134,10 +136,16 @@ export async function generateAIImage(params: {
       taskPrefix = `TASK: COMBINE THE ${uploadedImages.length} UPLOADED IMAGES INTO ONE COHESIVE PRODUCT ADVERTISEMENT OR CREATIVE COMPOSITION. THE FINAL IMAGE MUST BE A SINGLE INTEGRATED SCENE.`;
     }
 
+    const hasIdentity = basePrompt.includes("SUBJECT IDENTITY");
     const text = isEditing 
-      ? `${taskPrefix}\nCONCEPT: ${basePrompt}\n${masterPrompt}`
+      ? `TASK: ADVANCED CREATIVE COMPOSITION. 
+         ${hasIdentity ? "CRITICAL: YOU MUST INCLUDE THE CHARACTER/SUBJECT DESCRIBED IN THE 'SUBJECT IDENTITY' SECTION. THEY MUST BE INTERACTING WITH THE PRODUCTS/ELEMENTS IN THE UPLOADED IMAGES (e.g., holding them, looking at them, or being in the same scene)." : "TRANSFORM/DEVELOP THE SCENE WHILE PRESERVING THE ELEMENTS IN THE UPLOADED IMAGES."}
+         CRITICAL: FILL THE ENTIRE ${aspectRatio} FRAME. THE IMAGE MUST COMPLETELY FILL THE CANVAS.
+         
+         CONCEPT: ${basePrompt}
+         ${masterPrompt}`
       : (imageCount > 1 
-        ? `${masterPrompt}\n\nVARIATION ${i + 1} of ${imageCount}: Create a unique creative variation.`
+        ? `${masterPrompt}\n\nVARIATION ${i + 1} of ${imageCount}: Give me a unique creative variation focused on detail and composition. FILL THE ENTIRE ${aspectRatio} FRAME.`
         : masterPrompt);
 
     parts.push({ text });
@@ -158,24 +166,30 @@ export async function generateAIImage(params: {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { error: errorData?.error?.message || `Failed (${response.status})`, index: i };
+      results.push({ error: errorData?.error?.message || `Failed (${response.status})`, index: i });
+      continue;
     }
 
     const data = await response.json();
     const responseParts = data.candidates?.[0]?.content?.parts || [];
     const imagePart = responseParts.find((p: any) => p.inlineData);
     
-    if (!imagePart?.inlineData?.data) return { error: 'No image returned', index: i };
+    if (!imagePart?.inlineData?.data) {
+      results.push({ error: 'No image returned', index: i });
+      continue;
+    }
 
-    return { 
+    results.push({ 
       image: imagePart.inlineData.data,
       mimeType: imagePart.inlineData.mimeType || 'image/png',
       index: i,
-    };
-  });
+    });
+    
+    // Tiny delay to ensure unique entropy/timestamp in API side if any
+    if (imageCount > 1) await new Promise(r => setTimeout(r, 200));
+  }
 
-  const results = await Promise.all(promises);
-  const images = results.filter(r => r.image);
+  const images = results.filter((r: any) => r.image);
   
   if (images.length === 0) throw new Error("All image generations failed");
 
@@ -284,10 +298,17 @@ Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, second
   };
 }
 
-export async function planVisualAction(prompt: string) {
+export async function planVisualAction(prompt: string, identity?: { name: string, description: string }) {
   if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-  const systemInstructions = `You are a world-class Prompt Engineer and Creative Director specialized in Midjourney, DALL-E 3, and Gemini Image generation. 
+  const identityContext = identity 
+    ? `\n\nIMPORTANT: THE OUTPUT MUST INCLUDE THE FOLLOWING CHARACTER/SUBJECT IDENTITY IN THE SCENE:
+       NAME: ${identity.name}
+       DNA: ${identity.description}`
+    : "";
+
+  const systemInstructions = `You are a world-class High-Fashion and Product Studio Creative Director.
+ specialized in Midjourney, DALL-E 3, and Gemini Image generation. 
 
 YOUR TASK: The user gives you a SHORT idea for an image. You must expand it into a MASTERPIECE PROMPT.
 - Focus on: Cinematic lighting, specific camera lenses (e.g., 85mm f/1.8), atmospheric details (smoke, dust motes), high-end textures, and specific artistic styles.
@@ -305,7 +326,7 @@ Return ONLY a valid JSON object:
     },
     contents: [{ 
       parts: [
-        { text: `IMAGE IDEA: "${prompt}"\n\nRespond with ONLY a JSON object containing: detailedPrompt.` }
+        { text: `IMAGE IDEA: "${prompt}"${identityContext}\n\nRespond with ONLY a JSON object containing: detailedPrompt. The detailedPrompt must explicitly describe the character/subject and how they are positioned in the scene.` }
       ] 
     }],
     generationConfig: {

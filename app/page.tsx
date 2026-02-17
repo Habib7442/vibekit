@@ -148,12 +148,12 @@ export default function LandingPage() {
         
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full flex flex-col items-center relative z-10">
            <h1 className="text-5xl md:text-[5rem] font-bold text-white tracking-tight leading-[1.1] max-w-5xl mb-4">
-             Design Your <span className="italic font-[family-name:var(--font-playfair)] font-light text-zinc-400">Perfect</span> <br />
-             Websites & Studio Assets
+             Design Your <span className="italic font-[family-name:var(--font-playfair)] font-light text-zinc-400">Unique</span> <br />
+             Brand DNA & Studio Assets
            </h1>
            
-           <p className="text-zinc-500 text-sm md:text-base max-w-xl mx-auto mb-10 leading-relaxed uppercase tracking-widest font-black opacity-80">
-             High-end photography, Web UI & Mobile App Designs.
+           <p className="text-zinc-500 text-sm md:text-base max-w-2xl mx-auto mb-10 leading-relaxed uppercase tracking-[0.2em] font-black opacity-80">
+             Identity Consistency · Editorial Layouts · High-End Branding.
            </p>
 
            <div className="w-full max-w-2xl mx-auto mb-16 relative z-10">
@@ -269,9 +269,9 @@ export default function LandingPage() {
           </div>
 
            {/* Expertise Tags */}
-           <div className="flex flex-wrap justify-center gap-2 max-w-3xl">
-             {['Etsy Photoshoot', 'Fashion Editorial', 'Minimal UI', 'Product Ad', 'Mobile App', 'Web Design', 'Code Export'].map((tag) => (
-               <span key={tag} className="px-4 py-1.5 rounded-md bg-zinc-900/50 border border-zinc-800/80 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+           <div className="flex flex-wrap justify-center gap-2 max-w-4xl">
+             {['Locked Identity', 'Brand DNA', 'Editorial Design', 'Product Consistency', 'Mobile Pro', 'Web Art', 'Batch Campaign'].map((tag) => (
+               <span key={tag} className="px-4 py-1.5 rounded-md bg-zinc-900/50 border border-white/5 text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-2xl">
                  {tag}
                </span>
              ))}

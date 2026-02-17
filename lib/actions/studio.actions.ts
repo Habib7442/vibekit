@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export interface SaveCanvasParams {
   canvasId?: string; // Optional ID for updating existing canvas
@@ -158,6 +159,47 @@ export async function uploadImageToStudio(base64: string, filename: string) {
     .getPublicUrl(path);
 
   return publicUrl;
+}
+
+export async function deleteCanvasAction(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  const { error } = await supabase
+    .from('canvases')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[deleteCanvasAction] Error:', error);
+    throw new Error('Failed to delete canvas.');
+  }
+
+  revalidatePath('/studio/generations');
+}
+
+export async function deleteImageAction(id: string, canvasId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  const { error } = await supabase
+    .from('canvas_images')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[deleteImageAction] Error:', error);
+    throw new Error('Failed to delete image.');
+  }
+
+  revalidatePath(`/studio/generations/${canvasId}`);
+  return { success: true };
 }
 
 export async function toggleCanvasPrivacyAction(canvasId: string, isPublic: boolean) {

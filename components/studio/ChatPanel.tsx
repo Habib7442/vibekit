@@ -10,6 +10,8 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { deductCredit } from '@/lib/credits-actions';
 import { AuthModal } from '@/components/studio/AuthModal';
+import { IdentityLab } from './IdentityLab';
+import { StudioModel } from '@/lib/actions/identity.actions';
 
 const ASPECT_RATIOS = [
   { label: '1:1', value: '1:1' },
@@ -57,6 +59,7 @@ export function ChatPanel() {
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [selectedImages, setSelectedImages] = useState<{ data: string; mimeType: string }[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
+  const [selectedIdentity, setSelectedIdentity] = useState<StudioModel | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -123,7 +126,7 @@ export function ChatPanel() {
     setIsPlanning(true);
 
     try {
-      const data = await planVisualAction(input);
+      const data = await planVisualAction(input, selectedIdentity ? { name: selectedIdentity.name, description: selectedIdentity.description } : undefined);
       if (data.detailedPrompt) {
         setInput(data.detailedPrompt);
       }
@@ -136,7 +139,13 @@ export function ChatPanel() {
   };
 
   const handleGenerate = async (overridePrompt?: string) => {
-    const prompt = overridePrompt || input.trim();
+    let prompt = overridePrompt || input.trim();
+    
+    // Inject Identity DNA if selected
+    if (selectedIdentity) {
+      prompt = `SUBJECT IDENTITY [${selectedIdentity.name}]: ${selectedIdentity.description}\n\nSCENE/ACTION: ${prompt || 'A professional editorial photoshoot.'}`;
+    }
+
     if ((!prompt && selectedImages.length === 0 && !currentTemplate) || isGenerating) return;
 
     const userMsgId = `msg_user_${Date.now()}`;
@@ -305,29 +314,37 @@ export function ChatPanel() {
                      </div>
                    </div>
 
-                   {/* Style Templates */}
-                   <div className="space-y-3">
-                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Creative Mode</label>
-                     <div className="grid grid-cols-2 gap-2">
-                       {TEMPLATES.map((t) => (
-                         <button
-                           key={t.id}
-                           onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
-                           className={cn(
-                             "p-4 rounded-2xl text-[10px] font-bold border flex flex-col items-center gap-2 transition-all",
-                             currentTemplate === t.id 
-                               ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
-                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                           )}
-                         >
-                           <span className="text-xl">{t.icon}</span>
-                           {t.label}
-                         </button>
-                       ))}
-                     </div>
-                   </div>
+                    {/* Style Templates */}
+                    <div className="space-y-3">
+                      <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Creative Mode</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {TEMPLATES.map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
+                            className={cn(
+                              "p-4 rounded-2xl text-[10px] font-bold border flex flex-col items-center gap-2 transition-all",
+                              currentTemplate === t.id 
+                                ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
+                                : "bg-zinc-900 border-zinc-800 text-zinc-500"
+                            )}
+                          >
+                            <span className="text-xl">{t.icon}</span>
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                   <div className="h-px bg-zinc-800/50 w-full my-4" />
+                    <div className="h-px bg-zinc-800/50 w-full my-4" />
+
+                    {/* Identity Lab */}
+                    <IdentityLab 
+                      selectedId={selectedIdentity?.id}
+                      onSelect={(iden) => setSelectedIdentity(selectedIdentity?.id === iden.id ? null : iden)}
+                    />
+
+                    <div className="h-px bg-zinc-800/50 w-full my-4" />
 
                    {/* History Section in same sheet */}
                    <div className="space-y-4">
@@ -438,75 +455,85 @@ export function ChatPanel() {
       </div>
 
       {/* Controls & Input */}
-      <div className="shrink-0 p-4 border-t border-zinc-800/50 space-y-4 bg-black/20">
-        <div className="space-y-3">
-          {/* Ratios */}
-          <div>
-            <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Aspect Ratio</label>
-            <div className="flex gap-1">
-              {ASPECT_RATIOS.map((r) => (
-                <button
-                  key={r.value}
-                  onClick={() => setAspectRatio(r.value)}
-                  className={cn(
-                    "flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all border",
-                    aspectRatio === r.value 
-                      ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
-                      : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                  )}
-                >
-                  {r.label}
-                </button>
-              ))}
+      <div className="shrink-0 border-t border-zinc-800/50 bg-black/20 flex flex-col max-h-[70%]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          <div className="space-y-4">
+            {/* Ratios */}
+            <div>
+              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Aspect Ratio</label>
+              <div className="flex gap-1">
+                {ASPECT_RATIOS.map((r) => (
+                  <button
+                    key={r.value}
+                    onClick={() => setAspectRatio(r.value)}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all border",
+                      aspectRatio === r.value 
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Image Count */}
-          <div>
-            <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Number of Images</label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((count) => (
-                <button
-                  key={count}
-                  onClick={() => setImageCount(count)}
-                  className={cn(
-                    "flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all border",
-                    imageCount === count
-                      ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                      : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                  )}
-                >
-                  {count}
-                </button>
-              ))}
+            {/* Image Count */}
+            <div>
+              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Number of Images</label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => setImageCount(count)}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all border",
+                      imageCount === count
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                    )}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Style Templates */}
-          <div>
-            <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Style Template</label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
-                  className={cn(
-                    "px-3 py-2 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-2 text-left",
-                    currentTemplate === t.id 
-                      ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
-                      : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                  )}
-                >
-                  <span className="text-sm">{t.icon}</span>
-                  <span className="truncate">{t.label}</span>
-                </button>
-              ))}
+            {/* Style Templates */}
+            <div>
+              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Style Template</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
+                    className={cn(
+                      "px-3 py-2 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-2 text-left",
+                      currentTemplate === t.id 
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
+                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                    )}
+                  >
+                    <span className="text-sm">{t.icon}</span>
+                    <span className="truncate">{t.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <div className="h-px bg-zinc-800/50 w-full my-4" />
+
+            {/* Identity Lab (Desktop) */}
+            <IdentityLab 
+              selectedId={selectedIdentity?.id}
+              onSelect={(iden) => setSelectedIdentity(selectedIdentity?.id === iden.id ? null : iden)}
+            />
           </div>
         </div>
 
-        {/* Chat Input Area */}
-        <div className="space-y-3 pt-2">
+        {/* Fixed Chat Input Area */}
+        <div className="p-4 border-t border-zinc-800/50 bg-black/40 space-y-3">
           {selectedImages.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {selectedImages.map((img, idx) => (
@@ -550,6 +577,17 @@ export function ChatPanel() {
             </div>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
           </div>
+          
+          {/* Identity Context Bar (Desktop) */}
+          {selectedIdentity && (
+            <div className="pt-2 flex items-center justify-between border-t border-indigo-500/10 mt-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Active Identity: {selectedIdentity.name}</span>
+              </div>
+              <button onClick={() => setSelectedIdentity(null)} className="text-[9px] text-zinc-600 hover:text-white uppercase font-black">Clear</button>
+            </div>
+          )}
         </div>
       </div>
 

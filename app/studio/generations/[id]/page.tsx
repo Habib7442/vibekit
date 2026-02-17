@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ReadOnlyPreview } from '@/components/studio/ReadOnlyPreview';
 import { CopyCodeButton } from '@/components/studio/CopyCodeButton';
+import { DeleteActions } from '@/components/studio/DeleteActions';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -63,12 +64,15 @@ export default async function CanvasDetailPage({ params }: PageProps) {
                 </div>
              </div>
              
-             <div className="flex items-center gap-4 ml-12 md:ml-0">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 rounded-lg border border-zinc-800/30">
-                   <Cloud size={12} className="text-emerald-500" />
-                   <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest">Saved</span>
-                </div>
-             </div>
+              <div className="flex items-center gap-2 ml-12 md:ml-0">
+                 {isOwner && (
+                   <DeleteActions type="canvas" id={id} className="mr-2" redirectAfterDelete={true} />
+                 )}
+                 <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 rounded-lg border border-zinc-800/30">
+                    <Cloud size={12} className="text-emerald-500" />
+                    <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest">Saved</span>
+                 </div>
+              </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 md:p-12 scrollbar-none pb-20">
@@ -95,10 +99,13 @@ export default async function CanvasDetailPage({ params }: PageProps) {
                           <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 bg-gradient-to-t from-black duration-300 md:opacity-0 md:group-hover:opacity-100 transition-all">
                              <p className="text-[10px] text-zinc-400 line-clamp-2 md:line-clamp-3 leading-relaxed font-medium italic">"{img.prompt}"</p>
                              <div className="mt-4 hidden md:flex gap-2">
-                                <a href={img.image_url} download target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all">
-                                   <Download size={14} />
-                                </a>
-                             </div>
+                                 <a href={img.image_url} download target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all">
+                                    <Download size={14} />
+                                 </a>
+                                 {isOwner && (
+                                   <DeleteActions type="image" id={img.id} canvasId={id} />
+                                 )}
+                              </div>
                           </div>
                         )}
                      </div>
@@ -148,7 +155,10 @@ export default async function CanvasDetailPage({ params }: PageProps) {
               </div>
            </div>
           
-           <div className="flex items-center gap-4 ml-12 md:ml-0">
+           <div className="flex items-center gap-2 ml-12 md:ml-0">
+              {isOwner && (
+                <DeleteActions type="canvas" id={id} className="mr-2" redirectAfterDelete={true} />
+              )}
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 rounded-lg border border-zinc-800/30">
                  <Cloud size={12} className="text-emerald-500" />
                  <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest">Saved</span>

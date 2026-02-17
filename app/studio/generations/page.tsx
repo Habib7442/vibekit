@@ -4,6 +4,8 @@ import { Smartphone, ImageIcon, Globe, Calendar, ArrowRight } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { PrivacyToggle } from '@/components/studio/PrivacyToggle';
 import { RetryButton } from '@/components/studio/RetryButton';
+import { DeleteActions } from '@/components/studio/DeleteActions';
+import Image from 'next/image';
 
 export default async function GenerationsPage() {
   const supabase = await createClient();
@@ -22,7 +24,10 @@ export default async function GenerationsPage() {
   // Fetch canvases for the current user
   const { data: rawCanvases, error } = await supabase
     .from('canvases')
-    .select('*')
+    .select(`
+      *,
+      images:canvas_images(image_url)
+    `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -66,25 +71,28 @@ export default async function GenerationsPage() {
               >
                 {/* Preview Placeholder / Image */}
                 <div className="aspect-[16/10] bg-[#111118] relative overflow-hidden flex items-center justify-center">
-                   {canvas.type === 'visual' ? (
-                     <div className="absolute inset-0 flex items-center justify-center opacity-20 grayscale scale-110">
-                        <ImageIcon size={60} />
-                     </div>
-                   ) : (
-                     <div className="absolute inset-0 flex items-center justify-center opacity-20 grayscale scale-110">
-                        {canvas.type === 'app' ? <Smartphone size={60} /> : <Globe size={60} />}
-                     </div>
-                   )}
+                    {canvas.type === 'visual' && (canvas.images?.[0] as any)?.image_url ? (
+                      <img 
+                        src={(canvas.images?.[0] as any).image_url} 
+                        alt={canvas.name}
+                        className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-20 grayscale scale-110">
+                         {canvas.type === 'app' ? <Smartphone size={60} /> : canvas.type === 'visual' ? <ImageIcon size={60} /> : <Globe size={60} />}
+                      </div>
+                    )}
                    
                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0F] to-transparent opacity-80" />
                    
-                   <div className="absolute top-4 right-4 flex items-center gap-2">
+                   <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+                      <DeleteActions type="canvas" id={canvas.id} className="bg-black/60 border-white/10" />
                       <PrivacyToggle canvasId={canvas.id} initialIsPublic={canvas.is_public} />
                       <div className={cn(
-                        "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
-                        canvas.type === 'visual' ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" :
-                        canvas.type === 'app' ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400" :
-                        "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                        "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border bg-black/60",
+                        canvas.type === 'visual' ? "border-indigo-500/30 text-indigo-400" :
+                        canvas.type === 'app' ? "border-cyan-500/30 text-cyan-400" :
+                        "border-amber-500/30 text-amber-400"
                       )}>
                         {canvas.type}
                       </div>

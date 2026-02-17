@@ -2,11 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useImageChatStore, GeneratedImage } from '@/lib/store/useImageChatStore';
-import { Download, Edit3, Trash2, Maximize2, X, Loader2, Copy, Cloud, Check } from 'lucide-react';
+import { Download, Edit3, Trash2, Maximize2, X, Loader2, Copy, Cloud, Check, Sparkles, Layout } from 'lucide-react';
 import { saveCanvasAction, uploadImageToStudio } from '@/lib/actions/studio.actions';
 import { cn } from '@/lib/utils';
 import { generateAIImage } from '@/lib/actions/ai.actions';
 import { deductCredit } from '@/lib/credits-actions';
+import { ImageEditor } from './ImageEditor';
 
 function downloadImage(base64: string, mimeType: string, filename: string) {
   const a = document.createElement('a');
@@ -25,6 +26,7 @@ export function ImageGallery() {
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [editorImage, setEditorImage] = useState<GeneratedImage | null>(null);
   const saveSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -213,6 +215,13 @@ export function ImageGallery() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button 
+                          onClick={(e) => { e.stopPropagation(); setEditorImage(img); }}
+                          className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white transition-all scale-110 md:scale-100"
+                          title="Creative Studio"
+                        >
+                          <Sparkles size={16} />
+                        </button>
+                        <button 
                           onClick={(e) => { e.stopPropagation(); setEditingImage(img.id); }}
                           className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all"
                           title="Edit with AI"
@@ -350,6 +359,20 @@ export function ImageGallery() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Creative Studio Modal */}
+      {editorImage && (
+        <ImageEditor 
+          initialImage={editorImage.image}
+          mimeType={editorImage.mimeType}
+          onClose={() => setEditorImage(null)}
+          onSave={(dataUrl) => {
+             // dataUrl is "data:image/png;base64,..."
+             const base64 = dataUrl.split(',')[1];
+             updateGalleryImage(editorImage.id, { image: base64 });
+          }}
+        />
       )}
     </div>
   );
