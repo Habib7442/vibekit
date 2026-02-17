@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ReadOnlyPreview } from '@/components/studio/ReadOnlyPreview';
 import { CopyCodeButton } from '@/components/studio/CopyCodeButton';
+import { DownloadCodeButton } from '@/components/studio/DownloadCodeButton';
 import { DeleteActions } from '@/components/studio/DeleteActions';
 
 interface PageProps {
@@ -181,27 +182,15 @@ export default async function CanvasDetailPage({ params }: PageProps) {
                             <h2 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-400 truncate">{screen.name}</h2>
                          </div>
                           <div className="flex items-center gap-2">
-                            <button 
-                               onClick={() => {
-                                 const blob = new Blob([screen.code], { type: 'text/html' });
-                                 const url = URL.createObjectURL(blob);
-                                 const a = document.createElement('a');
-                                 a.href = url;
-                                 a.download = `${screen.name.toLowerCase().replace(/\s+/g, '-')}.html`;
-                                 a.click();
-                                 URL.revokeObjectURL(url);
-                               }}
-                               className="p-2 px-3 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest"
-                               title="Download HTML"
-                            >
-                               <Download size={12} />
-                            </button>
+                            <DownloadCodeButton code={screen.code} fileName={screen.name} />
                             <CopyCodeButton code={screen.code} />
                          </div>
                       </div>
                       <div className={cn(
                          "relative flex justify-center w-full",
-                         canvas.type === 'app' ? "bg-[#080810] py-6 rounded-[24px] md:rounded-[40px] border border-white/[0.05]" : "w-full aspect-video rounded-2xl overflow-hidden border border-white/[0.05]"
+                         canvas.type === 'app' ? "bg-[#080810] py-6 rounded-[24px] md:rounded-[40px] border border-white/[0.05]" : 
+                         canvas.type === 'component' ? "w-full h-[500px] md:h-[844px] rounded-3xl overflow-hidden border border-white/[0.05] shadow-2xl" :
+                         "w-full h-[500px] md:h-[844px] rounded-2xl overflow-hidden border border-white/[0.05]"
                       )}>
                          {canvas.type === 'app' ? (
                            <div className="relative w-full max-w-[320px] md:max-w-[390px] rounded-[2.5rem] md:rounded-[3rem] border-[3px] border-zinc-700/60 bg-black overflow-hidden shadow-[0_0_60px_-15px_rgba(0,0,0,0.8),inset_0_0_0_1px_rgba(255,255,255,0.05)] my-4 md:my-8 scale-90 sm:scale-100 origin-center transition-transform">

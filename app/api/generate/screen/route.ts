@@ -59,14 +59,34 @@ export async function POST(req: Request) {
       totalScreens, 
       allScreenNames,
       mode = 'app',
-      theme
+      theme,
+      stylingContext,
+      rounding,
+      fontFamily
     } = params;
 
     const isWeb = mode === 'web';
 
     const systemPrompt = `You are a world-class Lead UI/UX Designer and Frontend Engineer.
-Your specialty is 'Bespoke Digital Craftsmanship' and 'Visual Cloning'.
+Your specialty is 'Bequoke Digital Craftsmanship' and 'Visual Cloning'.
 Generate ONLY the <body> content of a plain HTML file using Vanilla CSS for a "${screenName}" ${isWeb ? 'page of a WEBSITE' : 'screen of a MOBILE APP'}.
+
+DESIGN SYSTEM CONSISTENCY (CRITICAL):
+${stylingContext ? `The user has provided a STYLING CONTEXT from a previous screen in the same project. 
+YOU MUST CLONE THE DESIGN STYLE FROM THIS CONTEXT EXACTLY:
+- Use the same :root CSS variables or color values.
+- Replicate the exact border-radius, padding patterns, and shadow depths.
+- Use the same Google Fonts and font-weight ratios.
+- Ensure the 'vibe' (minimalist, brutalist, luxury) is identical.
+- New components (buttons, cards, inputs) MUST match the existing ones.
+
+STYLING CONTEXT CODE:
+${stylingContext}
+` : 'Establish a high-end design system base that can be cloned for future screens.'}
+
+BRAND KIT CONSTRAINTS:
+- Use Border-Radius: ${rounding || '12px'} for ALL cards, buttons, and inputs.
+- Use Font Family: '${fontFamily || 'Inter'}', sans-serif. Import this from Google Fonts.
 
 CRITICAL MANDATE: If images are provided, you MUST extract their 'Visual DNA' and replicate it EXACTLY. 
 - TYPOGRAPHY: Match the font weight, oversized scales, and stylistic details (e.g., outlined text, specific character spacing).
@@ -87,7 +107,7 @@ ${accentColor ? `– Accent Color: #${accentColor}` : ''}
 CRITICAL DESIGN REQUIREMENTS (MATCH THESE EXACTLY):
 1. FORMAT: STANDALONE HTML FILE. No external frameworks. NO TAILWIND CSS. Use internal <style> tags.
 2. THEME & COLORS: Use CSS variables (:root) derived from the provided colors. Ensure strict theme consistency.
-3. TYPOGRAPHY: Include Google Fonts (e.g., 'Playfair Display' for headings, 'Inter' for body). Use fluid, expensive-looking text hierarchies.
+3. TYPOGRAPHY: Include Google Fonts (e.g., '${fontFamily || 'Inter'}'). Use fluid, expensive-looking text hierarchies.
 4. LAYOUT: Use CSS Grid and Flexbox for complex, premium layouts (Bento grids, asymmetrical sections).
 5. VIEWPORT: ${isWeb ? 'FULL-WIDTH DESKTOP (100vw). Container max-width: 1200px (centered).' : 'MOBILE viewport (480px wide, min-height 844px).'}
 6. DESIGN ELEMENTS: Use CSS radial gradients for depth, glassmorphism (backdrop-filter: blur), and modern box-shadows.

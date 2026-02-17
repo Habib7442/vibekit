@@ -81,13 +81,16 @@ interface ReadOnlyPreviewProps {
 }
 
 export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
+  const isMobile = type === 'app';
+  const isComponent = type === 'component';
+
   const sandpackFiles = {
     "/index.html": {
       code: code.includes('<head>') 
         ? code.replace('</head>', `<style>
             *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
             * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-            body { overflow-x: hidden; }
+            body { overflow-x: hidden; min-height: 100vh; }
           </style></head>`)
         : `<!DOCTYPE html>
           <html>
@@ -98,7 +101,7 @@ export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
               <style>
                 *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
                 * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-                body { font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; background: transparent; }
+                body { font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; background: transparent; min-height: 100vh; display: flex; flex-direction: column; }
               </style>
             </head>
             <body>${code}</body>
@@ -107,22 +110,21 @@ export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
     },
   };
 
-  const isMobile = type === 'app';
-
   return (
     <div className={cn(
-      "w-full h-full bg-transparent overflow-hidden",
-      isMobile ? "max-w-[390px] mx-auto " : "w-full"
+      "w-full bg-transparent overflow-hidden",
+      isMobile ? "h-[844px] max-w-[390px] mx-auto" : isComponent ? "h-[844px]" : "h-full"
     )}>
       <SandpackProvider
         template="static"
         theme="dark"
         files={sandpackFiles}
       >
-        <SandpackLayout style={{ border: 'none', background: 'transparent' }}>
+        <SandpackLayout style={{ border: 'none', background: 'transparent', height: '100%' }}>
           <SandpackPreview 
             style={{ 
-              height: isMobile ? "844px" : "100%",
+              height: isMobile || isComponent ? "844px" : "100%",
+              minHeight: isMobile || isComponent ? "844px" : "100%",
               width: "100%",
               background: "transparent"
             }} 

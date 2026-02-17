@@ -44,11 +44,27 @@ export async function POST(req: Request) {
     if (!API_KEY) return new NextResponse("GEMINI_API_KEY not configured", { status: 500 });
 
     const params = await req.json();
-    const { theme, instruction, existingCode, images = [], primaryColor, secondaryColor, accentColor } = params;
+    const { 
+      theme, 
+      instruction, 
+      existingCode, 
+      images = [], 
+      primaryColor, 
+      secondaryColor, 
+      accentColor,
+      stylingContext
+    } = params;
 
     const systemPrompt = `You are a world-class Lead UI Engineer at a top design studio.
 Create a premium, ultra-high-end UI component using ONLY plain HTML and Tailwind CSS.
 STYLE: ${theme === 'dark' ? 'Modern Dark Luxury (Zind-950, deep glows, sophisticated depth)' : 'Modern Light Luxury (Soft shadows, layered glassmorphism, crisp white space)'}
+
+DESIGN SYSTEM ALIGNMENT:
+${stylingContext ? `Match the brand DNA of the following context. Use similar border-radius, font-weights, and spacing patterns.
+CONTEXT:
+${stylingContext}
+` : 'Establish a new, premium design system for this component.'}
+
 INSTRUCTION: ${instruction}
 ${existingCode ? `REFINE THIS HTML: \n${existingCode}` : ''}
 

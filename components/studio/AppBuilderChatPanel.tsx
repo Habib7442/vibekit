@@ -50,6 +50,14 @@ const COMPONENT_SUGGESTIONS = [
   'Animated notification toast',
 ];
 
+const PRESET_PALETTES = [
+  { name: 'Cyber Mint', p: '00FFC8', s: '111111', a: 'F5E1C8' },
+  { name: 'Hot Pink', p: 'FF3366', s: '202020', a: 'FFFFFF' },
+  { name: 'Luxury Gold', p: 'FFD700', s: '0A0A0A', a: 'FFFCF2' },
+  { name: 'Ocean Blue', p: '0070F3', s: '020617', a: 'FFFFFF' },
+  { name: 'Midnight', p: '6366F1', s: '0A0A0F', a: '2DD4BF' },
+];
+
 const isColorLight = (hex: string) => {
   const color = hex.replace('#', '');
   if (color.length !== 6) return false;
@@ -104,7 +112,18 @@ function ColorInput({ label, value, onChange, placeholder, dotColor, disabled }:
 }
 
 export function AppDesignerChatPanel() {
-  const { messages, isGenerating, addMessage, updateMessage, addGalleryScreens, setIsGenerating, builderMode, setBuilderMode, clearGallery } = useAppDesignerStore();
+  const { 
+    messages, 
+    isGenerating, 
+    addMessage, 
+    updateMessage, 
+    addGalleryScreens, 
+    setIsGenerating, 
+    builderMode, 
+    setBuilderMode, 
+    clearGallery,
+    galleryScreens 
+  } = useAppDesignerStore();
   const { user, profile } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -133,6 +152,8 @@ export function AppDesignerChatPanel() {
   const [primaryColor, setPrimaryColor] = useState('');
   const [secondaryColor, setSecondaryColor] = useState('');
   const [accentColor, setAccentColor] = useState('');
+  const [rounding, setRounding] = useState('12px');
+  const [fontFamily, setFontFamily] = useState('Inter');
   const [isPlanning, setIsPlanning] = useState(false);
   const [imageDatas, setImageDatas] = useState<{ data: string; mimeType: string }[]>([]);
   const [addScreenInput, setAddScreenInput] = useState('');
@@ -434,6 +455,9 @@ export function AppDesignerChatPanel() {
             images: imageDatas,
             mode: builderMode,
             theme: determinedTheme,
+            stylingContext: generated.length > 0 ? generated[0].code : undefined,
+            rounding,
+            fontFamily,
           }),
         });
 
@@ -537,6 +561,9 @@ export function AppDesignerChatPanel() {
             theme,
             instruction: appDescription,
             images: imageDatas,
+            stylingContext: galleryScreens.length > 0 ? galleryScreens[0].code : undefined,
+            rounding,
+            fontFamily,
           }),
         });
 
@@ -639,6 +666,9 @@ export function AppDesignerChatPanel() {
           images: imageDatas,
           mode: builderMode,
           theme: isColorLight(primaryColor) ? 'light' : 'dark',
+          stylingContext: galleryScreens.length > 0 ? galleryScreens[0].code : undefined,
+          rounding,
+          fontFamily,
         }),
       });
 
@@ -745,11 +775,75 @@ export function AppDesignerChatPanel() {
 
                    {/* Theme Colors */}
                    <div className="space-y-3">
-                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Brand Colors</label>
+                     <div className="flex items-center justify-between">
+                       <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Brand Colors</label>
+                       <Select onValueChange={(val) => {
+                         const palette = PRESET_PALETTES.find(p => p.name === val);
+                         if (palette) {
+                           setPrimaryColor(palette.p);
+                           setSecondaryColor(palette.s);
+                           setAccentColor(palette.a);
+                         }
+                       }}>
+                         <SelectTrigger className="h-5 border-zinc-800 bg-zinc-950/50 px-2 text-[9px] text-cyan-500 font-bold uppercase transition-colors hover:text-cyan-400">
+                           <SelectValue placeholder="Presets" />
+                         </SelectTrigger>
+                         <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100] shadow-2xl">
+                           {PRESET_PALETTES.map(p => (
+                             <SelectItem key={p.name} value={p.name} className="text-[11px] text-zinc-400 focus:text-white transition-colors">
+                               <div className="flex items-center gap-2">
+                                 <div className="flex gap-0.5">
+                                   <div className="w-2 h-2 rounded-full border border-white/10" style={{ backgroundColor: `#${p.p}` }} />
+                                   <div className="w-2 h-2 rounded-full border border-white/10" style={{ backgroundColor: `#${p.s}` }} />
+                                 </div>
+                                 {p.name}
+                               </div>
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
                      <div className="space-y-3 p-4 bg-zinc-900/50 rounded-2xl border border-zinc-800/50">
-                        <ColorInput label="Primary Color" value={primaryColor} onChange={setPrimaryColor} placeholder="FF0000" dotColor="#06b6d4" disabled={isGenerating} />
-                        <ColorInput label="Secondary Color" value={secondaryColor} onChange={setSecondaryColor} placeholder="00FF00" dotColor="#14b8a6" disabled={isGenerating} />
-                        <ColorInput label="Accent Style" value={accentColor} onChange={setAccentColor} placeholder="FFFFFF" dotColor="#f5e1c8" disabled={isGenerating} />
+                        <ColorInput label="Primary" value={primaryColor} onChange={setPrimaryColor} placeholder="FF0000" dotColor="#06b6d4" disabled={isGenerating} />
+                        <ColorInput label="Secondary" value={secondaryColor} onChange={setSecondaryColor} placeholder="00FF00" dotColor="#14b8a6" disabled={isGenerating} />
+                        <ColorInput label="Accent" value={accentColor} onChange={setAccentColor} placeholder="FFFFFF" dotColor="#f5e1c8" disabled={isGenerating} />
+                     </div>
+                   </div>
+
+                   {/* Visual Tokens (Mobile) */}
+                   <div className="space-y-4">
+                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Visual Tokens</label>
+                     <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Rounding</span>
+                          <Select value={rounding} onValueChange={setRounding}>
+                            <SelectTrigger className="bg-zinc-950 border-zinc-800 text-[11px] h-10 text-zinc-300">
+                              <SelectValue placeholder="Rounding" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100] shadow-2xl">
+                              <SelectItem value="0px" className="text-zinc-400 focus:text-white">Sharp</SelectItem>
+                              <SelectItem value="8px" className="text-zinc-400 focus:text-white">Soft</SelectItem>
+                              <SelectItem value="12px" className="text-zinc-400 focus:text-white">Modern</SelectItem>
+                              <SelectItem value="24px" className="text-zinc-400 focus:text-white">Round</SelectItem>
+                              <SelectItem value="999px" className="text-zinc-400 focus:text-white">Pill</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Typography</span>
+                          <Select value={fontFamily} onValueChange={setFontFamily}>
+                            <SelectTrigger className="bg-zinc-950 border-zinc-800 text-[11px] h-10 text-zinc-300">
+                              <SelectValue placeholder="Font" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100] shadow-2xl">
+                              <SelectItem value="Inter" className="text-zinc-400 focus:text-white">Inter</SelectItem>
+                              <SelectItem value="Playfair Display" className="text-zinc-400 focus:text-white font-serif">Playfair</SelectItem>
+                              <SelectItem value="Clash Display" className="text-zinc-400 focus:text-white">Clash</SelectItem>
+                              <SelectItem value="Syne" className="text-zinc-400 focus:text-white">Syne</SelectItem>
+                              <SelectItem value="Cabinet Grotesk" className="text-zinc-400 focus:text-white">Cabinet</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                      </div>
                    </div>
 
@@ -965,13 +1059,77 @@ export function AppDesignerChatPanel() {
           </div>
         )}
 
-        {/* Color Palette */}
-        <div className="space-y-2">
-          <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block px-1">Theme Colors</label>
-          <div className="flex flex-col gap-2">
-            <ColorInput label="P" value={primaryColor} onChange={setPrimaryColor} placeholder="Primary" dotColor="#06b6d4" disabled={isGenerating || isPlanning} />
-            <ColorInput label="S" value={secondaryColor} onChange={setSecondaryColor} placeholder="Secondary" dotColor="#14b8a6" disabled={isGenerating || isPlanning} />
-            <ColorInput label="A" value={accentColor} onChange={setAccentColor} placeholder="Accent" dotColor="#f5e1c8" disabled={isGenerating || isPlanning} />
+        {/* Product / Brand Kit */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">Brand Colors</label>
+              <Select onValueChange={(val) => {
+                const palette = PRESET_PALETTES.find(p => p.name === val);
+                if (palette) {
+                  setPrimaryColor(palette.p);
+                  setSecondaryColor(palette.s);
+                  setAccentColor(palette.a);
+                }
+              }}>
+                <SelectTrigger className="h-4 border-none bg-transparent p-0 text-[8px] text-cyan-500/60 font-black uppercase hover:text-cyan-400">
+                  <SelectValue placeholder="Presets" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100]">
+                  {PRESET_PALETTES.map(p => (
+                    <SelectItem key={p.name} value={p.name} className="text-[10px] text-zinc-400 focus:text-white">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `#${p.p}` }} />
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `#${p.s}` }} />
+                        </div>
+                        {p.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <ColorInput label="P" value={primaryColor} onChange={setPrimaryColor} placeholder="Primary" dotColor="#06b6d4" disabled={isGenerating || isPlanning} />
+              <ColorInput label="S" value={secondaryColor} onChange={setSecondaryColor} placeholder="Secondary" dotColor="#14b8a6" disabled={isGenerating || isPlanning} />
+              <ColorInput label="A" value={accentColor} onChange={setAccentColor} placeholder="Accent" dotColor="#f5e1c8" disabled={isGenerating || isPlanning} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block px-1">Visual Tokens</label>
+            <div className="space-y-2 bg-zinc-900/30 p-2 rounded-xl border border-white/5">
+               <div className="space-y-1">
+                 <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-widest px-1">Rounding</span>
+                 <Select value={rounding} onValueChange={setRounding}>
+                   <SelectTrigger className="bg-zinc-950/50 border-zinc-800/40 text-[10px] h-8 text-zinc-300">
+                     <SelectValue placeholder="Rounding" />
+                   </SelectTrigger>
+                   <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100]">
+                     <SelectItem value="0px" className="text-zinc-400 focus:text-white">Sharp</SelectItem>
+                     <SelectItem value="8px" className="text-zinc-400 focus:text-white">Soft</SelectItem>
+                     <SelectItem value="12px" className="text-zinc-400 focus:text-white">Modern</SelectItem>
+                     <SelectItem value="24px" className="text-zinc-400 focus:text-white">Round</SelectItem>
+                     <SelectItem value="999px" className="text-zinc-400 focus:text-white">Pill</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               <div className="space-y-1">
+                 <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-widest px-1">Typography</span>
+                 <Select value={fontFamily} onValueChange={setFontFamily}>
+                   <SelectTrigger className="bg-zinc-950/50 border-zinc-800/40 text-[10px] h-8 text-zinc-300">
+                     <SelectValue placeholder="Font" />
+                   </SelectTrigger>
+                   <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100]">
+                     <SelectItem value="Inter" className="text-zinc-400 focus:text-white">Inter (SaaS)</SelectItem>
+                     <SelectItem value="Playfair Display" className="text-zinc-400 focus:text-white">Playfair (Luxury)</SelectItem>
+                     <SelectItem value="Clash Display" className="text-zinc-400 focus:text-white">Clash (Modern)</SelectItem>
+                     <SelectItem value="Syne" className="text-zinc-400 focus:text-white">Syne (Creative)</SelectItem>
+                     <SelectItem value="Cabinet Grotesk" className="text-zinc-400 focus:text-white">Cabinet (Sharp)</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+            </div>
           </div>
         </div>
 
