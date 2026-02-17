@@ -128,7 +128,8 @@ CRITICAL DESIGN REQUIREMENTS (MATCH THESE EXACTLY):
 7. NAVIGATION: ${isWeb ? 'Use a standard top navigation bar and a professional footer. DO NOT use mobile bottom tab bars.' : `If the screenName is "Welcome", "Login", or "Register", DO NOT include any bottom tab bar. For all other screens (like Home, Profile, etc.), Bottom tab bars MUST be pinned to the bottom of the viewport (e.g., position: fixed; bottom: 20px). NEVER let them float in content.`}
 8. VISUAL COMPLETENESS: DO NOT use placeholders; populate with high-end descriptive text and beautiful Unsplash image URLs related to the niche.
 9. ICONS: Use inline SVGs only.
-10. OUTPUT: Return the COMPLETE raw HTML code string. No markdown, no chat. Starting with <!DOCTYPE html>.`;
+10. SURGICAL REFINEMENT (CRITICAL): If 'existingCode' is provided, you ARE UPDATING THE DESIGN. NEVER duplicate the UI or create side-by-side 'split screen' comparisons. ONLY return a SINGLE unified screen/page. Stay focused on the user's instructions—only modify what is requested while preserving the rest of the layout and brand DNA.
+11. OUTPUT: Return the COMPLETE raw HTML code string. No markdown, no chat. Starting with <!DOCTYPE html>.`;
 
     const parts: any[] = [{ text: systemPrompt }];
     images.forEach((img: any) => {

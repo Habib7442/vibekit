@@ -313,14 +313,14 @@ function EditOverlay({
   };
 
   return (
-    <div className="absolute inset-x-6 bottom-6 z-20 animate-in slide-in-from-bottom-2 duration-300">
-      <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden">
+    <div className="absolute inset-x-2 sm:inset-x-6 bottom-6 z-20 animate-in slide-in-from-bottom-2 duration-300">
+      <div className="bg-[#0A0A0F]/95 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-3 sm:p-6 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
         
         {/* Image Previews */}
         {images.length > 0 && (
-          <div className="flex gap-3 mb-4 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex flex-wrap gap-2 mb-4 animate-in fade-in slide-in-from-bottom-2">
             {images.map((img, idx) => (
-              <div key={idx} className="relative group/img w-16 h-16 rounded-xl overflow-hidden border border-white/10 shadow-lg">
+              <div key={idx} className="relative group/img w-12 h-12 rounded-xl overflow-hidden border border-white/10 shadow-lg">
                 <img src={img.data} alt={`Attached image ${idx + 1}`} className="w-full h-full object-cover" />
                 <button 
                   onClick={() => removeImage(idx)}
@@ -346,22 +346,22 @@ function EditOverlay({
             }
             if (e.key === 'Escape') { onClose(); }
           }}
-          placeholder="Describe the defect or change... (e.g. 'Fix the overlap in this card', 'Make it matching the screenshot')"
+          placeholder="Describe the change... (e.g. 'Fix the overlap')"
           rows={2}
           autoFocus
           className="w-full bg-transparent border-none text-white text-[13px] focus:outline-none resize-none placeholder:text-zinc-600 leading-relaxed scrollbar-hide"
         />
 
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-white/5 gap-4">
-          <div className="flex items-center gap-4 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-between mt-3 pt-3 border-t border-white/5 gap-2">
+          <div className="flex items-center gap-2">
              <button 
                onClick={() => fileInputRef.current?.click()}
-               className="flex items-center gap-2 text-zinc-500 hover:text-cyan-400 transition-colors"
+               className="flex items-center gap-1.5 text-zinc-500 hover:text-cyan-400 transition-colors shrink-0"
              >
-               <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
-                 <Paperclip size={14} />
+               <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
+                 <Paperclip size={12} />
                </div>
-               <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Attach Screenshot</span>
+               <span className="text-[10px] items-center font-black uppercase tracking-widest hidden sm:inline">Attach</span>
              </button>
              <input 
                ref={fileInputRef}
@@ -372,13 +372,13 @@ function EditOverlay({
                onChange={handleImageUpload} 
              />
              <div className="h-4 w-px bg-white/5 hidden sm:block" />
-             <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest hidden lg:block">Paste images or screenshots directly</span>
+             <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest hidden lg:block">Paste images directly</span>
           </div>
 
-          <div className="flex gap-3 w-full sm:w-auto">
+          <div className="flex gap-2 items-center ml-auto">
             <button
               onClick={onClose}
-              className="flex-1 sm:flex-none px-4 py-2 text-[10px] text-zinc-500 hover:text-white rounded-xl transition-colors font-black uppercase tracking-widest border border-transparent hover:border-white/5"
+              className="px-2 py-2 text-[10px] text-zinc-400 hover:text-white rounded-xl transition-colors font-black uppercase tracking-widest"
             >
               Cancel
             </button>
@@ -388,7 +388,7 @@ function EditOverlay({
                 onUpdate(editPrompt, images).finally(() => setIsUpdating(false));
               }}
               disabled={(!editPrompt.trim() && images.length === 0) || isUpdating}
-              className="flex-1 sm:flex-none px-6 py-2.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-900 disabled:text-zinc-700 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20"
+              className="px-4 py-2 text-[10px] bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-900 disabled:text-zinc-700 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 whitespace-nowrap"
             >
               {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
               Update Design

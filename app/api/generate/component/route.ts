@@ -93,7 +93,8 @@ REQUIREMENTS:
 5. VISUAL COMPLETENESS: DO NOT leave any section blank. Use placeholders for every image area.
 6. ICONS: Use inline SVG for icons.
 7. ANIMATIONS: Use standard Tailwind transitions or CSS animations for subtle micro-interactions.
-8. OUTPUT: Return ONLY the raw HTML string. No markdown, no chat.`;
+8. SURGICAL REFINEMENT: If 'existingCode' is provided, you ARE UPDATING THE DESIGN. NEVER duplicate the UI or provide 'before/after' views. ONLY return a SINGLE unified component. Focus exclusively on the requested changes.
+9. OUTPUT: Return ONLY the raw HTML string. No markdown, no chat.`;
 
     const parts: any[] = [{ text: systemPrompt }];
     images.forEach((img: any) => {
