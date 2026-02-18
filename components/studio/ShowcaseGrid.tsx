@@ -46,9 +46,9 @@ export function ShowcaseGrid() {
   return (
     <section className="py-24 px-6 bg-[#050505] border-y border-white/[0.02]">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12 gap-8">
-           <div className="space-y-4">
-              <h2 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">Community <br className="hidden md:block" /> Showcase</h2>
+        <div className="flex flex-col items-center text-center mb-16 space-y-6">
+           <div className="space-y-4 flex flex-col items-center">
+              <h2 className="text-5xl md:text-8xl font-bold tracking-tighter text-white">Community <br /> Showcase</h2>
               <p className="text-zinc-500 text-xs font-black uppercase tracking-[0.3em] max-w-md leading-relaxed">Latest generations from our top creators</p>
               <Link href="/studio/generations" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#f5e1c8] hover:text-white transition-all group">
                 View All Vaults 

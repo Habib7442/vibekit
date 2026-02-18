@@ -42,6 +42,8 @@ interface AppDesignerState {
   clearGallery: () => void;
   savedCanvasId: string | null;
   setSavedCanvasId: (id: string | null) => void;
+  projectTitle: string | null;
+  setProjectTitle: (title: string | null) => void;
 }
 
 export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
@@ -51,7 +53,8 @@ export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
   activeScreenId: null,
   builderMode: 'app',
   savedCanvasId: null,
-
+  projectTitle: null,
+  
   addMessage: (msg) => set({ messages: [...get().messages, msg] }),
   updateMessage: (id, updates) => set({
     messages: get().messages.map(m => m.id === id ? { ...m, ...updates } : m),
@@ -78,6 +81,7 @@ export const useAppDesignerStore = create<AppDesignerState>((set, get) => ({
   setIsGenerating: (v) => set({ isGenerating: v }),
   setBuilderMode: (mode) => set({ builderMode: mode }),
   clearChat: () => set({ messages: [] }),
-  clearGallery: () => set({ galleryScreens: [], activeScreenId: null, savedCanvasId: null }),
+  clearGallery: () => set({ galleryScreens: [], activeScreenId: null, savedCanvasId: null, projectTitle: null }),
   setSavedCanvasId: (id) => set({ savedCanvasId: id }),
+  setProjectTitle: (title) => set({ projectTitle: title }),
 }));

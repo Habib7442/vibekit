@@ -236,6 +236,7 @@ COLOR RULES: Avoid generic/bright defaults. Use sophisticated, muted, or vibrant
 
 Return ONLY a valid JSON object:
 {
+  "title": "A short, catchy title (max 40 chars)",
   "detailedPrompt": "Your 4-6 sentence master-level design brief here",
   "primaryColor": "#hexcode",
   "secondaryColor": "#hexcode",
@@ -251,7 +252,7 @@ Return ONLY a valid JSON object:
       parts: [
         { text: `APP IDEA: "${prompt}"
 
-Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, secondaryColor, accentColor, screens.` }
+Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor, secondaryColor, accentColor, screens.` }
       ] 
     }],
     generationConfig: {
@@ -295,6 +296,7 @@ Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, second
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
+        title: parsed.title || parsed.projectName || parsed.name || prompt,
         detailedPrompt: parsed.detailedPrompt || parsed.detailed_prompt || parsed.prompt || parsed.appDescription || prompt,
         primaryColor: parsed.primaryColor || parsed.primary_color || parsed.primary || '#6366F1',
         secondaryColor: parsed.secondaryColor || parsed.secondary_color || parsed.secondary || '#1E1B2E',

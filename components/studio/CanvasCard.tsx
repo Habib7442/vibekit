@@ -15,6 +15,42 @@ interface CanvasCardProps {
 export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
   const firstScreenCode = canvas.screens?.[0]?.code;
   
+  const getCleanName = (name: string) => {
+    let text = name;
+
+    // Handle RAW JSON strings or truncated JSON noise
+    if (name.includes('DETAILEDPROMPT') || name.includes('detailedPrompt')) {
+      // Regex to grab content inside the quotes after the key
+      const match = name.match(/"(?:DETAILEDPROMPT|detailedPrompt)"\s*:\s*"([^"]+)"/i);
+      if (match && match[1]) {
+        text = match[1];
+      } else {
+        // Fallback for truncated strings like: { "DETAILEDPROMPT": "A WORLD-CLASS...
+        text = name.replace(/\{?\s*"?(?:DETAILEDPROMPT|detailedPrompt)"?\s*:\s*"?/i, '')
+                  .replace(/"?\s*\}?$/g, '');
+      }
+    }
+
+    try {
+      // Try standard parsing if it looks like complete JSON
+      if (name.trim().startsWith('{') && name.trim().endsWith('}')) {
+        const parsed = JSON.parse(name);
+        text = parsed.title || parsed.DETAILEDPROMPT || parsed.detailedPrompt || parsed.detailed_prompt || text;
+      }
+    } catch (e) {
+      // Ignore parse errors, we handled raw string above
+    }
+    
+    // Clean up any remaining quotes or braces at the edges
+    text = text.replace(/^"|"$/g, '').trim();
+
+    // Truncate for UI balance
+    if (text.length > 45) {
+      return text.slice(0, 42) + '...';
+    }
+    return text;
+  };
+
   return (
     <Link 
       href={`/studio/generations/${canvas.id}`}
@@ -109,7 +145,7 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
 
       {/* Info Area */}
       <div className="p-8">
-         <h3 className="text-sm font-bold text-white mb-2 line-clamp-1 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{canvas.name}</h3>
+         <h3 className="text-sm font-bold text-white mb-2 line-clamp-1 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{getCleanName(canvas.name)}</h3>
          <div className="flex items-center justify-between mt-4">
             <div className="flex items-center gap-4 text-zinc-600 text-xs font-bold uppercase tracking-widest">
                <div className="flex items-center gap-1.5">

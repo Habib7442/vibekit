@@ -122,7 +122,8 @@ export function AppDesignerChatPanel() {
     builderMode, 
     setBuilderMode, 
     clearGallery,
-    galleryScreens 
+    galleryScreens,
+    setProjectTitle
   } = useAppDesignerStore();
   const { user, profile } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -311,6 +312,7 @@ export function AppDesignerChatPanel() {
         if (isPlanAction) {
           const planData = await planAppAction(richPrompt);
           if (planData.detailedPrompt) setAppDescription(planData.detailedPrompt);
+          if (planData.title) setProjectTitle(planData.title);
           
           setTimeout(() => {
             handleGenerateApp(planData.screens || DEFAULT_WEB_SCREENS, { 
@@ -355,6 +357,7 @@ export function AppDesignerChatPanel() {
       const aColor = data.accentColor || '#f5e1c8';
 
       if (data.detailedPrompt) setAppDescription(data.detailedPrompt);
+      if (data.title) setProjectTitle(data.title);
       setPrimaryColor(pColor.replace('#', ''));
       setSecondaryColor(sColor.replace('#', ''));
       setAccentColor(aColor.replace('#', ''));

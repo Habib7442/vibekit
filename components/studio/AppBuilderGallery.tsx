@@ -401,7 +401,7 @@ function EditOverlay({
 }
 
 export function AppDesignerGallery() {
-  const { galleryScreens, removeGalleryScreen, updateGalleryScreen, builderMode, savedCanvasId, setSavedCanvasId } = useAppDesignerStore();
+  const { galleryScreens, removeGalleryScreen, updateGalleryScreen, builderMode, savedCanvasId, setSavedCanvasId, projectTitle } = useAppDesignerStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; screen: GeneratedScreen } | null>(null);
   const [editingScreenId, setEditingScreenId] = useState<string | null>(null);
   const [activeScreenId, setActiveScreenId] = useState<string | null>(null);
@@ -486,11 +486,11 @@ export function AppDesignerGallery() {
 
     try {
       // Use the first screen's prompt as the canvas name/description
-      const firstPrompt = galleryScreens[0]?.prompt || 'New Application';
+      const activeTitle = projectTitle || galleryScreens[0]?.prompt || 'New Project';
       
       const result = await saveCanvasAction({
         canvasId: savedCanvasId || undefined,
-        name: firstPrompt.slice(0, 50),
+        name: activeTitle,
         type: builderMode,
         screens: galleryScreens.map((s, idx) => ({
           id: s.id,
