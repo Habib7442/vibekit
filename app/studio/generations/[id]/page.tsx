@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, Cloud, Smartphone, Globe, Copy, Code2, Download } from 'lucide-react';
+import { ChevronLeft, Cloud, Smartphone, Globe, Copy, Code2, Download, Tablet } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -170,52 +170,89 @@ export default async function CanvasDetailPage({ params }: PageProps) {
         {!screens || screens.length === 0 ? (
            <div className="flex-1 flex items-center justify-center text-zinc-600 uppercase text-xs font-black tracking-widest italic">This canvas has no screens.</div>
         ) : (
-           <div className="flex-1 overflow-y-auto p-4 md:p-12 scrollbar-none pb-20">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-7xl mx-auto">
+           <div className="flex-1 overflow-y-auto px-4 py-8 md:p-12 scrollbar-none pb-20 bg-[#050505]">
+              <div className="flex flex-col gap-12 md:gap-20 max-w-7xl mx-auto w-full">
                  {screens.map((screen) => (
-                    <div key={screen.id} className="flex flex-col gap-4 md:gap-6">
-                      <div className="flex items-center justify-between">
+                    <div key={screen.id} className="flex flex-col gap-6 w-full">
+                      <div className="flex items-center justify-between bg-zinc-900/40 p-4 rounded-2xl border border-white/[0.04] backdrop-blur-sm">
                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                               {canvas.type === 'app' ? <Smartphone size={14} className="text-cyan-400" /> : <Globe size={14} className="text-amber-400" />}
+                            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 shadow-inner">
+                               {canvas.type === 'app' ? <Smartphone size={16} className="text-cyan-400" /> : canvas.type === 'web' ? <Globe size={16} className="text-amber-400" /> : <Tablet size={16} className="text-violet-400" />}
                             </div>
-                            <h2 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-400 truncate">{screen.name}</h2>
+                            <h2 className="text-[11px] md:text-sm font-bold uppercase tracking-widest text-zinc-100">{screen.name}</h2>
                          </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <DownloadCodeButton code={screen.code} fileName={screen.name} mode={canvas.type as any} />
                             <CopyCodeButton code={screen.code} />
                          </div>
                       </div>
                       <div className={cn(
-                         "relative flex justify-center w-full",
-                         canvas.type === 'app' ? "bg-[#080810] py-6 rounded-[24px] md:rounded-[40px] border border-white/[0.05]" : 
-                         canvas.type === 'component' ? "w-full h-[500px] md:h-[844px] rounded-3xl overflow-hidden border border-white/[0.05] shadow-2xl" :
-                         "w-full h-[500px] md:h-[844px] rounded-2xl overflow-hidden border border-white/[0.05]"
+                         "relative flex justify-center w-full transition-all duration-500",
+                         canvas.type === 'app' ? "bg-[#080810] py-12 rounded-[2.5rem] md:rounded-[4rem] border border-white/[0.05] shadow-2xl" : 
+                         canvas.type === 'web' ? "bg-[#080810] py-12 md:py-24 lg:py-32 rounded-[2.5rem] md:rounded-[4rem] border border-white/[0.05] shadow-2xl" :
+                         "bg-[#080810] py-12 md:py-20 lg:py-24 rounded-[2.5rem] md:rounded-[4rem] border border-white/[0.05] shadow-2xl"
                       )}>
                          {canvas.type === 'app' ? (
-                           <div className="relative w-full max-w-[320px] md:max-w-[390px] rounded-[2.5rem] md:rounded-[3rem] border-[3px] border-zinc-700/60 bg-black overflow-hidden shadow-[0_0_60px_-15px_rgba(0,0,0,0.8),inset_0_0_0_1px_rgba(255,255,255,0.05)] my-4 md:my-8 scale-90 sm:scale-100 origin-center transition-transform">
+                           <div className="relative w-full max-w-[390px] rounded-[3.2rem] border-[4px] border-zinc-800 bg-black overflow-hidden shadow-[0_0_80px_-10px_rgba(0,0,0,0.5),inset_0_0_0_1px_rgba(255,255,255,0.05)] scale-95 md:scale-100 origin-center transition-all">
                              {/* Phone Notch */}
-                             <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[100px] md:w-[120px] h-[24px] md:h-[28px] bg-black rounded-b-2xl flex items-center justify-center">
-                               <div className="w-[40px] md:w-[60px] h-[4px] bg-zinc-800 rounded-full" />
+                             <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[120px] h-[30px] bg-black rounded-b-2xl flex items-center justify-center">
+                               <div className="w-[60px] h-[5px] bg-zinc-800/80 rounded-full" />
                              </div>
                              
-                             <div className="h-[600px] md:h-[844px]">
+                             <div className="h-[844px] overflow-y-auto scrollbar-none">
                                <ReadOnlyPreview code={screen.code} type={canvas.type as any} />
                              </div>
                              
                              {/* Home Indicator */}
-                             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 w-[100px] md:w-[130px] h-[4px] md:h-[5px] bg-white/20 rounded-full" />
+                             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 w-[130px] h-[5px] bg-white/20 rounded-full" />
+                           </div>
+                         ) : canvas.type === 'component' ? (
+                           <div className="w-full max-w-4xl px-4 md:px-0 transition-all">
+                              {/* iPad Mockup */}
+                              <div className="relative mx-auto w-full max-w-[820px] rounded-[3rem] border-[12px] border-zinc-900 bg-black overflow-hidden shadow-2xl overflow-hidden aspect-[4/3]">
+                                 <div className="absolute top-1/2 -right-1 w-1 h-12 bg-zinc-800 rounded-l-md" />
+                                 <div className="w-full h-full overflow-y-auto scrollbar-none bg-[#050505]">
+                                    <ReadOnlyPreview code={screen.code} type="component" />
+                                 </div>
+                              </div>
                            </div>
                          ) : (
-                           <ReadOnlyPreview code={screen.code} type={canvas.type as any} />
+                           <div className="w-full max-w-6xl px-4 md:px-0 transition-all">
+                              {/* Laptop Mockup */}
+                              <div className="relative group/laptop">
+                                 {/* Screen Top/Frame */}
+                                 <div className="relative w-full aspect-[16/10] bg-black rounded-t-2xl border-[8px] md:border-[12px] border-zinc-800 overflow-hidden shadow-2xl">
+                                    {/* Browser Bar */}
+                                    <div className="h-8 bg-zinc-900 border-b border-white/5 flex items-center px-4 gap-2 shrink-0">
+                                       <div className="flex gap-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-red-500/40" />
+                                          <div className="w-2 h-2 rounded-full bg-amber-500/40" />
+                                          <div className="w-2 h-2 rounded-full bg-emerald-500/40" />
+                                       </div>
+                                       <div className="h-4 flex-1 bg-black/40 rounded-full border border-white/5 flex items-center px-3">
+                                          <div className="w-full h-1 bg-zinc-800 rounded-full" />
+                                       </div>
+                                    </div>
+                                    <div className="relative w-full h-[calc(100%-2rem)] overflow-y-auto scrollbar-none bg-[#050505]">
+                                       <div className="scale-[1] origin-top w-full">
+                                          <ReadOnlyPreview code={screen.code} type={canvas.type as any} />
+                                       </div>
+                                    </div>
+                                 </div>
+                                 {/* Laptop Base */}
+                                 <div className="relative h-3 md:h-5 bg-zinc-800 w-[105%] -left-[2.5%] rounded-b-xl border-t border-zinc-700/50 shadow-2xl mx-auto flex justify-center">
+                                    <div className="w-16 h-1 bg-zinc-900/50 rounded-full mt-1" />
+                                 </div>
+                              </div>
+                           </div>
                          )}
                          
                        </div>
-                   </div>
+                    </div>
                  ))}
               </div>
            </div>
         )}
      </div>
-  );
+   );
 }

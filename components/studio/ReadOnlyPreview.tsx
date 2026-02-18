@@ -82,7 +82,12 @@ interface ReadOnlyPreviewProps {
 
 export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
   const isMobile = type === 'app';
+  const isWeb = type === 'web';
   const isComponent = type === 'component';
+
+  // Desktop standard height for laptop mockup is usually around 800px
+  // while mobile is 844px (iPhone 14/15 Pro)
+  const defaultHeight = isMobile ? "844px" : isWeb ? "800px" : "1024px";
 
   const sandpackFiles = {
     "/index.html": {
@@ -90,7 +95,7 @@ export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
         ? code.replace('</head>', `<style>
             *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
             * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-            body { overflow-x: hidden; min-height: 100vh; }
+            body { overflow-x: hidden; }
           </style></head>`)
         : `<!DOCTYPE html>
           <html>
@@ -101,7 +106,7 @@ export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
               <style>
                 *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
                 * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-                body { font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; background: transparent; min-height: 100vh; display: flex; flex-direction: column; }
+                body { font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; background: transparent; display: flex; flex-direction: column; }
               </style>
             </head>
             <body>${code}</body>
@@ -113,7 +118,8 @@ export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
   return (
     <div className={cn(
       "w-full bg-transparent overflow-hidden",
-      isMobile ? "h-[844px] max-w-[390px] mx-auto" : isComponent ? "h-[844px]" : "h-full"
+      isMobile ? "h-[844px] max-w-[390px] mx-auto" : 
+      isWeb ? "h-[800px]" : "h-[1024px]"
     )}>
       <SandpackProvider
         template="static"
@@ -123,8 +129,8 @@ export function ReadOnlyPreview({ code, type }: ReadOnlyPreviewProps) {
         <SandpackLayout style={{ border: 'none', background: 'transparent', height: '100%' }}>
           <SandpackPreview 
             style={{ 
-              height: isMobile || isComponent ? "844px" : "100%",
-              minHeight: isMobile || isComponent ? "844px" : "100%",
+              height: defaultHeight,
+              minHeight: defaultHeight,
               width: "100%",
               background: "transparent"
             }} 

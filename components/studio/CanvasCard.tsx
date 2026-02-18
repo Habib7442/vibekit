@@ -18,10 +18,16 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
   return (
     <Link 
       href={`/studio/generations/${canvas.id}`}
-      className="group relative flex flex-col bg-[#0A0A0F]/80 border border-white/[0.04] rounded-[40px] overflow-hidden hover:border-white/10 transition-all hover:bg-[#0C0C14] hover:shadow-2xl hover:shadow-black/60"
+      className={cn(
+        "group relative flex flex-col bg-[#0A0A0F]/80 border border-white/[0.04] rounded-[40px] overflow-hidden hover:border-white/10 transition-all hover:bg-[#0C0C14] hover:shadow-2xl hover:shadow-black/60",
+        (canvas.type === 'web' || canvas.type === 'component' || canvas.type === 'visual') && "md:col-span-2"
+      )}
     >
       {/* Dynamic Preview Area */}
-      <div className="relative aspect-[3/4] bg-[#050505] overflow-hidden flex items-center justify-center p-6">
+      <div className={cn(
+         "relative bg-[#050505] overflow-hidden flex items-center justify-center transition-all duration-500",
+         (canvas.type === 'web' || canvas.type === 'component' || canvas.type === 'visual') ? "aspect-video p-2 md:p-4" : "aspect-[3/4] p-6"
+      )}>
           {canvas.type === 'visual' && canvas.images?.[0]?.image_url ? (
              <img 
                src={canvas.images[0].image_url} 
@@ -41,29 +47,40 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
                </div>
             </div>
           ) : canvas.type === 'component' && firstScreenCode ? (
-            <div className="relative w-full h-full scale-[0.6] md:scale-[0.55] origin-top transition-transform duration-500 group-hover:scale-[0.62]">
-               {/* iPad / Tablet Frame */}
-               <div className="relative w-[768px] h-[1024px] mx-auto rounded-[3.5rem] border-[10px] border-zinc-800 bg-black overflow-hidden shadow-3xl">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-3 h-3 bg-zinc-700/50 rounded-full mt-4" />
-                  <div className="w-full h-full"><ReadOnlyPreview code={firstScreenCode} type="component" /></div>
+            <div className="relative w-full h-full scale-[0.35] sm:scale-[0.45] md:scale-[0.55] lg:scale-[0.6] origin-top transition-transform duration-500 group-hover:scale-[0.62] mt-4 flex justify-center">
+               {/* iPad Landscape Style Frame */}
+               <div className="relative w-[1024px] h-[768px] mx-auto rounded-[3.5rem] border-[14px] border-zinc-900 bg-black overflow-hidden shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]">
+                  <div className="w-full h-full bg-[#050505]"><ReadOnlyPreview code={firstScreenCode} type="component" /></div>
                   <div className="absolute top-1/2 -right-1 w-1 h-12 bg-zinc-800 rounded-l-md" />
                </div>
             </div>
           ) : canvas.type === 'web' && firstScreenCode ? (
-             <div className="w-full h-full scale-[0.45] md:scale-[0.4] origin-top mt-12 transition-transform duration-500 group-hover:scale-[0.47]">
-                {/* Desktop / Laptop Frame */}
-                <div className="w-[1280px] h-[800px] border-[14px] border-zinc-800 bg-black rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-                   {/* Browser Title Bar */}
-                   <div className="absolute top-0 inset-x-0 h-10 bg-zinc-900 border-b border-white/5 flex items-center px-6 gap-2 z-30">
-                      <div className="flex gap-1.5">
-                         <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
-                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
-                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+             <div className={cn(
+                "w-full h-full origin-top transition-all duration-500 flex justify-center",
+                canvas.type === 'web' 
+                  ? "scale-[0.35] sm:scale-[0.4] md:scale-[0.5] lg:scale-[0.58] mt-4 md:mt-8 group-hover:scale-[0.62]" 
+                  : "scale-[0.38] md:scale-[0.34] lg:scale-[0.36] mt-10 group-hover:scale-[0.39]"
+             )}>
+                {/* Desktop / Laptop Mockup */}
+                <div className="relative">
+                   {/* Screen */}
+                   <div className="w-[1280px] h-[800px] border-[12px] border-zinc-800 bg-black rounded-[2rem] overflow-hidden shadow-3xl relative">
+                      {/* Browser Title Bar */}
+                      <div className="absolute top-0 inset-x-0 h-10 bg-zinc-900 border-b border-white/5 flex items-center px-6 gap-2 z-30">
+                         <div className="flex gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+                         </div>
+                         <div className="ml-4 h-6 flex-1 bg-black/40 rounded-md border border-white/5" />
                       </div>
-                      <div className="ml-4 h-6 flex-1 bg-black/40 rounded-md border border-white/5" />
+                      <div className="pt-10 w-full h-full bg-[#050505]">
+                         <ReadOnlyPreview code={firstScreenCode} type="web" />
+                      </div>
                    </div>
-                   <div className="pt-10 w-full h-full">
-                      <ReadOnlyPreview code={firstScreenCode} type="web" />
+                   {/* Laptop Base Body */}
+                   <div className="relative h-6 bg-zinc-800 w-[104%] -left-[2%] rounded-b-xl border-t border-zinc-700/50 shadow-2xl mx-auto flex justify-center mt-[2px]">
+                       <div className="w-20 h-1.5 bg-zinc-900/50 rounded-full mt-1" />
                    </div>
                 </div>
              </div>

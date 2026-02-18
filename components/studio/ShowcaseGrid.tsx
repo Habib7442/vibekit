@@ -46,12 +46,15 @@ export function ShowcaseGrid() {
   return (
     <section className="py-24 px-6 bg-[#050505] border-y border-white/[0.02]">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-12">
-           <div>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Community Showcase</h2>
-              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Latest generations from our top creators</p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12 gap-8">
+           <div className="space-y-4">
+              <h2 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">Community <br className="hidden md:block" /> Showcase</h2>
+              <p className="text-zinc-500 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] max-w-md leading-relaxed">Latest generations from our top creators</p>
+              <Link href="/studio/generations" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#f5e1c8] hover:text-white transition-all group">
+                View All Vaults 
+                <div className="w-4 h-px bg-[#f5e1c8] group-hover:w-6 transition-all" />
+              </Link>
            </div>
-           <Link href="/studio/generations" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all">View All Vaults →</Link>
         </div>
 
         {canvases.length === 0 ? (

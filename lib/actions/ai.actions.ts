@@ -218,11 +218,14 @@ export async function planAppAction(prompt: string) {
 
 YOUR TASK: The user gives you a SHORT idea for either a full app or a single UI component. You must:
 
-1. EXPAND it into a world-class, extremely detailed design brief. If it's a component, describe its layout, micro-interactions, and visual style. If it's an app, describe the theme and 5 key screens. 
+1. EXPAND it into a world-class, extremely detailed design brief. 
+   - APP/WEB PROJECTS: Describe the theme and a set of 3-7 key screens/pages tailored specifically to the project's niche and "vibe". 
+   - LANDING PAGE FIRST: For websites/web projects, the first page MUST always be "Landing".
+   - USER PREFERENCE: If the user explicitly mentions specific pages (e.g., "Build me a Login and a Dashboard"), YOU MUST prioritize those in your plan.
    - Demand ultra-premium aesthetics: Bento grids, sophisticated glassmorphism, fluid typography, and professional layouts.
    - Mention specific colors, spacing, and smooth CSS-based animations.
    - Explicitly state that for mobile apps, the "Welcome", "Login", and "Register" screens must NOT have a bottom tab bar, ensuring a clean entry flow. Navigation (tab bar) should strictly start from the "Home" screen.
-   - DO NOT suggest any external libraries or React-specific code. Everything must be plain HTML and Tailwind CSS.
+   - DO NOT suggest any external libraries or React-specific code. Everything must be plain HTML and CSS. (No Tailwind unless requested).
 
 2. PICK THE PERFECT COLOR PALETTE — 3 hex colors tailored to the vibe:
    - primaryColor: Main brand color.
@@ -236,7 +239,8 @@ Return ONLY a valid JSON object:
   "detailedPrompt": "Your 4-6 sentence master-level design brief here",
   "primaryColor": "#hexcode",
   "secondaryColor": "#hexcode",
-  "accentColor": "#hexcode"
+  "accentColor": "#hexcode",
+  "screens": ["Landing", "Features", "Pricing", ...] 
 }`;
 
   const requestBody = {
@@ -295,6 +299,7 @@ Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, second
         primaryColor: parsed.primaryColor || parsed.primary_color || parsed.primary || '#6366F1',
         secondaryColor: parsed.secondaryColor || parsed.secondary_color || parsed.secondary || '#1E1B2E',
         accentColor: parsed.accentColor || parsed.accent_color || parsed.accent || '#F5C77E',
+        screens: Array.isArray(parsed.screens) ? parsed.screens : undefined
       };
     } catch (parseErr) {
       console.error("[planAppAction] JSON parse error:", parseErr, "Raw:", jsonMatch[0].substring(0, 200));

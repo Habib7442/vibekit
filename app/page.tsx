@@ -272,9 +272,9 @@ function LandingPageContent() {
           </div>
 
            {/* Expertise Tags */}
-           <div className="flex flex-wrap justify-center gap-2 max-w-4xl">
+           <div className="flex flex-wrap justify-center gap-2 max-w-4xl px-4">
              {['Locked Identity', 'Brand DNA', 'Editorial Design', 'Product Consistency', 'Mobile Pro', 'Web Art', 'Batch Campaign'].map((tag) => (
-               <span key={tag} className="px-4 py-1.5 rounded-md bg-zinc-900/50 border border-white/5 text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-2xl">
+               <span key={tag} className="px-3 md:px-4 py-1 md:py-1.5 rounded-md bg-zinc-900/50 border border-white/5 text-[8px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-2xl whitespace-nowrap">
                  {tag}
                </span>
              ))}

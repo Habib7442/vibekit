@@ -313,7 +313,7 @@ export function AppDesignerChatPanel() {
           if (planData.detailedPrompt) setAppDescription(planData.detailedPrompt);
           
           setTimeout(() => {
-            handleGenerateApp(DEFAULT_WEB_SCREENS, { 
+            handleGenerateApp(planData.screens || DEFAULT_WEB_SCREENS, { 
               primary: planData.primaryColor || selected.p, 
               secondary: planData.secondaryColor || selected.s, 
               accent: planData.accentColor || selected.a 
@@ -362,7 +362,7 @@ export function AppDesignerChatPanel() {
       // Auto-generate based on mode
       setTimeout(() => {
         if (builderMode === 'app' || builderMode === 'web') {
-          handleGenerateApp(builderMode === 'app' ? DEFAULT_APP_SCREENS : DEFAULT_WEB_SCREENS, { 
+          handleGenerateApp(data.screens || (builderMode === 'app' ? DEFAULT_APP_SCREENS : DEFAULT_WEB_SCREENS), { 
             primary: pColor, 
             secondary: sColor, 
             accent: aColor 
