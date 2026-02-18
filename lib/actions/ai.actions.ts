@@ -251,7 +251,7 @@ Return ONLY a valid JSON object:
       parts: [
         { text: `APP IDEA: "${prompt}"
 
-Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, secondaryColor, accentColor.` }
+Respond with ONLY a JSON object containing: detailedPrompt, primaryColor, secondaryColor, accentColor, screens.` }
       ] 
     }],
     generationConfig: {

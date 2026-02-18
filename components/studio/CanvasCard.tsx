@@ -55,12 +55,7 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
                </div>
             </div>
           ) : canvas.type === 'web' && firstScreenCode ? (
-             <div className={cn(
-                "w-full h-full origin-top transition-all duration-500 flex justify-center",
-                canvas.type === 'web' 
-                  ? "scale-[0.35] sm:scale-[0.4] md:scale-[0.5] lg:scale-[0.58] mt-4 md:mt-8 group-hover:scale-[0.62]" 
-                  : "scale-[0.38] md:scale-[0.34] lg:scale-[0.36] mt-10 group-hover:scale-[0.39]"
-             )}>
+             <div className="w-full h-full origin-top transition-all duration-500 flex justify-center scale-[0.35] sm:scale-[0.4] md:scale-[0.5] lg:scale-[0.58] mt-4 md:mt-8 group-hover:scale-[0.62]">
                 {/* Desktop / Laptop Mockup */}
                 <div className="relative">
                    {/* Screen */}
@@ -101,7 +96,7 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
                </>
             )}
             <div className={cn(
-               "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border backdrop-blur-md",
+               "px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border backdrop-blur-md",
                canvas.type === 'visual' ? "border-indigo-500/30 text-indigo-400 bg-indigo-500/10" :
                canvas.type === 'app' ? "border-cyan-500/30 text-cyan-400 bg-cyan-500/10" :
                canvas.type === 'component' ? "border-violet-500/30 text-violet-400 bg-violet-500/10" :
@@ -116,13 +111,13 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
       <div className="p-8">
          <h3 className="text-sm font-bold text-white mb-2 line-clamp-1 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{canvas.name}</h3>
          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-4 text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-zinc-600 text-xs font-bold uppercase tracking-widest">
                <div className="flex items-center gap-1.5">
                   <Calendar size={10} />
                   {new Date(canvas.created_at).toLocaleDateString()}
                </div>
             </div>
-            <div className="flex items-center gap-1.5 text-zinc-400 text-[9px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+            <div className="flex items-center gap-1.5 text-zinc-400 text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                Open Canvas <ArrowRight size={10} />
             </div>
          </div>

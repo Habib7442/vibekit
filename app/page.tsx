@@ -93,17 +93,17 @@ function LandingPageContent() {
           </div>
           
           <div className="flex items-center gap-3 md:gap-8">
-            <Link href="/pricing" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Pricing</Link>
-            <Link href="/testimonials" className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Reviews</Link>
+            <Link href="/pricing" className="text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Pricing</Link>
+            <Link href="/testimonials" className="text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Reviews</Link>
             {user && (
               <div className="flex items-center gap-3 pr-2 border-r border-zinc-800/50 mr-2">
                 <div className="flex flex-col items-end hidden lg:flex">
-                  <span className="text-[9px] font-black text-white uppercase tracking-tighter leading-none italic">
+                  <span className="text-xs font-black text-white uppercase tracking-tighter leading-none italic">
                     {user.user_metadata?.full_name || user.email?.split('@')[0]}
                   </span>
                   <button 
                     onClick={() => signOut()}
-                    className="text-[8px] font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest mt-1"
+                    className="text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest mt-1"
                   >
                     Sign Out
                   </button>
@@ -125,7 +125,7 @@ function LandingPageContent() {
                 </Link>
               </div>
             )}
-            <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-[10px] md:text-[11px] font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
+            <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-xs font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
               <span className="hidden sm:inline">Launch Studio</span>
               <span className="sm:hidden">Launch</span>
               <ArrowRight size={12} className="hidden sm:block" />
@@ -213,28 +213,28 @@ function LandingPageContent() {
                          <>
                            <div className="fixed inset-0 z-50" onClick={() => setIsDropdownOpen(false)} />
                            <div className="absolute bottom-full left-0 mb-3 w-56 bg-[#0C0C11] border border-white/10 rounded-2xl overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-2 duration-200 z-[60] backdrop-blur-2xl">
-                             <button onClick={() => { setType('app'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-cyan-400 hover:bg-cyan-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
+                             <button onClick={() => { setType('app'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-cyan-400 hover:bg-cyan-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
                                <span className="flex items-center gap-3">
                                  <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
                                  App Designer
                                </span>
                                <Smartphone size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
                              </button>
-                             <button onClick={() => { setType('ui'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-violet-400 hover:bg-violet-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
+                             <button onClick={() => { setType('ui'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-violet-400 hover:bg-violet-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
                                <span className="flex items-center gap-3">
                                  <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
                                  UI Studio
                                </span>
                                <Code2 size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
                              </button>
-                             <button onClick={() => { setType('web'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-amber-500 hover:bg-amber-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
+                             <button onClick={() => { setType('web'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-amber-500 hover:bg-amber-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
                                <span className="flex items-center gap-3">
                                  <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" />
                                  Web Designer
                                </span>
                                <Globe size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
                              </button>
-                             <button onClick={() => { setType('image'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 flex items-center justify-between uppercase tracking-widest transition-all group">
+                             <button onClick={() => { setType('image'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center justify-between uppercase tracking-widest transition-all group">
                                <span className="flex items-center gap-3">
                                  <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
                                  AI Photoshoot
@@ -252,7 +252,7 @@ function LandingPageContent() {
                     <button 
                       onClick={handlePlan}
                       disabled={!prompt.trim()}
-                      className="px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      className="px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-xs font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
                       Plan
                     </button>
@@ -260,7 +260,7 @@ function LandingPageContent() {
                     <button 
                       onClick={handleEnter}
                       disabled={!prompt.trim()}
-                      className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-xs font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
                       Enter Studio
                       <ArrowRight size={12} />
@@ -274,7 +274,7 @@ function LandingPageContent() {
            {/* Expertise Tags */}
            <div className="flex flex-wrap justify-center gap-2 max-w-4xl px-4">
              {['Locked Identity', 'Brand DNA', 'Editorial Design', 'Product Consistency', 'Mobile Pro', 'Web Art', 'Batch Campaign'].map((tag) => (
-               <span key={tag} className="px-3 md:px-4 py-1 md:py-1.5 rounded-md bg-zinc-900/50 border border-white/5 text-[8px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-2xl whitespace-nowrap">
+               <span key={tag} className="px-3 md:px-4 py-1 md:py-1.5 rounded-md bg-zinc-900/50 border border-white/5 text-xs font-black text-indigo-400 uppercase tracking-widest shadow-2xl whitespace-nowrap">
                  {tag}
                </span>
              ))}
@@ -291,7 +291,7 @@ function LandingPageContent() {
         <p className="text-black/60 text-sm md:text-base max-w-xl mx-auto mb-10 font-medium">
           Join the new generation of creators building high-fidelity visual assets and mobile apps with AI.
         </p>
-        <Link href="/studio" className="inline-block px-8 md:px-10 py-4 rounded-full bg-black text-white font-black text-[10px] md:text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-xl">
+        <Link href="/studio" className="inline-block px-8 md:px-10 py-4 rounded-full bg-black text-white font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-xl">
           Get Started For Free
         </Link>
       </section>
@@ -308,15 +308,15 @@ function LandingPageContent() {
               className="object-contain grayscale brightness-200"
             />
           </div>
-          <span className="font-bold text-[10px] tracking-tight text-white uppercase italic">ImageStudioLab</span>
+          <span className="font-bold text-xs tracking-tight text-white uppercase italic">ImageStudioLab</span>
         </div>
         <div className="flex justify-center flex-wrap gap-8 mb-8 px-6">
-           <Link href="/pricing" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Pricing</Link>
-           <Link href="/privacy" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Privacy</Link>
-           <Link href="/terms" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
-           <Link href="/cookies" className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>
+           <Link href="/pricing" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Pricing</Link>
+           <Link href="/privacy" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Privacy</Link>
+           <Link href="/terms" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
+           <Link href="/cookies" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>
         </div>
-        <p className="text-[9px] text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. NO FAKE DATA. JUST PURE VISION.</p>
+        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. NO FAKE DATA. JUST PURE VISION.</p>
       </footer>
 
       <AuthModal 
