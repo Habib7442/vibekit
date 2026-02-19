@@ -155,6 +155,7 @@ export function AppDesignerChatPanel() {
   const [accentColor, setAccentColor] = useState('');
   const [rounding, setRounding] = useState('12px');
   const [fontFamily, setFontFamily] = useState('Inter');
+  const [themeMode, setThemeMode] = useState<'auto' | 'dark' | 'light'>('dark');
   const [isPlanning, setIsPlanning] = useState(false);
   const [imageDatas, setImageDatas] = useState<{ data: string; mimeType: string }[]>([]);
   const [addScreenInput, setAddScreenInput] = useState('');
@@ -194,7 +195,7 @@ export function AppDesignerChatPanel() {
       if (decodedU) setSourceUrl(decodedU);
       if (decodedP) setAppDescription(decodedP);
       
-      if (decodedU && builderMode === 'web') {
+      if (decodedU && (builderMode === 'web' || builderMode === 'app')) {
         setTimeout(() => handleScrapeAndPlan(decodedU, decodedP, isPlan), 500);
       } else if (decodedP) {
         if (isPlan) {
@@ -304,18 +305,31 @@ export function AppDesignerChatPanel() {
         setSecondaryColor(selected.s.replace('#', ''));
         setAccentColor(selected.a.replace('#', ''));
 
-        const richPrompt = `DEEP LUXURY RESPONSIVE REDESIGN: ${data.title}\n\nSOURCE CODE foundation: \n${truncatedHtml}\n\nCONTENT (DO NOT CHANGE): \n${data.text}\n\nSTYLE GOAL: ${userPrompt || 'Create a world-class, sexy, professional luxury redesign.'}\n\nINSTRUCTION: REDESIGN THE PROVIDED CODE INTO A RESPONSIVE MASTERPIECE. \n– Use the provided color palette: Primary ${selected.p}.\n– Layout: BENTO GRID complexity, perfectly responsive (mobile to desktop).\n– Aesthetic: Sophisticated glassmorphism, fluid typography, mesh gradients.\n– Viewport: Use Tailwind responsive prefixes (sm:, md:, lg:) to ensure it looks stunning on both iPhone and Ultra-wide monitors.`;
+        const richPrompt = builderMode === 'app'
+          ? `CONVERT WEBSITE TO PREMIUM MOBILE APP: ${data.title}\n\nSOURCE WEBSITE CODE:\n${truncatedHtml}\n\nWEBSITE CONTENT (USE AS REFERENCE):\n${data.text}\n\nSTYLE GOAL: ${userPrompt || 'Create a world-class premium mobile app inspired by this website.'}\n\nINSTRUCTION: Transform this website into a PREMIUM NATIVE-LOOKING MOBILE APP.\n– Use the provided color palette: Primary ${selected.p}.\n– Layout: Mobile-first, 390px viewport, bottom tab bar navigation, card-based UI.\n– Aesthetic: Apple HIG-inspired, sophisticated glassmorphism, fluid typography.\n– Include proper mobile patterns: sticky headers, swipeable cards, bottom sheets, pull-to-refresh indicators.\n– Convert website sections into separate mobile app screens (Welcome, Home, Profile, etc.).`
+          : `DEEP LUXURY RESPONSIVE REDESIGN: ${data.title}\n\nSOURCE CODE foundation: \n${truncatedHtml}\n\nCONTENT (DO NOT CHANGE): \n${data.text}\n\nSTYLE GOAL: ${userPrompt || 'Create a world-class, sexy, professional luxury redesign.'}\n\nINSTRUCTION: REDESIGN THE PROVIDED CODE INTO A RESPONSIVE MASTERPIECE. \n– Use the provided color palette: Primary ${selected.p}.\n– Layout: BENTO GRID complexity, perfectly responsive (mobile to desktop).\n– Aesthetic: Sophisticated glassmorphism, fluid typography, mesh gradients.\n– Viewport: Use Tailwind responsive prefixes (sm:, md:, lg:) to ensure it looks stunning on both iPhone and Ultra-wide monitors.`;
         
         // We set the user-facing description to something clean
-        setAppDescription(`⚡ Expertly redesigning ${data.title} with a luxury aesthetic...`);
+        setAppDescription(builderMode === 'app' 
+          ? `⚡ Converting ${data.title} into a premium mobile app...`
+          : `⚡ Expertly redesigning ${data.title} with a luxury aesthetic...`);
 
         if (isPlanAction) {
           const planData = await planAppAction(richPrompt);
           if (planData.detailedPrompt) setAppDescription(planData.detailedPrompt);
           if (planData.title) setProjectTitle(planData.title);
           
+          // Auto-set colors from plan
+          if (planData.primaryColor) setPrimaryColor(planData.primaryColor.replace('#', ''));
+          if (planData.secondaryColor) setSecondaryColor(planData.secondaryColor.replace('#', ''));
+          if (planData.accentColor) setAccentColor(planData.accentColor.replace('#', ''));
+
+          // Auto-set rounding and typography from AI
+          if (planData.rounding) setRounding(planData.rounding);
+          if (planData.fontFamily) setFontFamily(planData.fontFamily);
+
           setTimeout(() => {
-            handleGenerateApp(planData.screens || DEFAULT_WEB_SCREENS, { 
+            handleGenerateApp(planData.screens || (builderMode === 'app' ? DEFAULT_APP_SCREENS : DEFAULT_WEB_SCREENS), { 
               primary: planData.primaryColor || selected.p, 
               secondary: planData.secondaryColor || selected.s, 
               accent: planData.accentColor || selected.a 
@@ -323,7 +337,7 @@ export function AppDesignerChatPanel() {
           }, 300);
         } else {
           // Direct generation with the rich hidden context
-          setTimeout(() => handleGenerateApp(DEFAULT_WEB_SCREENS, undefined, richPrompt), 500);
+          setTimeout(() => handleGenerateApp(builderMode === 'app' ? DEFAULT_APP_SCREENS : DEFAULT_WEB_SCREENS, undefined, richPrompt), 500);
         }
       } else {
         throw new Error('Scraping failed');
@@ -361,6 +375,10 @@ export function AppDesignerChatPanel() {
       setPrimaryColor(pColor.replace('#', ''));
       setSecondaryColor(sColor.replace('#', ''));
       setAccentColor(aColor.replace('#', ''));
+
+      // Auto-set rounding and typography from AI
+      if (data.rounding) setRounding(data.rounding);
+      if (data.fontFamily) setFontFamily(data.fontFamily);
 
       // Auto-generate based on mode
       setTimeout(() => {
@@ -400,8 +418,10 @@ export function AppDesignerChatPanel() {
     // Use hiddenRichPrompt if available, otherwise fallback to the user visible description
     const generationPrompt = hiddenRichPrompt || appDescription;
 
-    // Determine a consistent theme for the entire session
-    const determinedTheme = isColorLight(currentPrimary) ? 'light' : 'dark';
+    // Use user-selected theme, or auto-detect from primary color
+    const determinedTheme = themeMode === 'auto' 
+      ? (isColorLight(currentPrimary) ? 'light' : 'dark')
+      : themeMode;
     
     const contentToDisplay = imageDatas.length > 0 
       ? `${appDescription} (${imageDatas.length} images attached)`
@@ -513,7 +533,7 @@ export function AppDesignerChatPanel() {
     generationLockRef.current = false;
   };
 
-  // ── Generate UI Component (Dark + Light mode in parallel) ──
+  // ── Generate UI Component (Dark first, then Light using dark as reference) ──
   const handleGenerateComponent = async () => {
     if (!appDescription.trim() || isGenerating || generationLockRef.current) return;
     generationLockRef.current = true;
@@ -538,12 +558,6 @@ export function AppDesignerChatPanel() {
       return;
     }
 
-    // Components are free as per user request
-    updateMessage(asstMsgId, {
-      content: `✨ Generating Dark & Light mode variants...`,
-      isLoading: true,
-    });
-
     const componentName = appDescription.trim().slice(0, 40);
     const baseBody = {
       description: appDescription.trim(),
@@ -553,8 +567,7 @@ export function AppDesignerChatPanel() {
       images: imageDatas,
     };
 
-    // Fire both requests in parallel
-    const fetchVariant = async (theme: 'dark' | 'light') => {
+    const fetchVariant = async (theme: 'dark' | 'light', referenceCode?: string) => {
       try {
         const response = await fetch('/api/generate/component', {
           method: 'POST',
@@ -564,7 +577,8 @@ export function AppDesignerChatPanel() {
             theme,
             instruction: appDescription,
             images: imageDatas,
-            stylingContext: galleryScreens.length > 0 ? galleryScreens[0].code : undefined,
+            // For light mode: use the dark variant's code as styling reference for consistency
+            stylingContext: referenceCode || (galleryScreens.length > 0 ? galleryScreens[0].code : undefined),
             rounding,
             fontFamily,
           }),
@@ -584,26 +598,49 @@ export function AppDesignerChatPanel() {
     };
 
     try {
-      const results = await Promise.allSettled([
-        fetchVariant('dark'),
-        fetchVariant('light'),
-      ]);
+      // Step 1: Generate DARK variant first
+      updateMessage(asstMsgId, {
+        content: `✨ Generating Dark mode component...`,
+        isLoading: true,
+      });
 
       const screens: GeneratedScreen[] = [];
-      const labels = ['Dark', 'Light'];
+      let darkCode: string | undefined;
 
-      results.forEach((result, i) => {
-        if (result.status === 'fulfilled') {
-          screens.push({
-            id: `comp_${Date.now()}_${labels[i].toLowerCase()}`,
-            code: result.value.code,
-            screenName: `${componentName} — ${labels[i]}`,
-            prompt: appDescription,
-            timestamp: Date.now() + i,
-            mode: 'component',
-          });
-        }
+      try {
+        const darkResult = await fetchVariant('dark');
+        darkCode = darkResult.code;
+        screens.push({
+          id: `comp_${Date.now()}_dark`,
+          code: darkResult.code,
+          screenName: `${componentName} — Dark`,
+          prompt: appDescription,
+          timestamp: Date.now(),
+          mode: 'component',
+        });
+      } catch (err) {
+        console.error('Dark variant failed:', err);
+      }
+
+      // Step 2: Generate LIGHT variant using dark code as reference for identical layout
+      updateMessage(asstMsgId, {
+        content: `✨ Dark done! Generating Light mode variant...`,
+        isLoading: true,
       });
+
+      try {
+        const lightResult = await fetchVariant('light', darkCode);
+        screens.push({
+          id: `comp_${Date.now()}_light`,
+          code: lightResult.code,
+          screenName: `${componentName} — Light`,
+          prompt: appDescription,
+          timestamp: Date.now() + 1,
+          mode: 'component',
+        });
+      } catch (err) {
+        console.error('Light variant failed:', err);
+      }
 
       if (screens.length > 0) {
         addGalleryScreens(screens);
@@ -847,7 +884,20 @@ export function AppDesignerChatPanel() {
                             </SelectContent>
                           </Select>
                         </div>
-                     </div>
+                      </div>
+                      <div className="col-span-2 space-y-2">
+                          <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Theme</span>
+                          <Select value={themeMode} onValueChange={(v: 'auto' | 'dark' | 'light') => setThemeMode(v)}>
+                            <SelectTrigger className="bg-zinc-950 border-zinc-800 text-[11px] h-10 text-zinc-300">
+                              <SelectValue placeholder="Theme" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100] shadow-2xl">
+                              <SelectItem value="dark" className="text-zinc-400 focus:text-white">🌙 Dark Mode</SelectItem>
+                              <SelectItem value="light" className="text-zinc-400 focus:text-white">☀️ Light Mode</SelectItem>
+                              <SelectItem value="auto" className="text-zinc-400 focus:text-white">🔄 Auto (from color)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                      </div>
                    </div>
 
                    <div className="h-px bg-zinc-800/50 w-full my-4" />
@@ -897,7 +947,7 @@ export function AppDesignerChatPanel() {
              </div>
              
              <button 
-                onClick={() => sourceUrl.trim() && builderMode === 'web' ? handleScrapeAndPlan(sourceUrl, appDescription, true) : handlePlan()}
+                onClick={() => sourceUrl.trim() && (builderMode === 'web' || builderMode === 'app') ? handleScrapeAndPlan(sourceUrl, appDescription, true) : handlePlan()}
                 disabled={(!appDescription.trim() && !sourceUrl.trim()) || isPlanning}
                 className="w-11 h-11 rounded-xl bg-zinc-800 text-cyan-400 flex items-center justify-center shadow-lg border border-white/5 active:scale-95 disabled:opacity-50 transition-all shrink-0"
               >
@@ -914,7 +964,7 @@ export function AppDesignerChatPanel() {
           </div>
           <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
           
-          {builderMode === 'web' && !isProjectStarted && (
+          {(builderMode === 'web' || builderMode === 'app') && !isProjectStarted && (
              <div className="mt-3 px-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900/40 border border-amber-500/20 rounded-xl">
                   <Globe size={12} className="text-amber-500/60" />
@@ -922,7 +972,7 @@ export function AppDesignerChatPanel() {
                     type="url"
                     value={sourceUrl}
                     onChange={(e) => setSourceUrl(e.target.value)}
-                    placeholder="Website URL to redesign..."
+                    placeholder={builderMode === 'app' ? "Paste website URL to convert to app..." : "Website URL to redesign..."}
                     className="flex-1 bg-transparent border-none focus:ring-0 text-[10px] text-amber-500 placeholder:text-zinc-700 uppercase tracking-widest font-black"
                   />
                 </div>
@@ -1132,13 +1182,26 @@ export function AppDesignerChatPanel() {
                    </SelectContent>
                  </Select>
                </div>
+               <div className="space-y-1">
+                 <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-widest px-1">Theme</span>
+                 <Select value={themeMode} onValueChange={(v: 'auto' | 'dark' | 'light') => setThemeMode(v)}>
+                   <SelectTrigger className="bg-zinc-950/50 border-zinc-800/40 text-[10px] h-8 text-zinc-300">
+                     <SelectValue placeholder="Theme" />
+                   </SelectTrigger>
+                   <SelectContent position="popper" className="bg-[#0A0A0F] border-zinc-800 z-[100]">
+                     <SelectItem value="dark" className="text-zinc-400 focus:text-white">🌙 Dark</SelectItem>
+                     <SelectItem value="light" className="text-zinc-400 focus:text-white">☀️ Light</SelectItem>
+                     <SelectItem value="auto" className="text-zinc-400 focus:text-white">🔄 Auto</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
             </div>
           </div>
         </div>
 
         {/* Input Area */}
         <div className="pt-1">
-          {builderMode === 'web' && (
+          {(builderMode === 'web' || builderMode === 'app') && (
             <div className="mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
               <div className="flex items-center gap-2 px-3 py-2 bg-[#111118] border border-amber-500/20 rounded-lg focus-within:border-amber-500/40 transition-all shadow-md">
                 <Globe size={12} className="text-amber-500/50" />
@@ -1147,7 +1210,7 @@ export function AppDesignerChatPanel() {
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
                   disabled={isGenerating || isPlanning}
-                  placeholder="Website URL to redesign..."
+                  placeholder={builderMode === 'app' ? "Paste website URL to convert to app..." : "Website URL to redesign..."}
                   className="flex-1 bg-transparent border-none focus:ring-0 text-[10px] text-amber-500 placeholder:text-zinc-700 uppercase tracking-widest font-black disabled:opacity-50"
                 />
               </div>
@@ -1199,7 +1262,7 @@ export function AppDesignerChatPanel() {
               
               <div className="flex gap-1">
                 <button 
-                  onClick={() => sourceUrl.trim() && builderMode === 'web' ? handleScrapeAndPlan(sourceUrl, appDescription, true) : handlePlan()}
+                  onClick={() => sourceUrl.trim() && (builderMode === 'web' || builderMode === 'app') ? handleScrapeAndPlan(sourceUrl, appDescription, true) : handlePlan()}
                   disabled={(!appDescription.trim() && !sourceUrl.trim()) || isPlanning}
                   className={cn(
                     "p-1.5 rounded-lg transition-all disabled:opacity-30",
@@ -1207,7 +1270,7 @@ export function AppDesignerChatPanel() {
                     builderMode === 'web' ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20" :
                     "bg-black/40 text-violet-400 hover:bg-black/60 border border-violet-500/20"
                   )}
-                  title={builderMode === 'web' && sourceUrl.trim() ? "Scrape & Redesign Website" : "Magic Plan — auto-pick colors & expand prompt"}
+                  title={sourceUrl.trim() && (builderMode === 'web' || builderMode === 'app') ? (builderMode === 'app' ? "Scrape & Convert to Mobile App" : "Scrape & Redesign Website") : "Magic Plan — auto-pick colors & expand prompt"}
                 >
                   {isPlanning ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                 </button>

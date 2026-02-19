@@ -234,6 +234,22 @@ YOUR TASK: The user gives you a SHORT idea for either a full app or a single UI 
 
 COLOR RULES: Avoid generic/bright defaults. Use sophisticated, muted, or vibrant luxury palettes.
 
+3. PICK THE PERFECT BORDER-RADIUS (rounding) for the project's vibe:
+   - "0px" = Sharp/Brutalist (tech, developer tools, editorial, newspaper)
+   - "8px" = Soft (corporate, SaaS, professional, business)
+   - "12px" = Modern (general purpose, startups, lifestyle, e-commerce)
+   - "24px" = Round (social media, playful, Gen-Z, creative, health/wellness)
+   - "999px" = Pill (futuristic, AI/tech, bold, experimental)
+   Choose the one that BEST matches the project's personality. Default to "12px" if unsure.
+
+4. PICK THE PERFECT FONT FAMILY for the project's vibe:
+   - "Inter" = Clean, modern, SaaS, tech, startups (like Vercel/Linear)
+   - "Playfair Display" = Luxury, elegant, editorial, fashion, high-end brands
+   - "Clash Display" = Bold, creative, Gen-Z, trendy, dynamic
+   - "Syne" = Futuristic, experimental, artistic, tech-forward
+   - "Cabinet Grotesk" = Minimal, sophisticated, design-focused, premium
+   Choose the one that BEST matches the project's personality. Default to "Inter" if unsure.
+
 Return ONLY a valid JSON object:
 {
   "title": "A short, catchy title (max 40 chars)",
@@ -241,6 +257,8 @@ Return ONLY a valid JSON object:
   "primaryColor": "#hexcode",
   "secondaryColor": "#hexcode",
   "accentColor": "#hexcode",
+  "rounding": "12px",
+  "fontFamily": "Inter",
   "screens": ["Landing", "Features", "Pricing", ...] 
 }`;
 
@@ -252,7 +270,7 @@ Return ONLY a valid JSON object:
       parts: [
         { text: `APP IDEA: "${prompt}"
 
-Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor, secondaryColor, accentColor, screens.` }
+Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor, secondaryColor, accentColor, rounding, fontFamily, screens.` }
       ] 
     }],
     generationConfig: {
@@ -284,6 +302,10 @@ Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor,
     throw new Error("Empty response from AI");
   }
 
+  // Valid options for rounding and font
+  const validRoundings = ['0px', '8px', '12px', '24px', '999px'];
+  const validFonts = ['Inter', 'Playfair Display', 'Clash Display', 'Syne', 'Cabinet Grotesk'];
+
   // Clean potential markdown wrap and extract JSON
   const cleaned = text
     .replace(/```json\s*/gi, '')
@@ -295,12 +317,23 @@ Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor,
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Validate rounding — must be one of the exact dropdown values
+      const rawRounding = parsed.rounding || parsed.borderRadius || parsed.border_radius || '12px';
+      const resolvedRounding = validRoundings.includes(rawRounding) ? rawRounding : '12px';
+      
+      // Validate fontFamily — must be one of the exact dropdown values
+      const rawFont = parsed.fontFamily || parsed.font_family || parsed.font || parsed.typography || 'Inter';
+      const resolvedFont = validFonts.includes(rawFont) ? rawFont : 'Inter';
+
       return {
         title: parsed.title || parsed.projectName || parsed.name || prompt,
         detailedPrompt: parsed.detailedPrompt || parsed.detailed_prompt || parsed.prompt || parsed.appDescription || prompt,
         primaryColor: parsed.primaryColor || parsed.primary_color || parsed.primary || '#6366F1',
         secondaryColor: parsed.secondaryColor || parsed.secondary_color || parsed.secondary || '#1E1B2E',
         accentColor: parsed.accentColor || parsed.accent_color || parsed.accent || '#F5C77E',
+        rounding: resolvedRounding,
+        fontFamily: resolvedFont,
         screens: Array.isArray(parsed.screens) ? parsed.screens : undefined
       };
     } catch (parseErr) {
@@ -315,6 +348,8 @@ Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor,
     primaryColor: '#6366F1',
     secondaryColor: '#1E1B2E',
     accentColor: '#F5C77E',
+    rounding: '12px',
+    fontFamily: 'Inter',
   };
 }
 
