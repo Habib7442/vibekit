@@ -3,23 +3,34 @@ import { NextResponse } from "next/server";
 
 const API_KEY = process.env.GEMINI_API_KEY || "";
 const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
-const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent";
+const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
-  maxRetries = 3
+  maxRetries = 3,
+  timeoutMs = 30000
 ): Promise<Response> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      const res = await fetch(url, options);
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
       if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
       return res;
-    } catch (err) {
+    } catch (err: any) {
+      clearTimeout(timeoutId);
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000;
         await new Promise(r => setTimeout(r, delay));
@@ -58,9 +69,12 @@ Return ONLY a valid JSON array. Each item should have:
 - "type": "avatar", "hero", "product", "background", "lifestyle"
 Return ONLY the JSON array.`;
 
-    const analysisRes = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+    const analysisRes = await fetchWithRetry(TEXT_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: analysisPrompt }] }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
@@ -95,9 +109,12 @@ Context: This is for a ${appDescription} mobile app. NO text overlay.`;
           generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
         };
 
-        const res = await fetchWithRetry(`${IMAGE_ENDPOINT}?key=${API_KEY}`, {
+        const res = await fetchWithRetry(IMAGE_ENDPOINT, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-goog-api-key": API_KEY
+          },
           body: JSON.stringify(body),
         }, 2);
 

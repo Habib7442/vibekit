@@ -2,23 +2,34 @@
 import { NextResponse } from "next/server";
 
 const API_KEY = process.env.GEMINI_API_KEY || "";
-const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent";
+const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
-  maxRetries = 3
+  maxRetries = 3,
+  timeoutMs = 30000
 ): Promise<Response> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      const res = await fetch(url, options);
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
       if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
       return res;
-    } catch (err) {
+    } catch (err: any) {
+      clearTimeout(timeoutId);
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000;
         await new Promise(r => setTimeout(r, delay));
@@ -190,9 +201,12 @@ REQUIREMENTS:
       }
     };
 
-    const response = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+    const response = await fetchWithRetry(TEXT_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
+      },
       body: JSON.stringify(body),
     });
 

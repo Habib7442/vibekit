@@ -3,42 +3,51 @@
 const API_KEY = process.env.GEMINI_API_KEY || "";
 
 const ENDPOINTS = {
-  VISION: "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent",
-  TEXT: "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent",
+  VISION: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+  TEXT: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
   IMAGE: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
 };
 
 async function callGemini(endpoint: string, body: any) {
-  const response = await fetch(`${endpoint}?key=${API_KEY}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  if (!response.ok) {
-    const contentType = response.headers.get("content-type") || "";
-    let errorMessage = "Gemini API failure";
-    
-    try {
-      if (contentType.includes("application/json")) {
-        const errorData = await response.json();
-        console.error("Gemini API Error (JSON):", errorData);
-        errorMessage = errorData.error?.message || errorMessage;
-      } else {
-        const errorText = await response.text();
-        console.error("Gemini API Error (Text):", response.status, errorText.slice(0, 500));
-        errorMessage = `API Error ${response.status}: ${response.statusText}`;
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const contentType = response.headers.get("content-type") || "";
+      let errorMessage = "Gemini API failure";
+      
+      try {
+        if (contentType.includes("application/json")) {
+          const errorData = await response.json();
+          console.error("Gemini API Error (JSON):", errorData);
+          errorMessage = errorData.error?.message || errorMessage;
+        } else {
+          const errorText = await response.text();
+          console.error("Gemini API Error (Text):", response.status, errorText.slice(0, 500));
+          errorMessage = `API Error ${response.status}: ${response.statusText}`;
+        }
+      } catch (e) {
+        console.error("Failed to parse Gemini error:", e);
       }
-    } catch (e) {
-      console.error("Failed to parse Gemini error:", e);
+      
+      throw new Error(errorMessage);
     }
-    
-    throw new Error(errorMessage);
-  }
 
-  return response.json();
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**

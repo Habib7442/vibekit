@@ -255,7 +255,7 @@ export function ChatPanel() {
             <div className="absolute bottom-full left-0 right-0 p-2 flex gap-2 overflow-x-auto bg-[#0A0A0F]/80 backdrop-blur-md border border-white/5 rounded-t-2xl mb-2">
               {selectedImages.map((img, idx) => (
                 <div key={idx} className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-white/10 shadow-xl">
-                  <img src={`data:${img.mimeType};base64,${img.data}`} className="w-full h-full object-cover" />
+                  <img src={`data:${img.mimeType};base64,${img.data}`} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
                   <button onClick={() => removeImage(idx)} className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center text-white"><X size={8} /></button>
                 </div>
               ))}
@@ -386,6 +386,7 @@ export function ChatPanel() {
                    <div key={i} className="relative group">
                     <img 
                       src={`data:${img.mimeType};base64,${img.image}`} 
+                      alt={img.prompt || `Generated image ${i + 1}`}
                       className="w-32 h-32 object-cover rounded-lg border border-zinc-800 cursor-pointer hover:border-indigo-500 transition-all"
                     />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-lg">
@@ -485,7 +486,7 @@ export function ChatPanel() {
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {selectedImages.map((img, idx) => (
                   <div key={idx} className="relative w-12 h-12 shrink-0 group">
-                    <img src={`data:${img.mimeType};base64,${img.data}`} className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
+                    <img src={`data:${img.mimeType};base64,${img.data}`} alt={`Selected image ${idx + 1}`} className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
                     <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400"><X size={8} /></button>
                   </div>
                 ))}

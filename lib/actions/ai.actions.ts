@@ -7,18 +7,27 @@ const SEARCH_API_KEY = process.env.GOOGLE_SEARCH_API_KEY || "";
 const SEARCH_CX = process.env.GOOGLE_SEARCH_CX || "";
 
 const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
-const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent";
+const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-// Retry wrapper for Gemini API calls — handles rate limiting (429) and transient errors
+// Retry wrapper for Gemini API calls — handles rate limiting (429), transient errors, and timeouts
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
-  maxRetries = 3
+  maxRetries = 3,
+  timeoutMs = 30000
 ): Promise<Response> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      const res = await fetch(url, options);
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
       
+      clearTimeout(timeoutId);
+
       // If rate limited or server error, retry with backoff
       if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
@@ -28,10 +37,17 @@ async function fetchWithRetry(
       }
       
       return res;
-    } catch (err) {
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      
+      const isTimeout = err.name === 'AbortError';
+      if (isTimeout) {
+        console.warn(`[Gemini API] Request timed out on attempt ${attempt + 1}`);
+      }
+
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000;
-        console.warn(`[Gemini API] Network error on attempt ${attempt + 1}, retrying in ${delay}ms...`);
+        console.warn(`[Gemini API] Error on attempt ${attempt + 1}, retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
@@ -201,9 +217,12 @@ export async function generateAIImage(params: {
       }
     };
 
-    const response = await fetch(`${IMAGE_ENDPOINT}?key=${API_KEY}`, {
+    const response = await fetchWithRetry(IMAGE_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
+      },
       body: JSON.stringify(body),
     });
 
@@ -313,9 +332,12 @@ Respond with ONLY a JSON object containing: title, detailedPrompt, primaryColor,
     }
   };
 
-  const response = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+  const response = await fetchWithRetry(TEXT_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "x-goog-api-key": API_KEY
+    },
     body: JSON.stringify(requestBody),
   });
 
@@ -422,9 +444,12 @@ Return ONLY a valid JSON object:
     }
   };
 
-  const response = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+  const response = await fetchWithRetry(TEXT_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "x-goog-api-key": API_KEY
+    },
     body: JSON.stringify(requestBody),
   });
 
@@ -531,9 +556,12 @@ OUTPUT: Return the COMPLETE raw .tsx code string.`;
     }
   };
 
-  const response = await fetchWithRetry(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+  const response = await fetchWithRetry(TEXT_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "x-goog-api-key": API_KEY
+    },
     body: JSON.stringify(requestBody),
   });
 
@@ -652,10 +680,9 @@ export async function generateAdCampaignAction(params: {
   // REAL-TIME PINTEREST TREND ANALYSIS (optional enrichment)
   const references = await searchPinterestReferences(`${brandName} ${brandCategory} ${goal}`);
   
-  let pinterstTrendInsight = "";
+  let pinterestTrendInsight = "";
   if (references.length > 0) {
     const trendContext = references.map(r => `- ${r.title}: ${r.snippet}`).join('\n');
-    const analyzeUrl = `${TEXT_ENDPOINT}?key=${API_KEY}`;
     const analyzeBody = {
       contents: [{
         parts: [{
@@ -665,13 +692,20 @@ export async function generateAdCampaignAction(params: {
     };
     
     try {
-      const trendRes = await fetch(analyzeUrl, {
+      const trendRes = await fetch(TEXT_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-goog-api-key': API_KEY
+        },
         body: JSON.stringify(analyzeBody)
       });
-      const trendData = await trendRes.json();
-      pinterstTrendInsight = trendData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (!trendRes.ok) {
+        console.warn("[Trend Analysis] API error:", trendRes.status);
+      } else {
+        const trendData = await trendRes.json();
+        pinterestTrendInsight = trendData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      }
     } catch (err) {
       // Silently fail — Pinterest search is optional enhancement
     }
@@ -680,7 +714,7 @@ export async function generateAdCampaignAction(params: {
   for (let i = 0; i < count; i++) {
     try {
       const archetype = creativeArchetypes[i % creativeArchetypes.length];
-      const pinterestReference = pinterstTrendInsight ? `PINTEREST TREND DIRECTION: ${pinterstTrendInsight}` : "";
+      const pinterestReference = pinterestTrendInsight ? `PINTEREST TREND DIRECTION: ${pinterestTrendInsight}` : "";
       const finalPrompt = `[BRAND: ${brandName}] [VIBE: ${brandTone}] [DNA: ${brandDesc}]\n\n${pinterestReference}\n\nSTYLING ARCHETYPE: ${archetype.prompt}`;
 
       const data = await generateAIImage({

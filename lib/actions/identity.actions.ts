@@ -95,6 +95,14 @@ export async function deleteIdentityAction(id: string) {
 }
 
 export async function analyzeBrandDNAAction(url: string, scrapedData: { title: string; description: string; text: string; images: any[] }) {
+  if (!url || typeof url !== 'string') throw new Error("Invalid URL");
+  try {
+    new URL(url);
+  } catch {
+    throw new Error("Invalid URL format");
+  }
+  if (!scrapedData?.text) throw new Error("Scraped data text is required");
+
   const API_KEY = process.env.GEMINI_API_KEY || "";
   if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
@@ -131,16 +139,28 @@ Return ONLY a valid JSON object:
     }
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-  if (!response.ok) throw new Error("Failed to analyze brand DNA");
+  let text = "";
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal // Pass the abort signal
+    });
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (!response.ok) throw new Error("Failed to analyze brand DNA");
+
+    const data = await response.json();
+    text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  } finally {
+    clearTimeout(timeoutId); // Clear the timeout regardless of success or failure
+  }
   
   try {
     return JSON.parse(text);

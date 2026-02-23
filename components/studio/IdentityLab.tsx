@@ -54,6 +54,10 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
       const { analyzeBrandDNAAction } = await import('@/lib/actions/identity.actions');
       const dna = await analyzeBrandDNAAction(brandUrl, scrapedData);
       
+      if (!dna?.name || !dna?.description) {
+        throw new Error('Incomplete brand analysis');
+      }
+
       setDnaPreview(dna);
       setNewName(dna.name);
       setNewDesc(dna.description);
@@ -131,7 +135,11 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
               {dnaPreview.colors?.map((c: string, i: number) => (
                 <div key={i} className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: c }} />
               ))}
-              <span className="text-[8px] text-zinc-500 uppercase font-bold ml-2">{dnaPreview.tone} • {dnaPreview.category}</span>
+              {(dnaPreview.tone || dnaPreview.category) && (
+                <span className="text-[8px] text-zinc-500 uppercase font-bold ml-2">
+                  {[dnaPreview.tone, dnaPreview.category].filter(Boolean).join(' • ')}
+                </span>
+              )}
             </div>
             <p className="text-[9px] text-zinc-400 italic line-clamp-2">"{dnaPreview.description}"</p>
           </div>
