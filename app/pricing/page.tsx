@@ -271,7 +271,7 @@ export default function PricingPage() {
            <Link href="/terms" className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
            <Link href="/support" className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest hover:text-white transition-colors">Support</Link>
         </div>
-        <p className="text-[8px] text-zinc-900 font-black tracking-[0.2em uppercase]">© 2026 IMAGESTUDIOLAB. CRAFTED FOR VISIONARIES.</p>
+        <p className="text-[8px] text-zinc-900 font-black tracking-[0.2em] uppercase">© 2026 IMAGESTUDIOLAB. CRAFTED FOR VISIONARIES.</p>
       </footer>
 
     </div>

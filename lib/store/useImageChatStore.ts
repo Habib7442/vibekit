@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { StudioModel } from '@/lib/actions/identity.actions';
 
 export interface GeneratedImage {
   id: string;
@@ -24,6 +25,9 @@ interface ImageChatState {
   messages: ChatMessage[];
   galleryImages: GeneratedImage[];
   isGenerating: boolean;
+  selectedIdentity: StudioModel | null;
+  imageCount: number;
+  aspectRatio: string;
   
   addMessage: (msg: ChatMessage) => void;
   updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
@@ -31,6 +35,9 @@ interface ImageChatState {
   removeGalleryImage: (id: string) => void;
   updateGalleryImage: (id: string, updates: Partial<GeneratedImage>) => void;
   setIsGenerating: (v: boolean) => void;
+  setSelectedIdentity: (identity: StudioModel | null) => void;
+  setImageCount: (count: number) => void;
+  setAspectRatio: (ratio: string) => void;
   clearChat: () => void;
   clearGallery: () => void;
   savedCanvasId: string | null;
@@ -41,6 +48,9 @@ export const useImageChatStore = create<ImageChatState>((set, get) => ({
   messages: [],
   galleryImages: [],
   isGenerating: false,
+  selectedIdentity: null,
+  imageCount: 1,
+  aspectRatio: '1:1',
   savedCanvasId: null,
 
   addMessage: (msg) => set({ messages: [...get().messages, msg] }),
@@ -62,6 +72,9 @@ export const useImageChatStore = create<ImageChatState>((set, get) => ({
   }),
   
   setIsGenerating: (v) => set({ isGenerating: v }),
+  setSelectedIdentity: (identity) => set({ selectedIdentity: identity }),
+  setImageCount: (count) => set({ imageCount: count }),
+  setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
   
   clearChat: () => set({ messages: [] }),
   clearGallery: () => set({ galleryImages: [], savedCanvasId: null }),

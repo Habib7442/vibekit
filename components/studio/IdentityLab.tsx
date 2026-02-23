@@ -14,6 +14,9 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
   const [identities, setIdentities] = useState<StudioModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [brandUrl, setBrandUrl] = useState('');
+  const [isScraping, setIsScraping] = useState(false);
+  const [dnaPreview, setDnaPreview] = useState<any>(null);
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState<'person' | 'product' | 'brand'>('person');
   const [newDesc, setNewDesc] = useState('');
@@ -34,6 +37,35 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
     fetchIdentities();
   }, []);
 
+  const handleScrape = async () => {
+    if (!brandUrl) return;
+    setIsScraping(true);
+    setDnaPreview(null);
+    try {
+      const scrapeRes = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: brandUrl })
+      });
+      
+      if (!scrapeRes.ok) throw new Error('Scraping failed');
+      const scrapedData = await scrapeRes.json();
+      
+      const { analyzeBrandDNAAction } = await import('@/lib/actions/identity.actions');
+      const dna = await analyzeBrandDNAAction(brandUrl, scrapedData);
+      
+      setDnaPreview(dna);
+      setNewName(dna.name);
+      setNewDesc(dna.description);
+      setNewType('brand');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to analyze brand. Please try manual entry.');
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!newName || !newDesc) return;
     setIsCreating(true);
@@ -41,10 +73,13 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
       await createIdentityAction({
         name: newName,
         type: newType,
-        description: newDesc
+        description: newDesc,
+        // Optional: save expanded DNA fields if needed in schema future
       });
       setNewName('');
       setNewDesc('');
+      setDnaPreview(null);
+      setBrandUrl('');
       setIsCreating(false);
       fetchIdentities();
     } catch (err) {
@@ -70,6 +105,37 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
           <Fingerprint size={12} className="text-indigo-400" /> Identity Lab
         </label>
         <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[8px] font-black uppercase border border-indigo-500/20 tracking-widest">Premium</span>
+      </div>
+
+      {/* Brand Intake Section */}
+      <div className="p-4 rounded-2xl bg-indigo-500/[0.05] border border-indigo-500/20 space-y-3">
+        <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Brand Intake (Auto-Analysis)</p>
+        <div className="flex gap-2">
+           <input 
+            value={brandUrl}
+            onChange={(e) => setBrandUrl(e.target.value)}
+            placeholder="Instagram or Website URL"
+            className="flex-1 bg-black/40 border border-white/5 rounded-xl px-4 py-2 text-[10px] text-white focus:outline-none focus:border-indigo-500/30 transition-all"
+          />
+          <button 
+            onClick={handleScrape}
+            disabled={!brandUrl || isScraping}
+            className="px-4 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all disabled:opacity-50"
+          >
+            {isScraping ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+          </button>
+        </div>
+        {dnaPreview && (
+          <div className="pt-2 space-y-2">
+            <div className="flex flex-wrap gap-1">
+              {dnaPreview.colors?.map((c: string, i: number) => (
+                <div key={i} className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: c }} />
+              ))}
+              <span className="text-[8px] text-zinc-500 uppercase font-bold ml-2">{dnaPreview.tone} • {dnaPreview.category}</span>
+            </div>
+            <p className="text-[9px] text-zinc-400 italic line-clamp-2">"{dnaPreview.description}"</p>
+          </div>
+        )}
       </div>
 
       {/* Identity List */}
@@ -132,7 +198,7 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
       {/* Create New Form */}
       <div className="p-5 rounded-[2rem] bg-indigo-500/[0.03] border border-indigo-500/10 space-y-4">
         <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest flex items-center gap-2">
-          <Plus size={12} /> Create New Subject Ref
+          <Plus size={12} /> {dnaPreview ? "Approve DNA & Save" : "Create New Subject Ref"}
         </p>
         
         <div className="space-y-3">
@@ -171,7 +237,7 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
             disabled={!newName || !newDesc || isCreating}
             className="w-full py-4 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 transition-all disabled:opacity-50"
           >
-            {isCreating ? <Loader2 size={14} className="animate-spin" /> : "Verify & Save Identity"}
+            {isCreating ? <Loader2 size={14} className="animate-spin" /> : dnaPreview ? "Save & Lock Brand DNA" : "Verify & Save Identity"}
           </button>
         </div>
       </div>

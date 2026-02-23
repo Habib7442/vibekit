@@ -9,6 +9,13 @@ export interface StudioModel {
   description: string;
   type: 'person' | 'product' | 'brand';
   reference_images: string[];
+  // Brand DNA Fields
+  colors?: string[];
+  tone?: string;
+  style?: string;
+  audience?: string;
+  category?: string;
+  typography?: string;
 }
 
 export async function getMyIdentities() {
@@ -85,4 +92,60 @@ export async function deleteIdentityAction(id: string) {
   }
   revalidatePath('/studio/visual');
   return { success: true };
+}
+
+export async function analyzeBrandDNAAction(url: string, scrapedData: { title: string; description: string; text: string; images: any[] }) {
+  const API_KEY = process.env.GEMINI_API_KEY || "";
+  if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
+
+  const systemInstructions = `You are a world-class Brand Strategist and Creative Director.
+YOUR TASK: Analyze the provided scraped data from a brand's website/social media and build a "Brand DNA Card".
+
+Return ONLY a valid JSON object:
+{
+  "name": "Brand Name",
+  "category": "e.g. Luxury Skincare, Streetwear, Artisanal Coffee",
+  "description": "A comprehensive 3-4 sentence Brand DNA description for AI image generation.",
+  "colors": ["#hex1", "#hex2", "#hex3"],
+  "tone": "e.g. Luxury, Playful, Bold, Minimal, Street",
+  "style": "e.g. Cinematic, Editorial, Lifestyle, Product-focused",
+  "audience": "e.g. Young women, Fitness enthusiasts, Luxury travelers",
+  "typography": "e.g. Serif elegant, Sans bold, Handwritten casual"
+}`;
+
+  const requestBody = {
+    systemInstruction: {
+      parts: [{ text: systemInstructions }]
+    },
+    contents: [{ 
+      parts: [
+        { text: `SCRAPED DATA FOR URL: ${url}
+        TITLE: ${scrapedData.title}
+        META DESC: ${scrapedData.description}
+        TEXT CONTENT: ${scrapedData.text.slice(0, 3000)}` }
+      ] 
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      responseMimeType: "application/json",
+    }
+  };
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) throw new Error("Failed to analyze brand DNA");
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("[analyzeBrandDNAAction] JSON parse error:", err);
+    throw new Error("Invalid response from AI");
+  }
 }

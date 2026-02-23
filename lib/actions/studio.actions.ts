@@ -10,17 +10,21 @@ export interface SaveCanvasParams {
   type: 'app' | 'web' | 'visual' | 'component';
   isPublic?: boolean;
   screens?: {
-    id: string; // The client-side id from Zustand
-    screenName: string;
-    code: string;
-    prompt?: string;
-    order?: number;
-  }[];
+    [key: string]: {
+      screenName: string;
+      code: string;
+      prompt?: string;
+      order?: number;
+    }
+  };
   images?: {
-    imageUrl: string;
-    prompt?: string;
-    aspectRatio?: string;
-  }[];
+    [key: string]: {
+      imageUrl: string;
+      prompt?: string;
+      aspectRatio?: string;
+      order?: number;
+    }
+  };
 }
 
 export async function saveCanvasAction(params: SaveCanvasParams) {
@@ -69,13 +73,11 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
   }
 
   // 2. Save Screens (if any)
-  if (params.screens && params.screens.length > 0) {
+  if (params.screens && Object.keys(params.screens).length > 0) {
     // We use upsert with a unique constraint on (canvas_id, local_id)
-    // This allows us to only insert new ones and update modified ones, 
-    // effectively satisfying the requirement "do not save previous 5 screens again" (redundantly)
-    const screensToInsert = params.screens.map((s, idx) => ({
+    const screensToInsert = Object.entries(params.screens).map(([id, s], idx) => ({
       canvas_id: canvasId,
-      local_id: s.id, // Maps the client ID to the DB local_id
+      local_id: id, 
       name: s.screenName,
       code: s.code,
       prompt: s.prompt,
@@ -93,7 +95,7 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
   }
 
   // 3. Save Images (if any)
-  if (params.images && params.images.length > 0) {
+  if (params.images && Object.keys(params.images).length > 0) {
     // Note: We don't delete images on update as they are immutable storage assets
     // But we avoid inserting duplicate URLs if they already exist in this canvas
     const { data: existingImages } = await supabase
@@ -102,10 +104,10 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
       .eq('canvas_id', canvasId);
     
     const existingUrls = new Set(existingImages?.map(img => img.image_url) || []);
-    const newImages = params.images.filter(img => !existingUrls.has(img.imageUrl));
-
-    if (newImages.length > 0) {
-      const imagesToInsert = newImages.map(img => ({
+    
+    const newImagesToInsert = Object.entries(params.images)
+      .filter(([_, img]) => !existingUrls.has(img.imageUrl))
+      .map(([id, img], idx) => ({
         canvas_id: canvasId,
         user_id: user.id,
         image_url: img.imageUrl,
@@ -113,9 +115,10 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
         aspect_ratio: img.aspectRatio,
       }));
 
+    if (newImagesToInsert.length > 0) {
       const { error: imagesError } = await supabase
         .from('canvas_images')
-        .insert(imagesToInsert);
+        .insert(newImagesToInsert);
 
       if (imagesError) {
         console.error('[saveCanvasAction] Images Error:', imagesError);

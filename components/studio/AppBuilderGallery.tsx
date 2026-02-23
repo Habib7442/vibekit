@@ -492,13 +492,15 @@ export function AppDesignerGallery() {
         canvasId: savedCanvasId || undefined,
         name: activeTitle,
         type: builderMode,
-        screens: galleryScreens.map((s, idx) => ({
-          id: s.id,
-          screenName: s.screenName,
-          code: s.code,
-          prompt: s.prompt,
-          order: idx
-        }))
+        screens: Object.fromEntries(galleryScreens.map((s, idx) => [
+          s.id, 
+          {
+            screenName: s.screenName,
+            code: s.code,
+            prompt: s.prompt,
+            order: idx
+          }
+        ]))
       });
 
       if (result.canvasId) {

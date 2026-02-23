@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 const API_KEY = process.env.GEMINI_API_KEY || "";
+const SEARCH_API_KEY = process.env.GOOGLE_SEARCH_API_KEY || "";
+const SEARCH_CX = process.env.GOOGLE_SEARCH_CX || "";
+
 const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
 const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3-flash-preview:generateContent";
 
@@ -36,6 +39,34 @@ async function fetchWithRetry(
     }
   }
   throw new Error('Max retries exceeded');
+}
+
+// Helper to fetch Pinterest references via Google Custom Search
+async function searchPinterestReferences(query: string): Promise<{ title: string, link: string, snippet: string }[]> {
+  if (!SEARCH_API_KEY || !SEARCH_CX) {
+    console.log("[Search API] Keys missing, skipping live search.");
+    return [];
+  }
+  
+  const url = `https://www.googleapis.com/customsearch/v1?key=${SEARCH_API_KEY}&cx=${SEARCH_CX}&q=${encodeURIComponent(query + ' poster design pinterest')}&searchType=image&num=5`;
+  
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      console.warn("[Search API] Error:", res.status, JSON.stringify(errBody?.error?.message || errBody));
+      return [];
+    }
+    const data = await res.json();
+    return data.items?.map((item: any) => ({
+      title: item.title,
+      link: item.link,
+      snippet: item.snippet
+    })) || [];
+  } catch (err) {
+    console.error("[Pinterest Search] Failed:", err);
+    return [];
+  }
 }
 
 const TEMPLATE_EXPERTS: Record<string, { persona: string, direction: string, style: string }> = {
@@ -398,22 +429,43 @@ Return ONLY a valid JSON object:
   });
 
   if (!response.ok) {
+    const errText = await response.text().catch(() => "Unknown error");
+    console.error("[planVisualAction] API error:", response.status, errText);
     throw new Error("Failed to expand image prompt");
   }
 
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   
-  try {
-    const parsed = JSON.parse(text);
-    return {
-      detailedPrompt: parsed.detailedPrompt || text
-    };
-  } catch {
-    return {
-      detailedPrompt: text.substring(0, 1000) || prompt
-    };
+  if (!text.trim()) {
+    console.error("[planVisualAction] Empty response from Gemini");
+    throw new Error("Empty response from AI");
   }
+
+  // Clean potential markdown wrap and extract JSON
+  const cleaned = text
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+  
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        detailedPrompt: parsed.detailedPrompt || parsed.prompt || text
+      };
+    } catch (err) {
+      console.error("[planVisualAction] JSON parse error:", err, "Raw:", jsonMatch[0].substring(0, 200));
+    }
+  }
+
+  // Fallback: use raw text if JSON extraction fails
+  console.warn("[planVisualAction] No valid JSON found, using raw text fallback");
+  return {
+    detailedPrompt: cleaned.substring(0, 1000) || prompt
+  };
 }
 
 export async function generateScreenImageAction(params: {
@@ -496,4 +548,162 @@ OUTPUT: Return the COMPLETE raw .tsx code string.`;
   code = code.replace(/^```(tsx|jsx|javascript|typescript|ts|js)?\n/, '').replace(/\n```$/, '');
   
   return { code, wasTruncated };
+}
+
+export async function generateAdCampaignAction(params: {
+  brandDNA: any;
+  goal: string;
+  message: string;
+  offer?: string;
+  mood?: string;
+  count?: number;
+  aspectRatio?: string;
+}) {
+  const { brandDNA, goal, message, offer, count = 1, aspectRatio = '1:1' } = params;
+  
+  const results = [];
+  const brandColors = brandDNA.colors?.join(' and ') || brandDNA.color || 'vivid signature colors';
+  const brandTone = brandDNA.tone || 'energetic cool premium';
+  const brandCategory = brandDNA.category || '';
+  const brandAudience = brandDNA.audience || 'Gen Z young adults';
+  const brandName = brandDNA.name;
+  const brandDesc = brandDNA.description || '';
+
+  // Text overlay instructions — only if user provided them
+  const hasMessage = message && message.trim().length > 0;
+  const hasOffer = offer && offer.trim().length > 0;
+  const textInstruction = hasMessage
+    ? `Bold white typography at the bottom reads: "${message}".${hasOffer ? ` Below in smaller text: "${offer}".` : ''} Brand name "${brandName}" subtly at top.`
+    : `No text overlays. Completely clean image — no words, no captions, no labels. Pure visual storytelling only.`;
+
+  // Text rules — conditional based on user input
+  const typographyInstruction = hasMessage
+    ? `Large ultra-bold white headline typography reads "${message}" prominently behind or around the product. ${hasOffer ? `A secondary badge or label reads "${offer}".` : ''} Brand name "${brandName}" in top corner.`
+    : `No text overlays at all. Completely clean — no words, labels, or captions anywhere in the image. Pure product visual only.`;
+
+  // 5 reference-inspired commercial brand photoshoot styles
+  const creativeArchetypes = [
+    {
+      // Style 1: Bold Typography Hero — like NAKOA Boba / REFRESH can poster
+      name: 'Bold Typography Hero',
+      prompt:
+        `Hyper-real commercial product poster for ${brandName} (${brandCategory}). ` +
+        `The ${brandName} product is centered and floating, dominating the frame. ` +
+        `Behind and around the product, enormous ultra-bold display typography in ${brandColors} tones creates a dramatic background — the letters are so large they are partially hidden behind the product. ` +
+        `Flying ${brandDNA.ingredients || 'product ingredients and brand elements'} are suspended mid-air around the product with realistic physics. ` +
+        `Background: smooth warm gradient in ${brandColors}. ` +
+        `Lighting: soft studio key light, glossy specular highlights on packaging, subtle drop shadow beneath product. ` +
+        `${typographyInstruction} ` +
+        `Style: premium FMCG brand poster, modern advertising layout, ultra sharp product focus, vibrant color grading, 8K photorealistic. Campaign: ${goal}.`,
+    },
+    {
+      // Style 2: Liquid Splash — like CRIEPVASREI strawberry can
+      name: 'Liquid Splash',
+      prompt:
+        `Hyper-real beverage advertisement poster for ${brandName}. ` +
+        `The ${brandName} product (can, bottle, or package) emerges dramatically from a large dynamic liquid splash of the brand's signature flavor — the liquid arcs outward in ultra-realistic physics. ` +
+        `Floating fresh ingredients (fruits, herbs, or key brand elements) scatter dynamically around the product with realistic motion blur. ` +
+        `Condensation droplets on the packaging catch studio light with glossy specular highlights. ` +
+        `Background: bold smooth gradient in ${brandColors} — monochromatic and saturated. ` +
+        `Bright studio lighting with cinematic HDR color grading. ` +
+        `${typographyInstruction} ` +
+        `Style: ultra realistic liquid physics, premium drink campaign, refreshing and vibrant, 8K. Campaign: ${goal}.`,
+    },
+    {
+      // Style 3: Lifestyle Forced Perspective — like Pepsi Skateboarder
+      name: 'Lifestyle Forced Perspective',
+      prompt:
+        `Hyper-real commercial lifestyle advertisement photo for ${brandName}. ` +
+        `An energetic, smiling young ${brandAudience} person is skating, running, or jumping in a dynamic outdoor city environment. ` +
+        `They hold the ${brandName} product very close to the camera lens in forced perspective — wide-angle 24mm lens distortion makes the product appear oversized and dominant in the foreground while the person is visible behind it. ` +
+        `Sunlight flare and warm highlights streak across the scene. Motion blur on the background city environment. ` +
+        `Shallow depth of field — razor sharp product, soft background. ` +
+        `Color grade: vibrant, saturated, cinematic warm tones matching ${brandColors}. ` +
+        `${typographyInstruction} ` +
+        `Style: global advertising campaign photography, Pepsi/Nike/Red Bull aesthetic, ultra photorealistic, 8K. Campaign: ${goal}.`,
+    },
+    {
+      // Style 4: Floating Ingredients — like Lay's chips poster
+      name: 'Floating Ingredients',
+      prompt:
+        `Clean commercial product poster for ${brandName} (${brandCategory}). ` +
+        `The ${brandName} product packet or packaging is centered and floating at a slight angle, dramatically lit from the front with soft studio key light. ` +
+        `Around it, brand-relevant ingredients, chips, fruits, spices, or product elements fly outward in all directions — frozen mid-air with realistic motion, some with subtle motion blur for speed. ` +
+        `Background: rich deep gradient in ${brandColors} — dark at edges, lighter in center, with subtle atmospheric glow or stars/bokeh. ` +
+        `Soft vignette, premium packaging highlights, crisp shadows. ` +
+        `${typographyInstruction} ` +
+        `Style: premium FMCG packaging advertisement, Lay's / Maggi / Cadbury campaign aesthetic, 8K ultra photorealistic. Campaign: ${goal}.`,
+    },
+    {
+      // Style 5: Clean FMCG Product Poster — like K2 Strawberry Juice with calligraphy/ingredient callouts
+      name: 'FMCG Product Close-Up',
+      prompt:
+        `High-end FMCG product advertisement for ${brandName}. ` +
+        `The ${brandName} product is front-and-center, large and dominant, with ultra-sharp packaging detail. ` +
+        `Key ingredients (fruits, botanicals, or brand elements) are artfully placed around the product — some cut in half to show texture, some whole, all styled beautifully. ` +
+        `Warm-to-vibrant gradient background in ${brandColors} — orange at top fading to deeper tones at bottom. ` +
+        `Floating green leaves and light particles add freshness and life to the composition. ` +
+        `Mixed typography: bold display font for the product name at top in ${brandColors}, elegant script font for the variant/flavor name below, small benefit callouts positioned around the product. ` +
+        `${typographyInstruction} ` +
+        `Style: premium supermarket shelf poster, FMCG advertising, fresh and vibrant, 8K photorealistic commercial photography. Campaign: ${goal}.`,
+    },
+  ];
+
+  // REAL-TIME PINTEREST TREND ANALYSIS (optional enrichment)
+  const references = await searchPinterestReferences(`${brandName} ${brandCategory} ${goal}`);
+  
+  let pinterstTrendInsight = "";
+  if (references.length > 0) {
+    const trendContext = references.map(r => `- ${r.title}: ${r.snippet}`).join('\n');
+    const analyzeUrl = `${TEXT_ENDPOINT}?key=${API_KEY}`;
+    const analyzeBody = {
+      contents: [{
+        parts: [{
+          text: `You are a commercial brand photographer. Based on these Pinterest search results for "${brandCategory} ${goal}", give 2 sentences of specific visual direction to enrich the ad composition. Focus only on lighting, color, and composition details.\n\nRESULTS:\n${trendContext}`
+        }]
+      }]
+    };
+    
+    try {
+      const trendRes = await fetch(analyzeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analyzeBody)
+      });
+      const trendData = await trendRes.json();
+      pinterstTrendInsight = trendData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (err) {
+      // Silently fail — Pinterest search is optional enhancement
+    }
+  }
+
+  for (let i = 0; i < count; i++) {
+    try {
+      const archetype = creativeArchetypes[i % creativeArchetypes.length];
+      const pinterestReference = pinterstTrendInsight ? `PINTEREST TREND DIRECTION: ${pinterstTrendInsight}` : "";
+      const finalPrompt = `[BRAND: ${brandName}] [VIBE: ${brandTone}] [DNA: ${brandDesc}]\n\n${pinterestReference}\n\nSTYLING ARCHETYPE: ${archetype.prompt}`;
+
+      const data = await generateAIImage({
+        prompt: finalPrompt,
+        aspectRatio: aspectRatio as any,
+        count: 1
+      });
+      
+      results.push({
+        name: archetype.name,
+        prompt: finalPrompt,
+        image: data.images[0].image,
+        mimeType: data.images[0].mimeType,
+        ratio: aspectRatio,
+        caption: hasMessage 
+          ? `🔥 ${message}\n\n${brandName} #brandad #${goal.replace(/\s+/g, '').toLowerCase()}`
+          : `${brandName} — ${goal}\n\n#brandad #genz #${brandName.replace(/\s+/g, '').toLowerCase()}`,
+        cta: offer || "Shop Now"
+      });
+    } catch (err) {
+      console.error(`Failed to generate ad ${i + 1}:`, err);
+    }
+  }
+
+  return { ads: results };
 }

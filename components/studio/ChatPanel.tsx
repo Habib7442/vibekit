@@ -30,11 +30,18 @@ const TEMPLATES = [
 
 export function ChatPanel() {
   const searchParams = useSearchParams();
-  const { messages, isGenerating, addMessage, updateMessage, addGalleryImages, setIsGenerating } = useImageChatStore();
+  const { 
+    messages, isGenerating, addMessage, updateMessage, addGalleryImages, setIsGenerating, 
+    selectedIdentity, setSelectedIdentity, imageCount, setImageCount, aspectRatio, setAspectRatio 
+  } = useImageChatStore();
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [input, setInput] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const [isPlanning, setIsPlanning] = useState(false);
+
+  const [selectedImages, setSelectedImages] = useState<{ data: string; mimeType: string }[]>([]);
+  const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -54,13 +61,6 @@ export function ChatPanel() {
       }, 500);
     }
   }, [searchParams, messages, isGenerating]);
-
-  const [imageCount, setImageCount] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [selectedImages, setSelectedImages] = useState<{ data: string; mimeType: string }[]>([]);
-  const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
-  const [selectedIdentity, setSelectedIdentity] = useState<StudioModel | null>(null);
-  const [isPlanning, setIsPlanning] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -278,70 +278,6 @@ export function ChatPanel() {
                  </SheetHeader>
                  
                  <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-12">
-                   {/* Aspect Ratio */}
-                   <div className="space-y-3">
-                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Aspect Ratio</label>
-                     <div className="grid grid-cols-4 gap-2">
-                       {ASPECT_RATIOS.map((r) => (
-                         <button
-                           key={r.value}
-                           onClick={() => setAspectRatio(r.value)}
-                           className={cn(
-                             "py-3 rounded-xl text-[10px] font-black transition-all border",
-                             aspectRatio === r.value 
-                               ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
-                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                           )}
-                         >
-                           {r.label}
-                         </button>
-                       ))}
-                     </div>
-                   </div>
-
-                   {/* Image Count */}
-                   <div className="space-y-3">
-                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Variants Count</label>
-                     <div className="grid grid-cols-5 gap-2">
-                       {[1, 2, 3, 4, 5].map((count) => (
-                         <button
-                           key={count}
-                           onClick={() => setImageCount(count)}
-                           className={cn(
-                             "py-3 rounded-xl text-[10px] font-black transition-all border",
-                             imageCount === count
-                               ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
-                               : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                           )}
-                         >
-                           {count}
-                         </button>
-                       ))}
-                     </div>
-                   </div>
-
-                    {/* Style Templates */}
-                    <div className="space-y-3">
-                      <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">Creative Mode</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {TEMPLATES.map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
-                            className={cn(
-                              "p-4 rounded-2xl text-[10px] font-bold border flex flex-col items-center gap-2 transition-all",
-                              currentTemplate === t.id 
-                                ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
-                                : "bg-zinc-900 border-zinc-800 text-zinc-500"
-                            )}
-                          >
-                            <span className="text-xl">{t.icon}</span>
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     <div className="h-px bg-zinc-800/50 w-full my-4" />
 
                     {/* Identity Lab */}
@@ -447,11 +383,15 @@ export function ChatPanel() {
              {msg.images && msg.images.length > 0 && (
                <div className="grid grid-cols-2 gap-2 mt-1">
                  {msg.images.map((img, i) => (
-                   <img 
-                    key={i} 
-                    src={`data:${img.mimeType};base64,${img.image}`} 
-                    className="w-24 h-24 object-cover rounded-lg border border-zinc-800"
-                   />
+                   <div key={i} className="relative group">
+                    <img 
+                      src={`data:${img.mimeType};base64,${img.image}`} 
+                      className="w-32 h-32 object-cover rounded-lg border border-zinc-800 cursor-pointer hover:border-indigo-500 transition-all"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-lg">
+                       <p className="text-[8px] text-white font-black uppercase tracking-widest px-2 text-center">Campaign Output {i+1}</p>
+                    </div>
+                   </div>
                  ))}
                </div>
              )}
@@ -461,8 +401,9 @@ export function ChatPanel() {
       </div>
 
       {/* Controls & Input */}
-      <div className="shrink-0 border-t border-zinc-800/50 bg-black/20 flex flex-col max-h-[70%]">
+      <div className="shrink-0 border-t border-zinc-800/50 bg-black/20 flex flex-col max-h-[85%]">
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          
           <div className="space-y-4">
             {/* Ratios */}
             <div>
@@ -540,61 +481,61 @@ export function ChatPanel() {
 
         {/* Fixed Chat Input Area */}
         <div className="p-4 border-t border-zinc-800/50 bg-black/40 space-y-3">
-          {selectedImages.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {selectedImages.map((img, idx) => (
-                <div key={idx} className="relative w-12 h-12 shrink-0 group">
-                  <img src={`data:${img.mimeType};base64,${img.data}`} className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
-                  <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400"><X size={8} /></button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="relative">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder="Describe your vision..."
-              rows={2}
-              className="w-full bg-[#111118] border border-zinc-800/60 rounded-xl py-3 pl-4 pr-12 text-white text-xs focus:outline-none focus:border-indigo-500/40 resize-none transition-all"
-            />
-            <div className="absolute right-3 bottom-3 flex items-center gap-1">
-               <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors">
-                 <Paperclip size={16} />
-               </button>
-               <button 
-                 onClick={handlePlan}
-                 disabled={!input.trim() || isPlanning}
-                 className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-all active:scale-90"
-               >
-                 {isPlanning ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-               </button>
-               <button 
-                 onClick={() => handleGenerate()}
-                 disabled={(!input.trim() && selectedImages.length === 0) || isGenerating}
-                 className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-90"
-               >
-                 {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-               </button>
-            </div>
-            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
-          </div>
-          
-          {/* Identity Context Bar (Desktop) */}
-          {selectedIdentity && (
-            <div className="pt-2 flex items-center justify-between border-t border-indigo-500/10 mt-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Active Identity: {selectedIdentity.name}</span>
+            {selectedImages.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {selectedImages.map((img, idx) => (
+                  <div key={idx} className="relative w-12 h-12 shrink-0 group">
+                    <img src={`data:${img.mimeType};base64,${img.data}`} className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
+                    <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400"><X size={8} /></button>
+                  </div>
+                ))}
               </div>
-              <button onClick={() => setSelectedIdentity(null)} className="text-[9px] text-zinc-600 hover:text-white uppercase font-black">Clear</button>
+            )}
+
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder="Describe your vision..."
+                rows={2}
+                className="w-full bg-[#111118] border border-zinc-800/60 rounded-xl py-3 pl-4 pr-12 text-white text-xs focus:outline-none focus:border-indigo-500/40 resize-none transition-all"
+              />
+              <div className="absolute right-3 bottom-3 flex items-center gap-1">
+                 <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors">
+                   <Paperclip size={16} />
+                 </button>
+                 <button 
+                   onClick={handlePlan}
+                   disabled={!input.trim() || isPlanning}
+                   className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-all active:scale-90"
+                 >
+                   {isPlanning ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                 </button>
+                 <button 
+                   onClick={() => handleGenerate()}
+                   disabled={(!input.trim() && selectedImages.length === 0) || isGenerating}
+                   className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-90"
+                 >
+                   {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                 </button>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
             </div>
-          )}
-        </div>
+            
+            {/* Identity Context Bar (Desktop) */}
+            {selectedIdentity && (
+              <div className="pt-2 flex items-center justify-between border-t border-indigo-500/10 mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Active Identity: {selectedIdentity.name}</span>
+                </div>
+                <button onClick={() => setSelectedIdentity(null)} className="text-[9px] text-zinc-600 hover:text-white uppercase font-black">Clear</button>
+              </div>
+            )}
+          </div>
       </div>
 
       <AuthModal 

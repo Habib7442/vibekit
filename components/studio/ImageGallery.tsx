@@ -100,11 +100,14 @@ export function ImageGallery() {
         canvasId: savedCanvasId || undefined,
         name: firstPrompt.slice(0, 50),
         type: 'visual',
-        images: galleryImages.map((img, idx) => ({
-          imageUrl: imageUploads[idx],
-          prompt: img.prompt,
-          aspectRatio: img.aspectRatio
-        }))
+        images: Object.fromEntries(galleryImages.map((img, idx) => [
+          img.id,
+          {
+            imageUrl: imageUploads[idx],
+            prompt: img.prompt,
+            aspectRatio: img.aspectRatio
+          }
+        ]))
       });
 
       if (result.canvasId) {
