@@ -45,6 +45,11 @@ async function callGemini(endpoint: string, body: any) {
     }
 
     return response.json();
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error("Gemini API request timed out");
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }

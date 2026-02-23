@@ -154,10 +154,19 @@ Return ONLY a valid JSON object:
       signal: controller.signal // Pass the abort signal
     });
 
-    if (!response.ok) throw new Error("Failed to analyze brand DNA");
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      console.error("[analyzeBrandDNAAction] API error:", response.status, errorBody);
+      throw new Error(`Failed to analyze brand DNA: ${response.status}`);
+    }
 
     const data = await response.json();
     text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error("Brand DNA analysis timed out");
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId); // Clear the timeout regardless of success or failure
   }

@@ -30,10 +30,18 @@ async function fetchWithRetry(
       return res;
     } catch (err: any) {
       clearTimeout(timeoutId);
+      const isTimeout = err.name === 'AbortError';
+      if (isTimeout) {
+        console.warn(`[Gemini API] Request timed out on attempt ${attempt + 1}`);
+      }
+
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000;
         await new Promise(r => setTimeout(r, delay));
         continue;
+      }
+      if (isTimeout) {
+        throw new Error("Gemini API request timed out after multiple retries");
       }
       throw err;
     }

@@ -51,6 +51,9 @@ async function fetchWithRetry(
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
+      if (isTimeout) {
+        throw new Error("Gemini API request timed out after multiple retries");
+      }
       throw err;
     }
   }
