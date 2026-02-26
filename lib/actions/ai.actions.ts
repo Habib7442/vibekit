@@ -1,63 +1,51 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
+import { CAMPAIGN_FORMATS } from '@/lib/campaign-formats';
+import { createClient } from '@/lib/supabase/server';
+import { PLANS, PlanType } from '@/lib/plans';
+import { deductCredit } from "@/lib/credits-actions";
 
 const API_KEY = process.env.GEMINI_API_KEY || "";
 const SEARCH_API_KEY = process.env.GOOGLE_SEARCH_API_KEY || "";
 const SEARCH_CX = process.env.GOOGLE_SEARCH_CX || "";
 
 const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
-const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
 
-// Retry wrapper for Gemini API calls — handles rate limiting (429), transient errors, and timeouts
+// Single-shot fetch with timeout — no retries, one request only
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
-  maxRetries = 3,
-  timeoutMs = 30000
+  _maxRetries = 0,
+  timeoutMs = 60000
 ): Promise<Response> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    try {
-      const res = await fetch(url, {
-        ...options,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
 
-      // If rate limited or server error, retry with backoff
-      if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-        console.warn(`[Gemini API] ${res.status} on attempt ${attempt + 1}, retrying in ${Math.round(delay)}ms...`);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      
-      return res;
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      
-      const isTimeout = err.name === 'AbortError';
-      if (isTimeout) {
-        console.warn(`[Gemini API] Request timed out on attempt ${attempt + 1}`);
-      }
-
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000;
-        console.warn(`[Gemini API] Error on attempt ${attempt + 1}, retrying in ${delay}ms...`);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      if (isTimeout) {
-        throw new Error("Gemini API request timed out after multiple retries");
-      }
-      throw err;
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const msg = errBody?.error?.message || `API error ${res.status}`;
+      console.error(`[Gemini API] ${res.status}: ${msg}`);
     }
+    
+    return res;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    
+    if (err.name === 'AbortError') {
+      throw new Error("Request timed out. The AI server is busy — please try again.");
+    }
+    throw err;
   }
-  throw new Error('Max retries exceeded');
 }
 
 // Helper to fetch Pinterest references via Google Custom Search
@@ -172,6 +160,15 @@ export async function generateAIImage(params: {
   
   const isEditing = uploadedImages.length > 0;
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user?.id).single();
+  const planName = (profile?.plan || 'free') as PlanType;
+  const currentResolution = PLANS[planName].resolution;
+
+  // Deduct credits before starting
+  await deductCredit(imageCount);
+
   const results = [];
   for (let i = 0; i < imageCount; i++) {
     const parts: any[] = [];
@@ -196,15 +193,25 @@ export async function generateAIImage(params: {
 
     const hasIdentity = basePrompt.includes("SUBJECT IDENTITY");
     const text = isEditing 
-      ? `TASK: ADVANCED PRODUCT PHOTOGRAPHY & CREATIVE COMPOSITION.
-         PIXEL-LOCK MANDATE: You must treat the main product/subject in the uploaded image as a "Rigid Object". 
-         DO NOT ALTER THE PRODUCT'S SHAPE, LABELS, OR BRANDING FROM ITS ORIGINAL PIXELS.
-         PRODUCT-AWARE INPAINTING: Generate the background and environment AROUND the subject.
+      ? `TASK: RECOMPOSE THIS PHOTOGRAPH for a ${aspectRatio} frame.
+
+         You have a reference photo of a person/subject. Your job is to RECREATE this EXACT scene but ZOOMED OUT to show MORE of the person and their surroundings, fitting perfectly into a ${aspectRatio} aspect ratio.
+
+         MANDATORY:
+         1. ZOOM OUT — SHOW THE FULL PERSON: The output MUST show the person's FULL BODY visible in the frame. If the reference shows only a head/face/shoulders close-up, you must zoom out to reveal their full torso, arms, waist, hips, and legs. The person should look like they were photographed from further away to capture their entire body.
+         2. IDENTICAL PERSON: The person in the output must be the EXACT same person as in the reference — same face, same features, same expression, same makeup, same accessories (sunglasses, jewelry, etc.), same skin tone. DO NOT change anything about WHO they are.
+         3. IDENTICAL SCENE: Keep the same background, colors, lighting, mood, and environment from the reference. The expanded view should continue the scene naturally.
+         4. NATURAL COMPOSITION: The final ${aspectRatio} image must look like a professionally taken photograph — the person should be naturally posed and fully visible with no body parts cut off at any edge. Imagine the photographer simply stepped back to capture a wider/taller shot.
+         5. NO CROPPING: Do NOT crop or cut off ANY part of the person — their head, hair, hands, fingers, arms, legs, and feet must all be fully visible within the frame.
+         6. NO SPLIT SCREEN / NO SEAMS: The entire output image must look like ONE single photograph taken in ONE shutter click. There must be ZERO visible seams, boundaries, or lines where one part of the image looks different from another. Specifically:
+            - UNIFORM LIGHTING: The light source, shadow direction, and brightness must be consistent across the ENTIRE image — left to right, top to bottom.
+            - UNIFORM COLOR: The color temperature, contrast, and color grading must be identical everywhere. No part should look warmer/cooler or brighter/darker than another.
+            - CONTINUOUS PERSPECTIVE: All vanishing points, perspective lines (walls, roads, floors) must flow smoothly through the entire image without breaks or misalignment.
+            - NO COLLAGE EFFECT: The image must NEVER look like two photos stitched together. It must be one seamless, cohesive photograph.
          
-         ${hasIdentity ? "CRITICAL: YOU MUST INCLUDE THE CHARACTER/SUBJECT DESCRIBED IN THE 'SUBJECT IDENTITY' SECTION. THEY MUST BE INTERACTING WITH THE PRODUCTS/ELEMENTS IN THE UPLOADED IMAGES (e.g., holding them, looking at them, or being in the same scene)." : "TRANSFORM THE ENVIRONMENT WHILE PRESERVING THE CORE PRODUCT AUTHENTICITY 100%."}
-         CRITICAL: FILL THE ENTIRE ${aspectRatio} FRAME. 
+         ${hasIdentity ? "IDENTITY LOCK: Maintain the exact facial features, expression, and identity of the person while showing their full body." : "Show the complete person naturally composed in the frame."}
          
-         CONCEPT: ${basePrompt}
+         SCENE DIRECTION: ${basePrompt}
          ${masterPrompt}`
       : (imageCount > 1 
         ? `${masterPrompt}\n\nVARIATION ${i + 1} of ${imageCount}: Give me a unique creative variation focused on detail and composition. FILL THE ENTIRE ${aspectRatio} FRAME.`
@@ -216,7 +223,10 @@ export async function generateAIImage(params: {
       contents: [{ parts }],
       generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: { aspectRatio }
+        imageConfig: { 
+          aspectRatio,
+          imageSize: currentResolution
+        }
       }
     };
 
@@ -227,7 +237,7 @@ export async function generateAIImage(params: {
         "x-goog-api-key": API_KEY
       },
       body: JSON.stringify(body),
-    });
+    }, 0, 120000); // 120s timeout for image generation
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -250,17 +260,22 @@ export async function generateAIImage(params: {
       index: i,
     });
     
-    // Tiny delay to ensure unique entropy/timestamp in API side if any
-    if (imageCount > 1) await new Promise(r => setTimeout(r, 200));
+    // Small gap between requests
+    if (imageCount > 1 && i < imageCount - 1) await new Promise(r => setTimeout(r, 500));
   }
 
   const images = results.filter((r: any) => r.image);
+  const errors = results.filter((r: any) => r.error);
   
-  if (images.length === 0) throw new Error("All image generations failed");
+  if (images.length === 0) {
+    const lastError = errors[errors.length - 1]?.error || "Unknown error";
+    throw new Error(`Generation failed: ${lastError}. This usually happens when the AI quota is exceeded. Please wait a minute and try again.`);
+  }
 
   return {
     images: images.map(img => ({ image: img.image, mimeType: img.mimeType })),
-    total: images.length
+    total: images.length,
+    errors: errors.length > 0 ? errors.map(e => e.error) : undefined
   };
 }
 
@@ -592,6 +607,15 @@ export async function generateAdCampaignAction(params: {
 }) {
   const { brandDNA, goal, message, offer, count = 1, aspectRatio = '1:1' } = params;
   
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user?.id).single();
+  const plan = (profile?.plan || 'free') as PlanType;
+  const resolution = PLANS[plan].resolution;
+
+  // Deduct credits for campaign
+  await deductCredit(count);
+
   const results = [];
   const brandColors = brandDNA.colors?.join(' and ') || brandDNA.color || 'vivid signature colors';
   const brandTone = brandDNA.tone || 'energetic cool premium';
@@ -743,4 +767,239 @@ export async function generateAdCampaignAction(params: {
   }
 
   return { ads: results };
+}
+
+// ----- CAMPAIGN BATCH GENERATOR -----
+// Generates one image per platform format from a single brief
+
+export async function generateCampaignBatchAction(params: {
+  brief: string;
+  formats: string[]; // keys from CAMPAIGN_FORMATS
+  brandDNA?: any;    // optional brand identity
+  tone?: string;
+  offer?: string;
+  productImages?: { data: string; mimeType: string }[];
+}) {
+  const { brief, formats, brandDNA, tone, offer, productImages = [] } = params;
+  const selectedFormats = CAMPAIGN_FORMATS.filter(f => formats.includes(f.key));
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user?.id).single();
+  const planBatch = (profile?.plan || 'free') as PlanType;
+  const currentResolution = PLANS[planBatch].resolution;
+
+  // Deduct credits for batch
+  await deductCredit(selectedFormats.length);
+
+  // Step 1: Use Gemini to plan the campaign visual direction
+  const identityContext = brandDNA 
+    ? `${brandDNA.type === 'brand' ? 'Brand' : 'Subject'}: ${brandDNA.name}. Description: ${brandDNA.description}. ${brandDNA.colors?.length ? `Colors: ${brandDNA.colors.join(', ')}.` : ''}`
+    : '';
+
+  const planPrompt = `You are a creative director at a top ad agency. Plan a visual campaign based on this brief:
+
+BRIEF: "${brief}"
+${identityContext}
+${offer ? `OFFER/CTA: "${offer}"` : ''}
+
+Return EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
+{
+  "concept": "One sentence describing the overall visual concept",
+  "colorMood": "color palette description",
+  "visualStyle": "photographic style description (e.g., cinematic, editorial, portrait, commercial)",
+  "keyElements": "list of visual elements to include, incorporating the specific subject/product if provided",
+  "typography": "description of text treatment if any text should appear"
+} ${productImages.length > 0 ? "(Note: Subject/product photos ARE provided, use them as the ABSOLUTE core subject of every asset. Ensure EXACT facial features and identity match.)" : ""}`;
+
+  let campaignPlan = {
+    concept: brief,
+    colorMood: 'modern and vibrant',
+    visualStyle: 'premium commercial photography',
+    keyElements: 'product, branding elements',
+    typography: 'bold modern sans-serif'
+  };
+
+  try {
+    const planRes = await fetch(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-goog-api-key': API_KEY 
+      },
+      body: JSON.stringify({
+        contents: [{ 
+          parts: [
+            { text: planPrompt },
+            ...productImages.map(img => ({
+              inlineData: {
+                data: img.data,
+                mimeType: img.mimeType
+              }
+            }))
+          ] 
+        }],
+        generationConfig: { 
+          temperature: 0.7,
+          responseMimeType: "application/json" 
+        }
+      }),
+    });
+
+    if (planRes.ok) {
+      const planData = await planRes.json();
+      const planText = planData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // Extract JSON from response
+      const jsonMatch = planText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          campaignPlan = { ...campaignPlan, ...JSON.parse(jsonMatch[0]) };
+        } catch {}
+      }
+    }
+  } catch (err) {
+    console.warn('[Campaign] Plan generation failed, using defaults');
+  }
+
+  console.log('[Campaign] Plan:', campaignPlan);
+
+  // Step 2: Generate one image per selected format
+  const results: {
+    key: string;
+    label: string;
+    aspectRatio: string;
+    image: string;
+    mimeType: string;
+    prompt: string;
+    error?: string;
+  }[] = [];
+
+  for (let i = 0; i < selectedFormats.length; i++) {
+    const format = selectedFormats[i];
+    
+    // Build format-specific prompt
+    const formatHint = format.aspectRatio === '9:16' 
+      ? 'VERTICAL composition — place main subject in center, leave space for text at top and bottom'
+      : format.aspectRatio === '16:9'
+      ? 'WIDE LANDSCAPE composition — use the full horizontal space, cinematic framing'
+      : format.aspectRatio === '4:5'
+      ? 'TALL PORTRAIT composition — emphasize vertical space, subject slightly above center'
+      : 'SQUARE composition — centered subject with balanced negative space';
+
+    const textOverlay = offer 
+      ? `Include bold text overlay: "${offer}". ${brandDNA?.name ? `Brand name "${brandDNA.name}" visible.` : ''}`
+      : 'No text overlays — pure visual only.';
+
+    const fullPrompt = `CAMPAIGN ASSET — ${format.label} (${format.aspectRatio})
+
+CAMPAIGN CONCEPT: ${campaignPlan.concept}
+VISUAL STYLE: ${campaignPlan.visualStyle}
+COLOR MOOD: ${campaignPlan.colorMood}  
+KEY ELEMENTS: ${campaignPlan.keyElements}
+${productImages.length > 0 ? "IMPORTANT: Use the EXACT main subject from the provided input images as the central subject. Maintain the subject's identity, face/label details, and features exactly. Place them naturally into the scene." : ""}
+${identityContext}
+
+COMPOSITION: ${formatHint}
+FILL THE ENTIRE ${format.aspectRatio} FRAME completely.
+
+BRIEF: ${brief}
+${textOverlay}
+
+TASK: ADVANCED BRAND PHOTOGRAPHY & CAMPAIGN ASSET GENERATION.
+${productImages.length > 0 ? `
+PIXEL-LOCK & FACE-MATCH MANDATE: You MUST treat the subject in the uploaded reference photos as the literal source of truth. 
+DO NOT HALLUCINATE A DIFFERENT FACE. The final image must have the EXACT features, eye shape, nose structure, and facial proportions of the person in the provided photos.
+IDENTITY LOCK: The provided person is the ONLY subject. Generate the entire ${format.label} environment around this exact identity. No substitutions.
+FULL BODY: Show the person's COMPLETE body — head, shoulders, chest, torso, waist, hips. NEVER cut off the person abruptly. The subject must look naturally composed in the ${format.aspectRatio} frame.
+` : "Generate a professional, stunning commercial image based on the brand DNA."}
+
+Create a stunning, professional ${format.label} creative for this campaign. 
+Style: ${campaignPlan.visualStyle}, ${campaignPlan.colorMood}.
+Cohesion: Match asset ${i + 1} of ${selectedFormats.length} to the universal color palette (${campaignPlan.colorMood}) and style (${campaignPlan.visualStyle}).
+Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
+
+    try {
+      const body = {
+        contents: [{ 
+          parts: [
+            { text: fullPrompt },
+            ...productImages.map(img => ({
+              inlineData: {
+                data: img.data,
+                mimeType: img.mimeType
+              }
+            }))
+          ] 
+        }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+          imageConfig: { 
+            aspectRatio: format.aspectRatio,
+            imageSize: currentResolution
+          }
+        }
+      };
+
+      const response = await fetchWithRetry(`${IMAGE_ENDPOINT}?key=${API_KEY}`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }, 0, 120000);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        results.push({ 
+          key: format.key, label: format.label, aspectRatio: format.aspectRatio,
+          image: '', mimeType: '', prompt: fullPrompt,
+          error: errorData?.error?.message || `Failed (${response.status})`
+        });
+        continue;
+      }
+
+      const data = await response.json();
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((p: any) => p.inlineData);
+
+      if (!imagePart?.inlineData?.data) {
+        results.push({ 
+          key: format.key, label: format.label, aspectRatio: format.aspectRatio,
+          image: '', mimeType: '', prompt: fullPrompt,
+          error: 'No image returned' 
+        });
+        continue;
+      }
+
+      results.push({
+        key: format.key,
+        label: format.label,
+        aspectRatio: format.aspectRatio,
+        image: imagePart.inlineData.data,
+        mimeType: imagePart.inlineData.mimeType || 'image/png',
+        prompt: fullPrompt,
+      });
+
+      console.log(`[Campaign] Generated ${format.label} (${i + 1}/${selectedFormats.length})`);
+
+      // Delay between requests to avoid rate limiting
+      if (i < selectedFormats.length - 1) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    } catch (err: any) {
+      console.error(`[Campaign] Failed ${format.label}:`, err.message);
+      results.push({
+        key: format.key, label: format.label, aspectRatio: format.aspectRatio,
+        image: '', mimeType: '', prompt: fullPrompt,
+        error: err.message
+      });
+    }
+  }
+
+  return {
+    plan: campaignPlan,
+    assets: results.filter(r => r.image),
+    errors: results.filter(r => r.error),
+    totalRequested: selectedFormats.length,
+  };
 }

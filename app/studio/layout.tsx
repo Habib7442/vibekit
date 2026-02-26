@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Smartphone, Sparkles, ImageIcon, User, Library } from 'lucide-react';
+import { ImageIcon, User, Library } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -75,26 +75,13 @@ export default function StudioLayout({
                 ? "bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
             )}
-            title="Visual Artist"
+            title="Design Studio"
           >
             <ImageIcon size={14} className={cn("transition-transform duration-300", isImageMode && "scale-110")} />
-            <span className="hidden xs:inline">Visual Artist</span>
-            <span className="xs:hidden">Visual</span>
+            <span className="hidden xs:inline">Design Studio</span>
+            <span className="xs:hidden">Design</span>
           </Link>
-          <Link
-            href="/studio/builder"
-            className={cn(
-              "px-3 sm:px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2.5 transition-all duration-300",
-              isDesignerMode
-                ? "bg-cyan-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-            )}
-            title="App Designer"
-          >
-            <Smartphone size={14} className={cn("transition-transform duration-300", isDesignerMode && "scale-110")} />
-            <span className="hidden xs:inline">App Designer</span>
-            <span className="xs:hidden">App</span>
-          </Link>
+
           <Link
             href="/studio/generations"
             className={cn(

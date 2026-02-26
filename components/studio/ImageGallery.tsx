@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useImageChatStore, GeneratedImage } from '@/lib/store/useImageChatStore';
-import { Download, Edit3, Trash2, Maximize2, X, Loader2, Copy, Cloud, Check, Sparkles, Layout } from 'lucide-react';
+import { Download, Edit3, Trash2, Maximize2, X, Loader2, Cloud, Check, Share2, Zap } from 'lucide-react';
 import { saveCanvasAction, uploadImageToStudio } from '@/lib/actions/studio.actions';
 import { cn } from '@/lib/utils';
 import { generateAIImage } from '@/lib/actions/ai.actions';
 import { deductCredit } from '@/lib/credits-actions';
-import { ImageEditor } from './ImageEditor';
+import { ExportModal } from './ExportModal';
+import { CampaignBatchModal } from './CampaignBatchModal';
 
 function downloadImage(base64: string, mimeType: string, filename: string) {
   const a = document.createElement('a');
@@ -26,7 +27,9 @@ export function ImageGallery() {
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [editorImage, setEditorImage] = useState<GeneratedImage | null>(null);
+  const [exportImage, setExportImage] = useState<GeneratedImage | null>(null);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+
   const saveSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -137,6 +140,12 @@ export function ImageGallery() {
             </div>
             <p className="text-zinc-600 text-sm font-medium">Your canvas is empty</p>
             <p className="text-zinc-700 text-xs mt-1">Generated images will appear here</p>
+            <button
+              onClick={() => setShowCampaignModal(true)}
+              className="mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black text-xs font-bold flex items-center gap-2 mx-auto hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+            >
+              <Zap size={14} /> Launch Campaign
+            </button>
           </div>
         </div>
       )}
@@ -193,6 +202,14 @@ export function ImageGallery() {
                 </>
               )}
             </button>
+
+            <button
+              onClick={() => setShowCampaignModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400 transition-all shrink-0 shadow-lg shadow-amber-500/20"
+            >
+              <Zap size={12} />
+              <span className="hidden sm:inline">Campaign</span>
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex justify-center items-start scrollbar-none pb-32 md:pb-8">
@@ -204,7 +221,7 @@ export function ImageGallery() {
                       src={`data:${img.mimeType};base64,${img.image}`}
                       alt={img.prompt}
                       className={cn(
-                        "max-w-full max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-180px)] object-contain cursor-pointer transition-all duration-300",
+                        "max-w-full max-h-[60vh] md:max-h-[calc(100vh-160px)] object-contain cursor-pointer transition-all duration-300",
                         editingImage === img.id && "opacity-40"
                       )}
                       onClick={() => setLightboxImage(img)}
@@ -218,11 +235,11 @@ export function ImageGallery() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setEditorImage(img); }}
+                          onClick={(e) => { e.stopPropagation(); setExportImage(img); }}
                           className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 flex items-center justify-center text-white transition-all scale-110 md:scale-100"
-                          title="Creative Studio"
+                          title="Export for Platforms"
                         >
-                          <Sparkles size={16} />
+                          <Share2 size={16} />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setEditingImage(img.id); }}
@@ -234,7 +251,7 @@ export function ImageGallery() {
                         <button 
                           onClick={(e) => { e.stopPropagation(); downloadImage(img.image, img.mimeType, `creation-${img.id}.png`); }}
                           className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all"
-                          title="Download"
+                          title="Download Original"
                         >
                           <Download size={14} />
                         </button>
@@ -364,22 +381,21 @@ export function ImageGallery() {
         </div>
       )}
 
-      {/* Creative Studio Modal */}
-      {editorImage && (
-        <ImageEditor 
-          initialImage={editorImage.image}
-          mimeType={editorImage.mimeType}
-          onClose={() => setEditorImage(null)}
-          onSave={(dataUrl) => {
-             // dataUrl is "data:image/png;base64,..."
-             const parts = dataUrl.split(',');
-             if (parts.length < 2 || !parts[1]) {
-               console.error('[ImageGallery] Invalid data URL format');
-               return;
-             }
-             updateGalleryImage(editorImage.id, { image: parts[1] });
-          }}
+
+
+      {/* Export Modal */}
+      {exportImage && (
+        <ExportModal
+          image={exportImage.image}
+          mimeType={exportImage.mimeType}
+          prompt={exportImage.prompt}
+          onClose={() => setExportImage(null)}
         />
+      )}
+
+      {/* Campaign Batch Modal */}
+      {showCampaignModal && (
+        <CampaignBatchModal onClose={() => setShowCampaignModal(false)} />
       )}
     </div>
   );

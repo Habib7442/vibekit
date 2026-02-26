@@ -54,6 +54,44 @@ export async function createIdentityAction(params: {
 
   if (!user) throw new Error("Unauthorized");
 
+  const imageUrls: string[] = [];
+
+  // 1. Upload images to Storage if provided
+  if (params.referenceImages && params.referenceImages.length > 0) {
+    for (let i = 0; i < params.referenceImages.length; i++) {
+      const base64 = params.referenceImages[i];
+      const match = base64.match(/^data:([^;]+);base64,(.+)$/);
+      
+      if (match) {
+        const mimeType = match[1];
+        const data = match[2];
+        const buffer = Buffer.from(data, 'base64');
+        const fileExt = mimeType.split('/')[1] || 'jpg';
+        const fileName = `${Date.now()}-${i}.${fileExt}`;
+        const filePath = `${user.id}/identities/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('studio_assets')
+          .upload(filePath, buffer, {
+            contentType: mimeType,
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('[Storage] Upload Error:', uploadError);
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('studio_assets')
+          .getPublicUrl(filePath);
+
+        imageUrls.push(publicUrl);
+      }
+    }
+  }
+
+  // 2. Insert into Database with URLs
   const { data, error } = await supabase
     .from('studio_models')
     .insert([{
@@ -61,7 +99,7 @@ export async function createIdentityAction(params: {
       name: params.name,
       description: params.description,
       type: params.type,
-      reference_images: params.referenceImages || []
+      reference_images: imageUrls
     }])
     .select()
     .single();

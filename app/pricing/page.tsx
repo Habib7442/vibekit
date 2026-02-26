@@ -7,74 +7,15 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 
-const PLANS = [
-  {
-    name: "Explorer",
-    price: "15",
-    credits: "150",
-    description: "Perfect for students and casual creators.",
-    features: [
-      "150 Credits / month",
-      "Full Access to App Designer",
-      "Editorial AI Photoshoots",
-      "Export to HTML/Tailwind",
-      "Private Gallery / Vault",
-      "Email support"
-    ],
-    cta: "Start with Explorer",
-    popular: false,
-    color: "zinc",
-    productId: "pdt_explorer" // Update with real Dodo Product ID
-  },
-  {
-    name: "Professional",
-    price: "39",
-    credits: "500",
-    description: "The choice for power users and freelancers.",
-    features: [
-      "500 Credits / month",
-      "Everything in Explorer",
-      "Magic Wand Prompt Expansion",
-      "24/7 Priority support"
-    ],
-    cta: "Go Pro",
-    popular: true,
-    color: "indigo",
-    productId: "pdt_pro" // Update with real Dodo Product ID
-  },
-  {
-    name: "Agency",
-    price: "89",
-    credits: "1500",
-    description: "Scale your creative output without limits.",
-    features: [
-      "1,500 Credits / month",
-      "Everything in Pro",
-      "Team Collaboration Tools",
-      "Dedicated account manager"
-    ],
-    cta: "Scale Agency",
-    popular: false,
-    color: "amber",
-    productId: "pdt_agency" // Update with real Dodo Product ID
-  }
+import { PLANS, PlanType, PlanDetails } from '@/lib/plans';
+
+const DISPLAY_PLANS: (PlanDetails & { color: string, popular: boolean })[] = [
+  { ...PLANS.free, color: 'zinc', popular: false },
+  { ...PLANS.solo, color: 'indigo', popular: true, description: "Professional studio tools for active creators." },
+  { ...PLANS.pro, color: 'amber', popular: false, description: "Total powerhouse for high-volume high-end brands." }
 ];
 
-const LIFETIME = {
-  name: "Lifetime Founder",
-  price: "299",
-  description: "Pay once, create forever. Join as an early bird founder.",
-  features: [
-    "One-time payment",
-    "150 Credits / month (Lifetime renew)",
-    "Exclusive Founder Badge",
-    "First access to NEW features",
-    "Direct discord contact",
-    "All future UI templates included"
-  ],
-  cta: "Claim Lifetime Access",
-  productId: "pdt_lifetime" // Update with real Dodo Product ID
-};
+const LIFETIME_DEAL = PLANS.lifetime;
 
 export default function PricingPage() {
   const { user } = useAuth();
@@ -122,9 +63,8 @@ export default function PricingPage() {
             </p>
           </div>
 
-          {/* Monthly Plans */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full mb-32">
-            {PLANS.map((plan, idx) => (
+            {DISPLAY_PLANS.map((plan, idx) => (
               <div 
                 key={plan.name}
                 style={{ animationDelay: `${idx * 100}ms` }}
@@ -161,16 +101,32 @@ export default function PricingPage() {
                   ))}
                 </div>
 
-                <div 
-                  className={cn(
-                    "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl block opacity-50 cursor-not-allowed",
-                    plan.popular
-                      ? "bg-[#f5e1c8] text-black shadow-[#f5e1c8]/20"
-                      : "bg-zinc-900 text-white border border-zinc-800"
-                  )}
-                >
-                  Coming Soon
-                </div>
+                {plan.price === 0 ? (
+                  <Link 
+                    href="/studio"
+                    className="w-full py-4 rounded-2xl bg-zinc-900 text-white border border-zinc-800 text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all hover:bg-zinc-800 active:scale-95 shadow-xl"
+                  >
+                    Start for Free
+                  </Link>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      if (user) {
+                        window.location.href = `https://www.dodopayments.com/buy/${plan.id}?customer_id=${user.id}`;
+                      } else {
+                        window.location.href = `/auth?next=${encodeURIComponent('/pricing')}`;
+                      }
+                    }}
+                    className={cn(
+                      "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl active:scale-95",
+                      plan.popular
+                        ? "bg-[#f5e1c8] text-black shadow-[#f5e1c8]/20 hover:bg-white"
+                        : "bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800"
+                    )}
+                  >
+                    Upgrade Now
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -196,7 +152,7 @@ export default function PricingPage() {
                    <p className="text-zinc-500 text-sm max-w-md mb-10 leading-relaxed font-medium">Be part of the early-bird group. Pay once today, and we refill your credits every single month for life. No more subscriptions.</p>
                    
                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                      {LIFETIME.features.map((feature, idx) => (
+                      {LIFETIME_DEAL.features.map((feature: string, idx: number) => (
                         <div key={idx} className="flex items-center gap-3">
                           <Check size={12} className="text-indigo-400" />
                           <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">{feature}</span>
@@ -206,20 +162,27 @@ export default function PricingPage() {
                 </div>
 
                 <div className="relative z-10 shrink-0 w-full md:w-auto text-center md:text-right flex flex-col gap-6">
-                   <div className="flex flex-col">
-                      <span className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em] mb-2">One-time payment</span>
-                      <div className="flex items-baseline justify-center md:justify-end gap-2">
-                        <span className="text-6xl md:text-[5.5rem] font-bold tracking-tighter">${LIFETIME.price}</span>
-                        <span className="text-2xl text-zinc-700 line-through font-light opacity-50">$999</span>
-                      </div>
-                   </div>
-                   
-                   <div 
-                    className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600/50 text-white/50 text-[11px] font-black uppercase tracking-[0.2em] border border-white/5 text-center transition-all shadow-2xl cursor-not-allowed block"
-                   >
-                     Coming Soon
-                   </div>
-                   <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic">Limited to the first 500 members only.</p>
+                    <div className="flex flex-col">
+                       <span className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em] mb-2">One-time payment</span>
+                       <div className="flex items-baseline justify-center md:justify-end gap-2">
+                         <span className="text-6xl md:text-[5.5rem] font-bold tracking-tighter">${LIFETIME_DEAL.price}</span>
+                         <span className="text-2xl text-zinc-700 line-through font-light opacity-50">$999</span>
+                       </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        if (user) {
+                          window.location.href = `https://www.dodopayments.com/buy/${LIFETIME_DEAL.id}?customer_id=${user.id}`;
+                        } else {
+                          window.location.href = `/auth?next=${encodeURIComponent('/pricing')}`;
+                        }
+                      }}
+                      className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all hover:bg-indigo-500 active:scale-95 block"
+                    >
+                      Claim Lifetime access
+                    </button>
+                    <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic text-center md:text-right">Limited to the first 500 members only.</p>
                 </div>
              </div>
           </div>

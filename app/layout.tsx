@@ -15,16 +15,16 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.imagestudiolab.com'),
+  metadataBase: new URL('https://www.visualaistudio.com'),
   title: {
-    default: "ImageStudioLab | Professional AI Design Studio",
-    template: "%s | ImageStudioLab"
+    default: "VisualAI Studio | AI-Native Design Platform",
+    template: "%s | VisualAI Studio"
   },
-  description: "Create premium product photography, editorial fashion, and stunning mobile app designs with the world's most advanced AI creative engine.",
-  keywords: ["AI Design", "Product Photography", "AI Fashion", "App Builder", "Creative Engine", "ImageStudioLab", "Generative AI"],
-  authors: [{ name: "ImageStudioLab Team" }],
-  creator: "ImageStudioLab",
-  publisher: "ImageStudioLab",
+  description: "Create professional eCommerce product photos, brand kits, and campaign assets with VisualAI Studio. The AI-native design platform for modern teams.",
+  keywords: ["AI Design", "Product Photography", "Brand Kit", "Marketing AI", "Campaign Assets", "VisualAI Studio", "Generative AI"],
+  authors: [{ name: "VisualAI Studio Team" }],
+  creator: "VisualAI Studio",
+  publisher: "VisualAI Studio",
   formatDetection: {
     email: false,
     address: false,
@@ -33,24 +33,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://www.imagestudiolab.com',
-    siteName: 'ImageStudioLab',
-    title: 'ImageStudioLab | Professional AI Design Studio',
-    description: "Create premium product photography, editorial fashion, and stunning mobile app designs with the world's most advanced AI creative engine.",
+    url: 'https://www.visualaistudio.com',
+    siteName: 'VisualAI Studio',
+    title: 'VisualAI Studio | AI-Native Design Platform',
+    description: "Create professional eCommerce product photos, brand kits, and campaign assets with VisualAI Studio. The AI-native design platform for modern teams.",
     images: [
       {
         url: '/og_image.png',
         width: 1200,
         height: 630,
-        alt: 'ImageStudioLab - Professional AI Design Studio',
+        alt: 'VisualAI Studio - AI-Native Design Platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ImageStudioLab | Professional AI Design Studio',
-    description: "Create premium product photography, editorial fashion, and stunning mobile app designs with the world's most advanced AI creative engine.",
-    creator: '@imagestudiolab',
+    title: 'VisualAI Studio | AI-Native Design Platform',
+    description: "Create professional eCommerce product photos, brand kits, and campaign assets with VisualAI Studio. The AI-native design platform for modern teams.",
+    creator: '@visualaistudio',
     images: ['/og_image.png'],
   },
   robots: {

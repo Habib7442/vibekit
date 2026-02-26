@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, ImageIcon, Sparkles, Loader2, Paperclip, X, Settings2, MessageSquare, LayoutGrid, Wand2 } from 'lucide-react';
+import { Send, ImageIcon, Palette, Loader2, Paperclip, X, Settings2, MessageSquare, LayoutGrid, Wand2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useImageChatStore, ChatMessage, GeneratedImage } from '@/lib/store/useImageChatStore';
 import { cn } from '@/lib/utils';
@@ -32,35 +32,87 @@ export function ChatPanel() {
   const searchParams = useSearchParams();
   const { 
     messages, isGenerating, addMessage, updateMessage, addGalleryImages, setIsGenerating, 
-    selectedIdentity, setSelectedIdentity, imageCount, setImageCount, aspectRatio, setAspectRatio 
+    selectedIdentity, setSelectedIdentity, imageCount, setImageCount, aspectRatio, setAspectRatio,
+    clearChat, clearGallery
   } = useImageChatStore();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  
+  const [activeTab, setActiveTab] = useState<'chat' | 'setup' | 'identity'>('chat');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [input, setInput] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [isPlanning, setIsPlanning] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   const [selectedImages, setSelectedImages] = useState<{ data: string; mimeType: string }[]>([]);
+  const [identityImages, setIdentityImages] = useState<{ data: string; mimeType: string }[]>([]);
+  const [isIdentitySyncing, setIsIdentitySyncing] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
 
+  // Sync identity images whenever the selection changes
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const syncIdentityImages = async () => {
+      if (!selectedIdentity?.reference_images || selectedIdentity.reference_images.length === 0) {
+        setIdentityImages([]);
+        setIsIdentitySyncing(false);
+        return;
+      }
+
+      setIsIdentitySyncing(true);
+      const images: { data: string; mimeType: string }[] = [];
+      
+      try {
+        for (const ref of selectedIdentity.reference_images) {
+          // Handle base64 (legacy or immediate upload)
+          const base64Match = ref.match(/^data:([^;]+);base64,(.+)$/);
+          if (base64Match) {
+            images.push({ mimeType: base64Match[1], data: base64Match[2] });
+            continue;
+          }
+
+          // Handle URL (Supabase Storage)
+          if (ref.startsWith('http')) {
+            const response = await fetch(ref);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            const result = await base64Promise;
+            const match = result.match(/^data:([^;]+);base64,(.+)$/);
+            if (match) {
+              images.push({ mimeType: match[1], data: match[2] });
+            }
+          }
+        }
+        setIdentityImages(images);
+      } catch (err) {
+        console.error('[ChatPanel] Error fetching identity image:', err);
+      } finally {
+        setIsIdentitySyncing(false);
+      }
+    };
+
+    syncIdentityImages();
+  }, [selectedIdentity]);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Landing page auto-trigger
   useEffect(() => {
     const p = searchParams.get('prompt');
-    if (p && messages.length === 0 && !isGenerating) {
+    if (p && messages.length === 0 && !isGenerating && !authLoading) {
       setInput(decodeURIComponent(p));
-      // Short delay to let the state update before triggering
       setTimeout(() => {
         handleGenerate(decodeURIComponent(p));
       }, 500);
     }
-  }, [searchParams, messages, isGenerating]);
+  }, [searchParams, messages, isGenerating, authLoading]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -72,28 +124,18 @@ export function ChatPanel() {
 
   const processFiles = (files: File[]) => {
     if (selectedImages.length + files.length > 5) {
-      alert('You can upload a maximum of 5 images.');
+      alert('Maximum 5 images.');
       return;
     }
-
     files.forEach(file => {
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload image files only.');
-        return;
-      }
-
+      if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
         if (!result) return;
-        
         const parts = result.split(',');
         if (parts.length < 2) return;
-
-        setSelectedImages(prev => [...prev, {
-          data: parts[1],
-          mimeType: file.type
-        }].slice(0, 5));
+        setSelectedImages(prev => [...prev, { data: parts[1], mimeType: file.type }].slice(0, 5));
       };
       reader.readAsDataURL(file);
     });
@@ -101,109 +143,56 @@ export function ChatPanel() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    processFiles(files);
+    if (files.length > 0) processFiles(files);
     e.target.value = '';
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    const files: File[] = [];
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) files.push(file);
-      }
-    }
-
-    if (files.length > 0) {
-      processFiles(files);
-    }
   };
 
   const removeImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handlePlan = async () => {
-    if (!input.trim() || isPlanning) return;
-    setIsPlanning(true);
-
-    try {
-      const data = await planVisualAction(input, selectedIdentity ? { name: selectedIdentity.name, description: selectedIdentity.description } : undefined);
-      if (data.detailedPrompt) {
-        setInput(data.detailedPrompt);
-      }
-    } catch (err: any) {
-      console.error('[Visual Plan] Error:', err);
-      alert(`Magic Plan failed: ${err.message}`);
-    } finally {
-      setIsPlanning(false);
-    }
-  };
-
   const handleGenerate = async (overridePrompt?: string) => {
     let prompt = overridePrompt || input.trim();
-    
-    // Inject Identity DNA if selected
     if (selectedIdentity) {
-      prompt = `SUBJECT IDENTITY [${selectedIdentity.name}]: ${selectedIdentity.description}\n\nSCENE/ACTION: ${prompt || 'A professional editorial photoshoot.'}`;
+      prompt = `SUBJECT IDENTITY [${selectedIdentity.name}]: ${selectedIdentity.description}
+      
+      CRITICAL: FACE-MATCH & IDENTITY LOCK. You MUST treat the subject in the provided reference photos as the source of truth. The generated face must have the EXACT features, eye shape, and structure as the person in the photo.
+      
+      SCENE/ACTION: ${prompt || 'A professional editorial photoshoot.'}`;
     }
-
     if ((!prompt && selectedImages.length === 0 && !currentTemplate) || isGenerating) return;
 
-    const userMsgId = `msg_user_${Date.now()}`;
-    const assistantMsgId = `msg_asst_${Date.now()}`;
+    // Clear previous results to prevent memory lag
+    clearChat();
+    clearGallery();
 
-    // Add user message
-    const userMsg: ChatMessage = {
-      id: userMsgId,
+    const assistantMsgId = `msg_asst_${Date.now()}`;
+    const displayPrompt = overridePrompt || input.trim();
+    addMessage({
+      id: `msg_user_${Date.now()}`,
       role: 'user',
-      content: prompt || (currentTemplate ? `Using ${TEMPLATES.find(t => t.id === currentTemplate)?.label} mode...` : 'Processing...'),
-      imageCount,
-      aspectRatio,
+      content: displayPrompt || (currentTemplate ? `Applying ${TEMPLATES.find(t => t.id === currentTemplate)?.label}...` : 'New Request'),
       timestamp: Date.now(),
-    };
-    addMessage(userMsg);
+    });
     
-    const imageDatas = [...selectedImages];
+    const imageDatas = [...identityImages, ...selectedImages];
     const template = currentTemplate;
-    
     setInput('');
     setSelectedImages([]);
-    // Don't clear template automatically, user might want to generate more with it
     setIsGenerating(true);
+    if (isMobile) setShowMobileChat(true);
 
-    // Add loading assistant message
-    const loadingMsg: ChatMessage = {
-      id: assistantMsgId,
-      role: 'assistant',
-      content: '',
-      isLoading: true,
-      timestamp: Date.now(),
-    };
-    addMessage(loadingMsg);
+    addMessage({ id: assistantMsgId, role: 'assistant', content: '', isLoading: true, timestamp: Date.now() });
 
-    // CREDIT DEDUCTION (Visual Studio is higher cost: 2 Credits per generation)
     if (!user) {
       setShowAuthModal(true);
-      updateMessage(assistantMsgId, { content: 'Please sign in to start creating visuals.', isLoading: false });
+      updateMessage(assistantMsgId, { content: 'Please sign in to start creating.', isLoading: false });
       setIsGenerating(false);
       return;
     }
 
     try {
-      updateMessage(assistantMsgId, { content: `Allocating GPU resources for ${imageCount} variant${imageCount > 1 ? 's' : ''}...`, isLoading: true });
-      await deductCredit(2 * imageCount); // 2 Credits per image generated
-    } catch (err: any) {
-      updateMessage(assistantMsgId, { content: err.message, isLoading: false });
-      setIsGenerating(false);
-      return;
-    }
-
-    try {
+      await deductCredit(2 * imageCount);
       const data = await generateAIImage({
         prompt: prompt,
         aspectRatio,
@@ -222,327 +211,245 @@ export function ChatPanel() {
       }));
 
       updateMessage(assistantMsgId, {
-        content: `Generated ${generatedImages.length} variant${generatedImages.length > 1 ? 's' : ''} using ${template ? TEMPLATES.find(t => t.id === template)?.label : 'Standard'} mode.`,
+        content: `Ready! Generated ${generatedImages.length} variants.`,
         images: generatedImages,
         isLoading: false,
       });
-
       addGalleryImages(generatedImages);
-
     } catch (err: any) {
-      updateMessage(assistantMsgId, {
-        content: `Error: ${err.message}`,
-        isLoading: false,
-      });
+      updateMessage(assistantMsgId, { content: `Error: ${err.message}`, isLoading: false });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleGenerate();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
   };
 
-  if (isMobile) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-4 pb-8">
-        {/* Input Area */}
-        <div className="relative">
-          {selectedImages.length > 0 && (
-            <div className="absolute bottom-full left-0 right-0 p-2 flex gap-2 overflow-x-auto bg-[#0A0A0F]/80 backdrop-blur-md border border-white/5 rounded-t-2xl mb-2">
-              {selectedImages.map((img, idx) => (
-                <div key={idx} className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-white/10 shadow-xl">
-                  <img src={`data:${img.mimeType};base64,${img.data}`} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
-                  <button onClick={() => removeImage(idx)} className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center text-white"><X size={8} /></button>
-                </div>
-              ))}
-            </div>
+  const renderTabs = () => (
+    <div className="flex gap-1 bg-black/40 p-1 rounded-xl border border-white/5 mb-4 shrink-0 mx-4 mt-4">
+      {[
+        { id: 'chat', icon: MessageSquare, label: 'Chat' },
+        { id: 'setup', icon: Settings2, label: 'Setup' },
+        { id: 'identity', icon: Wand2, label: 'Identity' }
+      ].map((tab) => (
+        <button 
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id as any)}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+            activeTab === tab.id ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"
           )}
-          
-          <div className="flex items-center gap-2">
-             <Sheet>
-               <SheetTrigger asChild>
-                 <button className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-indigo-400 shadow-xl active:scale-95">
-                   <Settings2 size={20} />
-                 </button>
-               </SheetTrigger>
-               <SheetContent side="bottom" className="h-[80vh] bg-[#050505] border-t-zinc-800/50 p-0 overflow-hidden flex flex-col rounded-t-[2rem]">
-                 <SheetHeader className="p-6 border-b border-white/5 shrink-0">
-                   <SheetTitle className="text-white text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                     <Settings2 size={16} className="text-indigo-400" />
-                     Studio Settings & Style
-                   </SheetTitle>
-                 </SheetHeader>
-                 
-                 <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-12">
-                    <div className="h-px bg-zinc-800/50 w-full my-4" />
+        >
+          <tab.icon size={12} />
+          <span className="hidden sm:inline">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 
-                    {/* Identity Lab */}
-                    <IdentityLab 
-                      selectedId={selectedIdentity?.id}
-                      onSelect={(iden) => setSelectedIdentity(selectedIdentity?.id === iden.id ? null : iden)}
-                    />
-
-                    <div className="h-px bg-zinc-800/50 w-full my-4" />
-
-                   {/* History Section in same sheet */}
-                   <div className="space-y-4">
-                     <label className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-black">History</label>
-                     <div className="space-y-4">
-                        {messages.length === 0 ? (
-                          <div className="py-10 text-center opacity-30">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">No sessions yet</p>
-                          </div>
-                        ) : (
-                          messages.map((msg) => (
-                            <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
-                              <div className={cn(
-                                "max-w-[85%] rounded-2xl px-4 py-3 text-[11px] leading-relaxed",
-                                msg.role === 'user' ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-300 border border-zinc-800"
-                              )}>
-                                {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                     </div>
-                   </div>
-                 </div>
-               </SheetContent>
-             </Sheet>
-
-             <div className="relative flex-1">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Describe vision..."
-                  rows={1}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-[20px] py-3.5 pl-10 pr-4 text-[13px] text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none shadow-2xl"
-                />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-zinc-500 hover:text-white"
-                >
-                  <Paperclip size={16} />
-                </button>
-             </div>
-             
+  const renderInput = () => (
+    <div className="p-4 border-t border-zinc-800/50 bg-black/40 space-y-3 shrink-0 pointer-events-auto">
+        {selectedImages.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {selectedImages.map((img, idx) => (
+              <div key={idx} className="relative w-12 h-12 shrink-0 group">
+                <img src={`data:${img.mimeType};base64,${img.data}`} alt="Ref" className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
+                <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400"><X size={8} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="relative group">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Talk to Design AI..."
+            rows={1}
+            className="w-full bg-[#111118] border border-zinc-800/60 rounded-2xl py-4 pl-4 pr-12 text-white text-xs focus:outline-none focus:border-indigo-500/40 resize-none transition-all shadow-2xl"
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+             <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors">
+               <ImageIcon size={18} />
+             </button>
              <button 
-                onClick={() => handleGenerate()}
-                disabled={(!input.trim() && selectedImages.length === 0) || isGenerating}
-                className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50 transition-all shrink-0"
-              >
-               {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+               onClick={() => handleGenerate()}
+               disabled={(!input.trim() && selectedImages.length === 0) || isGenerating || isIdentitySyncing}
+               className="p-1.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+             >
+               {(isGenerating || isIdentitySyncing) ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
              </button>
           </div>
           <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
         </div>
+    </div>
+  );
 
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)}
-        />
+  if (isMobile) {
+    return (
+      <div className="absolute inset-0 z-[100] flex flex-col pointer-events-none">
+        {/* Mobile Header Toggle */}
+        <div className="h-full flex flex-col pointer-events-none">
+           <div className="flex-1" />
+           
+           {/* Floating Chat Container */}
+           <div className={cn(
+             "w-full bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 transition-all duration-300 pointer-events-auto",
+             showMobileChat ? "h-[70vh] rounded-t-[2rem]" : "h-0 overflow-hidden"
+           )}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                <span className="text-[10px] font-black tracking-widest uppercase text-white">Assistant</span>
+                <button onClick={() => setShowMobileChat(false)} className="text-zinc-500"><X size={20}/></button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 h-[calc(100%-120px)]">
+                 {messages.map((msg) => (
+                    <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
+                       <div className={cn(
+                         "max-w-[85%] rounded-2xl px-4 py-3 text-[11px]",
+                         msg.role === 'user' ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-300 border border-zinc-800"
+                       )}>
+                          {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
+                       </div>
+                    </div>
+                 ))}
+                 <div ref={messagesEndRef} />
+              </div>
+           </div>
+
+           {/* Always visible Bottom Bar */}
+           <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-4 pointer-events-auto flex items-center gap-3">
+              <button 
+                onClick={() => setShowMobileChat(!showMobileChat)}
+                className={cn(
+                  "p-3 rounded-xl transition-all",
+                  showMobileChat ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-500"
+                )}
+              >
+                <MessageSquare size={20} />
+              </button>
+              
+              <div className="relative flex-1">
+                 <input
+                   value={input}
+                   onChange={(e) => setInput(e.target.value)}
+                   onKeyDown={handleKeyDown}
+                   placeholder="Prompt..."
+                   className="w-full bg-zinc-900 border border-white/5 rounded-xl py-3 px-4 text-xs text-white"
+                 />
+                 <button onClick={() => handleGenerate()} className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 p-1.5"><Send size={18}/></button>
+              </div>
+
+              <Sheet>
+                 <SheetTrigger asChild>
+                    <button className="p-3 bg-zinc-900 text-zinc-500 rounded-xl"><Settings2 size={20}/></button>
+                 </SheetTrigger>
+                 <SheetContent side="bottom" className="h-[70vh] bg-[#050505] rounded-t-[2rem] border-t-white/10 p-6 overflow-y-auto">
+                    <SheetHeader className="mb-6"><SheetTitle className="text-white text-sm font-black uppercase tracking-widest">Studio Config</SheetTitle></SheetHeader>
+                    <div className="space-y-8">
+                       <IdentityLab onSelect={setSelectedIdentity} selectedId={selectedIdentity?.id} />
+                       <div className="space-y-4">
+                          <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Dimensions</label>
+                          <div className="grid grid-cols-4 gap-2">
+                             {ASPECT_RATIOS.map(r => (
+                                <button key={r.value} onClick={() => setAspectRatio(r.value)} className={cn("py-2 rounded-lg text-[10px] border font-bold", aspectRatio === r.value ? "bg-indigo-600 border-indigo-400 text-white" : "bg-zinc-900 border-white/5 text-zinc-500")}>{r.label}</button>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 </SheetContent>
+              </Sheet>
+           </div>
+        </div>
+
+        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
       </div>
     );
   }
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0A0A0F]">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center px-4 opacity-50">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
-              <Sparkles className="w-8 h-8 text-indigo-400" />
-            </div>
-            <p className="text-zinc-400 text-sm font-medium">Start your artistic journey</p>
-            <p className="text-zinc-600 text-xs mt-1">Describe anything and we'll bring it to life</p>
+      {renderTabs()}
+
+      <div className="flex-1 overflow-y-auto px-4 pb-6 scrollbar-thin">
+        {activeTab === 'chat' && (
+          <div className="space-y-6 pt-2">
+            {messages.length === 0 && (
+              <div className="h-full py-12 flex flex-col items-center justify-center text-center opacity-30">
+                <Palette className="w-8 h-8 text-indigo-400 mb-4" />
+                <p className="text-zinc-400 text-sm font-medium uppercase tracking-[0.2em]">Studio Ready</p>
+              </div>
+            )}
+            {messages.map((msg) => (
+              <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start animate-in fade-in slide-in-from-left-2 duration-300')}>
+                 <div className={cn(
+                   "max-w-[90%] rounded-2xl px-4 py-3 text-xs leading-relaxed",
+                   msg.role === 'user' ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/10" : "bg-zinc-900 text-zinc-300 border border-zinc-800/50"
+                 )}>
+                    {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
+                 </div>
+                 {msg.images && (
+                   <div className="grid grid-cols-2 gap-2 mt-1">
+                     {msg.images.map((img, i) => (
+                       <img key={i} src={`data:${img.mimeType};base64,${img.image}`} className="w-28 h-28 object-cover rounded-xl border border-zinc-800" />
+                     ))}
+                   </div>
+                 )}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
-             <div className={cn(
-               "max-w-[90%] rounded-2xl px-4 py-3 text-xs leading-relaxed",
-               msg.role === 'user' 
-                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/10" 
-                 : "bg-zinc-900 text-zinc-300 border border-zinc-800/50"
-             )}>
-                {msg.isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 size={12} className="animate-spin" />
-                    Generating...
-                  </div>
-                ) : msg.content}
-             </div>
-             {msg.images && msg.images.length > 0 && (
-               <div className="grid grid-cols-2 gap-2 mt-1">
-                 {msg.images.map((img, i) => (
-                   <div key={i} className="relative group">
-                    <img 
-                      src={`data:${img.mimeType};base64,${img.image}`} 
-                      alt={img.prompt || `Generated image ${i + 1}`}
-                      className="w-32 h-32 object-cover rounded-lg border border-zinc-800 cursor-pointer hover:border-indigo-500 transition-all"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-lg">
-                       <p className="text-[8px] text-white font-black uppercase tracking-widest px-2 text-center">Campaign Output {i+1}</p>
-                    </div>
-                   </div>
-                 ))}
-               </div>
-             )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Controls & Input */}
-      <div className="shrink-0 border-t border-zinc-800/50 bg-black/20 flex flex-col max-h-[85%]">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          
-          <div className="space-y-4">
-            {/* Ratios */}
-            <div>
-              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Aspect Ratio</label>
-              <div className="flex gap-1">
+        {activeTab === 'setup' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-2 duration-300 p-2">
+            <div className="space-y-4">
+              <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black block">Dimensions</label>
+              <div className="grid grid-cols-2 gap-2">
                 {ASPECT_RATIOS.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setAspectRatio(r.value)}
-                    className={cn(
-                      "flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all border",
-                      aspectRatio === r.value 
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
-                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                    )}
-                  >
-                    {r.label}
-                  </button>
+                  <button key={r.value} onClick={() => setAspectRatio(r.value)} className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all", aspectRatio === r.value ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white")}>{r.label}</button>
                 ))}
               </div>
             </div>
 
-            {/* Image Count */}
-            <div>
-              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Number of Images</label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => setImageCount(count)}
-                    className={cn(
-                      "flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all border",
-                      imageCount === count
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                    )}
-                  >
-                    {count}
-                  </button>
+            <div className="space-y-4">
+              <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black block">Variations</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map((count) => (
+                  <button key={count} onClick={() => setImageCount(count)} className={cn("flex-1 py-3 rounded-xl text-[11px] font-black border transition-all", imageCount === count ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" : "bg-zinc-900 border-zinc-800 text-zinc-500")}>{count}</button>
                 ))}
               </div>
             </div>
 
-            {/* Style Templates */}
-            <div>
-              <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-black mb-2 block px-1">Style Template</label>
-              <div className="grid grid-cols-2 gap-1.5">
+            <div className="space-y-4">
+              <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black block">Creative Style</label>
+              <div className="grid grid-cols-1 gap-2">
                 {TEMPLATES.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)}
-                    className={cn(
-                      "px-3 py-2 rounded-xl text-[10px] font-bold transition-all border flex items-center gap-2 text-left",
-                      currentTemplate === t.id 
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" 
-                        : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                    )}
-                  >
-                    <span className="text-sm">{t.icon}</span>
-                    <span className="truncate">{t.label}</span>
+                  <button key={t.id} onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)} className={cn("px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-between transition-all", currentTemplate === t.id ? "bg-indigo-600 border-indigo-500 text-white shadow-xl" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-white/10")}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{t.icon}</span>
+                      <span>{t.label}</span>
+                    </div>
+                    {currentTemplate === t.id && <Wand2 size={12} />}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="h-px bg-zinc-800/50 w-full my-4" />
-
-            {/* Identity Lab (Desktop) */}
-            <IdentityLab 
-              selectedId={selectedIdentity?.id}
-              onSelect={(iden) => setSelectedIdentity(selectedIdentity?.id === iden.id ? null : iden)}
-            />
           </div>
-        </div>
+        )}
 
-        {/* Fixed Chat Input Area */}
-        <div className="p-4 border-t border-zinc-800/50 bg-black/40 space-y-3">
-            {selectedImages.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {selectedImages.map((img, idx) => (
-                  <div key={idx} className="relative w-12 h-12 shrink-0 group">
-                    <img src={`data:${img.mimeType};base64,${img.data}`} alt={`Selected image ${idx + 1}`} className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
-                    <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400"><X size={8} /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="relative">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
-                placeholder="Describe your vision..."
-                rows={2}
-                className="w-full bg-[#111118] border border-zinc-800/60 rounded-xl py-3 pl-4 pr-12 text-white text-xs focus:outline-none focus:border-indigo-500/40 resize-none transition-all"
-              />
-              <div className="absolute right-3 bottom-3 flex items-center gap-1">
-                 <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors">
-                   <Paperclip size={16} />
-                 </button>
-                 <button 
-                   onClick={handlePlan}
-                   disabled={!input.trim() || isPlanning}
-                   className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-all active:scale-90"
-                 >
-                   {isPlanning ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                 </button>
-                 <button 
-                   onClick={() => handleGenerate()}
-                   disabled={(!input.trim() && selectedImages.length === 0) || isGenerating}
-                   className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-90"
-                 >
-                   {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                 </button>
-              </div>
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
-            </div>
-            
-            {/* Identity Context Bar (Desktop) */}
-            {selectedIdentity && (
-              <div className="pt-2 flex items-center justify-between border-t border-indigo-500/10 mt-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest">Active Identity: {selectedIdentity.name}</span>
-                </div>
-                <button onClick={() => setSelectedIdentity(null)} className="text-[9px] text-zinc-600 hover:text-white uppercase font-black">Clear</button>
-              </div>
-            )}
+        {activeTab === 'identity' && (
+          <div className="animate-in fade-in slide-in-from-right-2 duration-300 p-2">
+            <IdentityLab selectedId={selectedIdentity?.id} onSelect={(iden) => setSelectedIdentity(selectedIdentity?.id === iden.id ? null : iden)} />
           </div>
+        )}
       </div>
 
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
-      />
+      {renderInput()}
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

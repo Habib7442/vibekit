@@ -16,11 +16,6 @@ export default function VisualArtistPage() {
         <ChatPanel />
       </div>
       
-      {/* Mobile Drawer (Handled inside ChatPanel usually, but kept for compatibility) */}
-      <div className="md:hidden">
-        <ChatPanel />
-      </div>
-
       {/* Main Content Area */}
       <div className="flex-1 h-full min-w-0 bg-[#050505]">
         <ImageGallery />
@@ -32,6 +27,11 @@ export default function VisualArtistPage() {
           <CampaignPanel />
         </div>
       )}
+
+      {/* Mobile: ChatPanel as overlay */}
+      <div className="md:hidden absolute inset-0 pointer-events-none z-[100]">
+        <ChatPanel />
+      </div>
     </div>
   );
 }

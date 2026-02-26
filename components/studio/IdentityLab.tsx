@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Package, Fingerprint, Plus, Trash2, Loader2, Sparkles, ShieldCheck } from 'lucide-react';
+import { User, Package, Fingerprint, Plus, Trash2, Loader2, Wand2, ShieldCheck, Upload, X } from 'lucide-react';
 import { getMyIdentities, createIdentityAction, deleteIdentityAction, StudioModel } from '@/lib/actions/identity.actions';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +20,27 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState<'person' | 'product' | 'brand'>('person');
   const [newDesc, setNewDesc] = useState('');
+  const [productImages, setProductImages] = useState<{ data: string; mimeType: string }[]>([]);
+
+  const handleProductImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    Array.from(files).slice(0, 3 - productImages.length).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        const [, data] = base64.split(',');
+        setProductImages(prev => [...prev.slice(0, 2), { data, mimeType: file.type }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const removeProductImage = (index: number) => {
+    setProductImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   const fetchIdentities = async () => {
     setLoading(true);
@@ -78,10 +99,11 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
         name: newName,
         type: newType,
         description: newDesc,
-        // Optional: save expanded DNA fields if needed in schema future
+        referenceImages: productImages.map(img => `data:${img.mimeType};base64,${img.data}`),
       });
       setNewName('');
       setNewDesc('');
+      setProductImages([]);
       setDnaPreview(null);
       setBrandUrl('');
       setIsCreating(false);
@@ -126,7 +148,7 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
             disabled={!brandUrl || isScraping}
             className="px-4 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all disabled:opacity-50"
           >
-            {isScraping ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {isScraping ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
           </button>
         </div>
         {dnaPreview && (
@@ -161,12 +183,17 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
           identities.map((item) => (
             <div
               key={item.id}
-              onClick={() => onSelect(item)}
+              onClick={() => {
+                console.log('[IdentityLab] Selected Identity Data:', item);
+                console.log('[IdentityLab] Reference Image:', item.reference_images?.[0] || 'No Image');
+                onSelect(item);
+              }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
+                  console.log('[IdentityLab] Selected Identity Data (via Keyboard):', item);
                   onSelect(item);
                 }
               }}
@@ -189,6 +216,18 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
                   <p className={cn("text-[9px] font-medium line-clamp-1", selectedId === item.id ? "text-indigo-200" : "text-zinc-600")}>
                     {item.description}
                   </p>
+                  {item.reference_images?.length > 0 && (
+                    <div className="flex gap-1 mt-1.5">
+                      {item.reference_images.slice(0, 3).map((img, i) => (
+                        <div key={i} className="w-6 h-6 rounded-md overflow-hidden border border-white/10 bg-black">
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                      {item.reference_images.length > 3 && (
+                        <span className="text-[8px] text-zinc-500 self-center ml-0.5">+{item.reference_images.length - 3}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               <button 
@@ -239,6 +278,37 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
             rows={3}
             className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-[11px] text-white focus:outline-none focus:border-indigo-500/30 transition-all resize-none"
           />
+
+          {/* Product Image Upload */}
+          <div className="space-y-2">
+            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Product Photos <span className="text-zinc-700">(up to 3)</span></p>
+            
+            <div className="flex gap-2 flex-wrap">
+              {productImages.map((img, i) => (
+                <div key={i} className="relative group w-16 h-16 rounded-xl overflow-hidden border border-indigo-500/30 bg-black">
+                  <img 
+                    src={`data:${img.mimeType};base64,${img.data}`} 
+                    alt="Product" 
+                    className="w-full h-full object-cover" 
+                  />
+                  <button
+                    onClick={() => removeProductImage(i)}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={10} className="text-white" />
+                  </button>
+                </div>
+              ))}
+              
+              {productImages.length < 3 && (
+                <label className="w-16 h-16 rounded-xl border-2 border-dashed border-zinc-800 hover:border-indigo-500/40 flex flex-col items-center justify-center cursor-pointer transition-all group">
+                  <Upload size={14} className="text-zinc-700 group-hover:text-indigo-400 transition-colors" />
+                  <span className="text-[7px] text-zinc-700 group-hover:text-zinc-500 mt-0.5">Add</span>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleProductImageUpload} />
+                </label>
+              )}
+            </div>
+          </div>
 
           <button 
             onClick={handleCreate}

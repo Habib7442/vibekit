@@ -1,62 +1,87 @@
 'use server';
 
-
-
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase';
+import { PLANS, PlanType } from '@/lib/plans';
 
 export async function deductCredit(amount: number = 1) {
-  // 1. Verify user identity using standard client (Cookie-based auth)
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Authentication required');
 
-  // 2. Use Admin client for DB operations to ensure reliability and bypass RLS
   const admin = createAdminClient();
 
-  // Fetch current credits with self-healing
+  // Fetch current profile
   let { data: profile, error: fetchError } = await admin
     .from('profiles')
-    .select('credits, id')
+    .select('*')
     .eq('id', user.id)
     .single();
 
-  // Self-healing: Create profile if missing
+  // 1. Initial Profile Creation & Verification
   if (!profile || fetchError) {
     const { data: newProfile, error: createError } = await admin
       .from('profiles')
       .insert({
         id: user.id,
         email: user.email,
-        credits: 20, // Initial free credits
+        credits: PLANS.free.credits,
+        plan: 'free',
         name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        referral_id: Math.random().toString(36).substring(2, 10), // Basic fallback referral
+        referral_id: Math.random().toString(36).substring(2, 10),
+        last_reset_at: new Date().toISOString()
       })
-      .select('credits, id')
+      .select('*')
       .single();
 
     if (createError || !newProfile) {
-      console.error('CRITICAL: Could not verify or create profile:', createError || 'No profile returned');
-      throw new Error('Creative Studio wallet not found. Please contact support.');
+      throw new Error('Creative Studio wallet not found.');
     }
     profile = newProfile;
   }
 
-  if (profile.credits < amount) {
-    throw new Error(`Insufficient credits (${profile.credits} remaining). Upgrade to Pro to continue generating.`);
+  // 2. Automated Credit Reset (Every 30 Days for Paid Plans)
+  const lastReset = new Date(profile.last_reset_at || profile.created_at);
+  const now = new Date();
+  const daysSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (daysSinceReset >= 30) {
+    const planKey = (profile.plan || 'free') as PlanType;
+    const planDetails = PLANS[planKey];
+    
+    // Reset credits to plan limit
+    const { data: resetProfile } = await admin
+      .from('profiles')
+      .update({ 
+        credits: planDetails.credits,
+        last_reset_at: now.toISOString()
+      })
+      .eq('id', user.id)
+      .select('*')
+      .single();
+    
+    if (resetProfile) profile = resetProfile;
   }
 
-  // Deduct credits
+  // 3. Balance Check
+  if (profile.credits < amount) {
+    throw new Error(`Insufficient credits (${profile.credits} remaining). Upgrade to ${profile.plan === 'free' ? 'Solo' : 'Pro'} to continue generating.`);
+  }
+
+  // 4. Final Deduction
   const { error: updateError } = await admin
     .from('profiles')
     .update({ credits: profile.credits - amount })
     .eq('id', user.id);
 
   if (updateError) {
-    console.error('Credit update failed:', updateError);
-    throw new Error('Transaction failed. Your balance was not touched.');
+    throw new Error('Transaction failed.');
   }
 
-  return { success: true, remaining: profile.credits - amount };
+  return { 
+    success: true, 
+    remaining: profile.credits - amount,
+    plan: profile.plan || 'free'
+  };
 }

@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { AuthModal } from '@/components/studio/AuthModal';
 import { signOut } from '@/lib/auth-actions';
 import { ShowcaseGrid } from '@/components/studio/ShowcaseGrid';
+import { AssetShowcase } from '@/components/studio/AssetShowcase';
 
 function LandingPageContent() {
   const router = useRouter();
@@ -24,11 +25,11 @@ function LandingPageContent() {
     }
   }, [searchParams]);
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [type, setType] = useState<'app' | 'ui' | 'web' | 'image'>('app');
+  const [type, setType] = useState<'app' | 'ui' | 'web' | 'image'>('image');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingTargetUrl, setPendingTargetUrl] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const getTargetUrl = (isPlan: boolean = false) => {
     const baseUrl = type === 'image' ? '/studio/visual' : '/studio/builder';
@@ -51,11 +52,12 @@ function LandingPageContent() {
       return;
     }
     const targetUrl = getTargetUrl(false);
-    if (!user) {
+    if (!user && !authLoading) {
       setPendingTargetUrl(targetUrl);
       setShowAuthModal(true);
       return;
     }
+    if (authLoading && !user) return; // Still loading session
     router.push(targetUrl);
   };
 
@@ -65,11 +67,12 @@ function LandingPageContent() {
       return;
     }
     const targetUrl = getTargetUrl(true);
-    if (!user) {
+    if (!user && !authLoading) {
       setPendingTargetUrl(targetUrl);
       setShowAuthModal(true);
       return;
     }
+    if (authLoading && !user) return; // Still loading session
     router.push(targetUrl);
   };
 
@@ -89,7 +92,7 @@ function LandingPageContent() {
                 className="object-contain"
               />
             </div>
-            <span className="font-bold text-sm tracking-tight text-white uppercase italic hidden sm:inline-block">ImageStudioLab</span>
+            <span className="font-bold text-sm tracking-tight text-white uppercase italic hidden sm:inline-block">VisualAI Studio</span>
           </div>
           
           <div className="flex items-center gap-3 md:gap-8">
@@ -149,13 +152,14 @@ function LandingPageContent() {
         />
         
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full flex flex-col items-center relative z-10">
-           <h1 className="text-5xl md:text-[5rem] font-bold text-white tracking-tight leading-[1.1] max-w-5xl mb-4">
-             Design Your <span className="italic font-[family-name:var(--font-playfair)] font-light text-zinc-400">Unique</span> <br />
-             Brand DNA & Studio Assets
+           <h1 className="text-5xl md:text-[6rem] font-bold text-white tracking-tight leading-[1.0] max-w-5xl mb-6">
+             Professional AI Studio. <br /> 
+             <span className="italic font-[family-name:var(--font-playfair)] font-light text-[#f5e1c8]">For High-End Brands.</span>
            </h1>
            
-           <p className="text-zinc-500 text-sm md:text-base max-w-2xl mx-auto mb-10 leading-relaxed uppercase tracking-[0.2em] font-black opacity-80">
-             Identity Consistency · Editorial Layouts · High-End Branding.
+           <p className="text-zinc-500 text-sm md:text-lg max-w-3xl mx-auto mb-10 leading-relaxed uppercase tracking-[0.2em] font-black opacity-80">
+             Turn one reference into a full 4K Campaign. <br className="hidden md:block" />
+             <span className="text-zinc-600">Identity Preservation Meets High-Fidelity Rendering.</span>
            </p>
 
            <div className="w-full max-w-2xl mx-auto mb-16 relative z-10">
@@ -213,34 +217,13 @@ function LandingPageContent() {
                          <>
                            <div className="fixed inset-0 z-50" onClick={() => setIsDropdownOpen(false)} />
                            <div className="absolute bottom-full left-0 mb-3 w-56 bg-[#0C0C11] border border-white/10 rounded-2xl overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-2 duration-200 z-[60] backdrop-blur-2xl">
-                             <button onClick={() => { setType('app'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-cyan-400 hover:bg-cyan-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
-                               <span className="flex items-center gap-3">
-                                 <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
-                                 App Designer
-                               </span>
-                               <Smartphone size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                             </button>
-                             <button onClick={() => { setType('ui'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-violet-400 hover:bg-violet-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
-                               <span className="flex items-center gap-3">
-                                 <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
-                                 UI Studio
-                               </span>
-                               <Code2 size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                             </button>
-                             <button onClick={() => { setType('web'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-amber-500 hover:bg-amber-500/10 border-b border-white/[0.04] flex items-center justify-between uppercase tracking-widest transition-all group">
-                               <span className="flex items-center gap-3">
-                                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" />
-                                 Web Designer
-                               </span>
-                               <Globe size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                             </button>
-                             <button onClick={() => { setType('image'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center justify-between uppercase tracking-widest transition-all group">
-                               <span className="flex items-center gap-3">
-                                 <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
-                                 AI Photoshoot
-                               </span>
-                               <Sparkles size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                             </button>
+                              <button onClick={() => { setType('image'); setIsDropdownOpen(false); }} className="w-full px-5 py-4 text-left text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center justify-between uppercase tracking-widest transition-all group">
+                                <span className="flex items-center gap-3">
+                                  <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
+                                  AI Photoshoot
+                                </span>
+                                <Sparkles size={14} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                              </button>
                            </div>
                          </>
                        )}
@@ -262,7 +245,7 @@ function LandingPageContent() {
                       disabled={!prompt.trim()}
                       className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-[#f5e1c8] text-black text-xs font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#f5e1c8]/10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
-                      Enter Studio
+                      Launch Studio
                       <ArrowRight size={12} />
                     </button>
                   </div>
@@ -272,27 +255,30 @@ function LandingPageContent() {
           </div>
 
            {/* Expertise Tags */}
-            <div className="flex flex-wrap justify-center gap-2 max-w-4xl px-4">
-              {['Locked Identity', 'Brand DNA', 'Editorial Design', 'Product Consistency', 'Mobile Pro', 'Web Art', 'Batch Campaign'].map((tag) => (
-                <span key={tag} className="px-3 md:px-4 py-1 md:py-1.5 rounded-md bg-zinc-900/50 border border-white/5 text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-2xl whitespace-nowrap">
+            <div className="flex flex-wrap justify-center gap-3 max-w-4xl px-4">
+              {['Identity Preservation', '4K Rendering', 'Campaign Bulk Export', 'Pixel-Perfect Sync', 'Golden-Ratio Composition', 'Luxury Brand Grading'].map((tag) => (
+                <span key={tag} className="px-5 py-2 rounded-full bg-black border border-[#f5e1c8]/10 text-[10px] font-black text-[#f5e1c8]/80 uppercase tracking-widest shadow-2xl hover:border-[#f5e1c8]/30 transition-all cursor-default">
                  {tag}
                </span>
              ))}
-           </div>
+            </div>
         
       </section>
+
+      {/* Platform Features Showcase */}
+      <AssetShowcase />
 
       {/* Community Showcase */}
       <ShowcaseGrid />
 
       {/* Final CTA Area */}
-      <section className="mx-6 mb-24 max-w-5xl md:mx-auto rounded-[3rem] bg-[#f5e1c8] p-12 md:p-24 text-center text-black shadow-2xl">
-        <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-8">Ready to Make Your <br />Designs Stand Out?</h2>
-        <p className="text-black/60 text-sm md:text-base max-w-xl mx-auto mb-10 font-medium">
-          Join the new generation of creators building high-fidelity visual assets and mobile apps with AI.
+      <section className="mx-6 mb-24 max-w-5xl md:mx-auto rounded-[3rem] bg-[#f5e1c8] p-12 md:p-20 text-center text-black shadow-2xl">
+        <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-8 uppercase leading-tight">Scale Your <br />Brand Identity.</h2>
+        <p className="text-black/60 text-sm md:text-base max-w-xl mx-auto mb-10 font-bold uppercase tracking-widest">
+          Join the elite e-commerce teams generating 4K visuals with pixel-perfect identity preservation.
         </p>
-        <Link href="/studio" className="inline-block px-8 md:px-10 py-4 rounded-full bg-black text-white font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-xl">
-          Get Started For Free
+        <Link href="/studio" className="inline-block px-12 py-5 rounded-full bg-black text-white font-black text-xs uppercase tracking-[0.25em] hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-2xl">
+          Launch Your Studio
         </Link>
       </section>
 
@@ -308,7 +294,7 @@ function LandingPageContent() {
               className="object-contain grayscale brightness-200"
             />
           </div>
-          <span className="font-bold text-xs tracking-tight text-white uppercase italic">ImageStudioLab</span>
+          <span className="font-bold text-xs tracking-tight text-white uppercase italic">VisualAI Studio</span>
         </div>
         <div className="flex justify-center flex-wrap gap-8 mb-8 px-6">
            <Link href="/pricing" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Pricing</Link>
@@ -316,7 +302,7 @@ function LandingPageContent() {
            <Link href="/terms" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
            <Link href="/cookies" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>
         </div>
-        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. NO FAKE DATA. JUST PURE VISION.</p>
+        <p className="text-xs text-zinc-800 font-bold">© 2026 VISUALAI STUDIO. POWERED BY GEMINI. 4K ASSETS ONLY.</p>
       </footer>
 
       <AuthModal 

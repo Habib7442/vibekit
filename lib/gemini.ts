@@ -3,8 +3,8 @@
 const API_KEY = process.env.GEMINI_API_KEY || "";
 
 const ENDPOINTS = {
-  VISION: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-  TEXT: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+  VISION: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+  TEXT: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
   IMAGE: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
 };
 
