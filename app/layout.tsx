@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     description: "Create professional eCommerce product photos, brand kits, and campaign assets with ImageStudioLab. The AI-native design platform for modern teams.",
     images: [
       {
-        url: '/og_image.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'ImageStudioLab - AI-Native Design Platform',
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     title: 'ImageStudioLab | AI-Native Design Platform',
     description: "Create professional eCommerce product photos, brand kits, and campaign assets with ImageStudioLab. The AI-native design platform for modern teams.",
     creator: '@imagestudiolab',
-    images: ['/og_image.png'],
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
