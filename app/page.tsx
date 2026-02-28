@@ -312,7 +312,7 @@ function LandingPageContent() {
       <section className="mx-6 mb-24 max-w-5xl md:mx-auto rounded-[3rem] bg-[#f5e1c8] px-6 py-12 md:p-20 text-center text-black shadow-2xl flex flex-col items-center">
         <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-8 uppercase leading-tight">Scale Your <br />Brand Identity.</h2>
         <p className="text-black/60 text-xs md:text-base max-w-xl mx-auto mb-10 font-bold uppercase tracking-widest leading-relaxed">
-          Join the elite e-commerce teams generating 4K visuals with pixel-perfect identity preservation.
+          Join the elite e-commerce teams generating high-fidelity visuals with pixel-perfect identity preservation.
         </p>
         <Link href="/studio" className="w-full sm:w-auto px-8 md:px-12 py-5 rounded-full bg-black text-white font-black text-xs uppercase tracking-[0.25em] hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-2xl">
           Launch Your Studio
@@ -339,7 +339,7 @@ function LandingPageContent() {
            <Link href="/terms" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
            <Link href="/cookies" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>
         </div>
-        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. POWERED BY NANO BANANA 2 🍌. 4K ASSETS ONLY.</p>
+        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. POWERED BY NANO BANANA 2 🍌. HD ASSETS ONLY.</p>
       </footer>
 
       <AuthModal 
