@@ -43,7 +43,7 @@ interface ImageAsset {
 export default function TemplateBuilderPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const template = REEL_TEMPLATES.find(t => t.id === id);
   
   const [images, setImages] = useState<ImageAsset[]>([]);
@@ -55,7 +55,23 @@ export default function TemplateBuilderPage() {
   const [activeTransition, setActiveTransition] = useState<'fade' | 'shake' | 'zoom' | 'glitch'>('shake');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!template) return <div>Template not found</div>;
+  // Auth Protection: Gate the template access
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push(`/?auth=true&next=${encodeURIComponent(window.location.pathname)}`);
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-8 h-8 text-[#f5e1c8] animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Authenticating Studio Session...</p>
+      </div>
+    );
+  }
+
+  if (!template) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Template not found</div>;
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

@@ -1,9 +1,16 @@
 'use client';
  
 import Link from 'next/link';
-import { Sparkles, ArrowRight, Paperclip, ChevronDown, Smartphone, Code2, Globe } from 'lucide-react';
+import { Sparkles, ArrowRight, Paperclip, ChevronDown, Smartphone, Code2, Globe, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -24,6 +31,8 @@ function LandingPageContent() {
   useEffect(() => {
     if (searchParams.get('auth') === 'true') {
       setShowAuthModal(true);
+      const next = searchParams.get('next');
+      if (next) setPendingTargetUrl(next);
     }
   }, [searchParams]);
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -113,11 +122,12 @@ function LandingPageContent() {
             <span className="font-bold text-sm tracking-tight text-white uppercase italic hidden sm:inline-block">ImageStudioLab</span>
           </div>
           
-          <div className="flex items-center gap-3 md:gap-8">
+          <div className="flex items-center gap-2 md:gap-8">
             <Link href="/pricing" className="text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Pricing</Link>
             <Link href="/testimonials" className="text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors hidden sm:block">Reviews</Link>
+            
             {user && (
-              <div className="flex items-center gap-3 pr-2 border-r border-zinc-800/50 mr-2">
+              <div className="items-center gap-3 pr-2 border-r border-zinc-800/50 mr-2 hidden sm:flex">
                 <div className="flex flex-col items-end hidden lg:flex">
                   <span className="text-xs font-black text-white uppercase tracking-tighter leading-none italic">
                     {user.user_metadata?.full_name || user.email?.split('@')[0]}
@@ -146,11 +156,92 @@ function LandingPageContent() {
                 </Link>
               </div>
             )}
-            <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-xs font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2">
-              <span className="hidden sm:inline">Launch Studio</span>
-              <span className="sm:hidden">Launch</span>
-              <ArrowRight size={12} className="hidden sm:block" />
-            </Link>
+
+            <div className="flex items-center gap-2">
+              <Link href="/studio" className="px-5 py-2 rounded-full bg-[#f5e1c8] text-black text-xs font-black hover:bg-[#ebd5b8] transition-all flex items-center gap-2 shadow-lg shadow-[#f5e1c8]/10">
+                <span className="hidden sm:inline">Launch Studio</span>
+                <span className="sm:hidden">Launch</span>
+                <ArrowRight size={12} className="hidden sm:block" />
+              </Link>
+
+              {/* Mobile Navigation Sheet */}
+              <div className="sm:hidden">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <button className="w-10 h-10 rounded-full bg-black border border-zinc-800 flex items-center justify-center text-[#f5e1c8] hover:bg-zinc-900 transition-all active:scale-95 shadow-xl">
+                      <Menu size={18} />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="bg-[#050505] border-zinc-800/50 text-white w-[280px] p-0 overflow-hidden flex flex-col">
+                    <SheetHeader className="p-8 border-b border-zinc-900/50 text-left">
+                      <SheetTitle className="text-white flex items-center gap-3 italic uppercase font-black text-sm tracking-tighter">
+                        <div className="w-8 h-8 rounded overflow-hidden flex items-center justify-center">
+                          <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-contain" />
+                        </div>
+                        Menu
+                      </SheetTitle>
+                    </SheetHeader>
+                    
+                    <div className="flex-1 p-8 space-y-10">
+                      <div className="space-y-6">
+                        <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Explore</h4>
+                        <div className="flex flex-col gap-6">
+                          <Link href="/" className="text-sm font-black uppercase tracking-widest text-[#f5e1c8] hover:text-white transition-colors flex items-center gap-3 group">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#f5e1c8] shadow-[0_0_8px_rgba(245,225,200,0.8)]" />
+                            Home
+                          </Link>
+                          <Link href="/pricing" className="text-sm font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors ml-4.5">Pricing</Link>
+                          <Link href="/testimonials" className="text-sm font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors ml-4.5">Reviews</Link>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6 pt-10 border-t border-zinc-900/50">
+                        <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Account</h4>
+                        {!user ? (
+                           <button 
+                             onClick={() => { setShowAuthModal(true); }}
+                             className="text-left text-sm font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors ml-4.5"
+                           >
+                             Sign In / Join
+                           </button>
+                        ) : (
+                          <div className="space-y-6">
+                             <Link href="/studio/profile" className="flex items-center gap-4 group">
+                                <div className="w-10 h-10 rounded-full border border-zinc-800 p-0.5 bg-gradient-to-tr from-zinc-800 to-zinc-900 shadow-xl group-hover:scale-105 transition-transform">
+                                   {user.user_metadata?.avatar_url ? (
+                                     <Image src={user.user_metadata.avatar_url} alt="Profile" width={40} height={40} className="w-full h-full rounded-full object-cover" />
+                                   ) : (
+                                     <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-xs font-black text-[#f5e1c8] uppercase">
+                                        {(user.user_metadata?.full_name?.[0] || user.email?.[0] || '?')}
+                                     </div>
+                                   )}
+                                </div>
+                                <div className="flex flex-col">
+                                   <span className="text-xs font-black text-white uppercase tracking-tighter leading-none italic">{user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
+                                   <span className="text-[10px] font-bold text-zinc-600 lowercase tracking-tight mt-1 truncate max-w-[140px]">{user.email}</span>
+                                </div>
+                             </Link>
+                             <button 
+                               onClick={() => signOut()} 
+                               className="text-left text-xs font-bold text-zinc-500 hover:text-red-400 transition-colors uppercase tracking-widest ml-4.5 active:scale-95"
+                             >
+                               Sign Out
+                             </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-8 border-t border-zinc-900/50 bg-[#080808]">
+                      <Link href="/studio" className="w-full py-5 rounded-2xl bg-[#f5e1c8] text-black text-xs font-black hover:bg-white transition-all flex items-center justify-center gap-3 shadow-2xl shadow-[#f5e1c8]/20 uppercase tracking-[0.25em]">
+                        Enter Studio
+                        <ArrowRight size={16} />
+                      </Link>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
           </div>
         </nav>
       </header>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ImageIcon, User, Library } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -19,7 +19,15 @@ export default function StudioLayout({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { user, profile, loading: authLoading } = useAuth();
   const pathname = usePathname();
+  const router = useRouter(); // Ensure useRouter is imported
   const [isMobile, setIsMobile] = useState(false);
+
+  // Auth Protection: Gate the entire studio layout
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push(`/?auth=true&next=${encodeURIComponent(pathname)}`);
+    }
+  }, [user, authLoading, router, pathname]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -32,11 +40,25 @@ export default function StudioLayout({
     setHasMounted(true);
   }, []);
 
-  if (!hasMounted) {
+  if (!hasMounted || authLoading) {
     return (
-      <main className="w-full h-screen overflow-hidden bg-[#050505] flex flex-col">
-        <div className="shrink-0 h-16 border-b border-zinc-800/50 bg-[#0A0A0F]/80" />
-        <div className="flex-1 min-h-0 bg-[#050505]" />
+      <main className="w-full h-screen overflow-hidden bg-[#050505] flex flex-col items-center justify-center gap-6">
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 p-px animate-pulse shadow-2xl shadow-indigo-500/10">
+          <div className="w-full h-full bg-[#0A0A0F] rounded-3xl flex items-center justify-center p-4">
+            <Image src="/logo.png" alt="Logo" width={40} height={40} className="object-contain opacity-50 grayscale" />
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3">
+             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
+             <span className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em] inline-flex items-center gap-2">
+               Loading Branding Lab
+             </span>
+          </div>
+          <div className="w-12 h-0.5 bg-zinc-900 rounded-full overflow-hidden">
+            <div className="w-full h-full bg-indigo-600 animate-slide-in-fast" />
+          </div>
+        </div>
       </main>
     );
   }
