@@ -195,7 +195,9 @@ export function DesignCanvas() {
             const loadedImages: { fImg: any; id: string }[] = [];
             for (const img of newImages) {
                 try {
-                    const imgSrc = img.image.startsWith('http') ? img.image : `data:${img.mimeType};base64,${img.image}`;
+                    const imgSrc = img.image.startsWith('http') || img.image.startsWith('data:') 
+                        ? img.image 
+                        : `data:${img.mimeType || 'image/png'};base64,${img.image}`;
                     const fImg = await fabric.FabricImage.fromURL(imgSrc);
                     loadedImages.push({ fImg, id: img.id });
                 } catch (err) {
@@ -271,6 +273,7 @@ export function DesignCanvas() {
     try {
       // Upload each gallery image to storage and collect URLs
       const imageEntries: Record<string, { imageUrl: string; prompt?: string; aspectRatio?: string; order?: number }> = {};
+      const failedUploads: string[] = [];
 
       for (let i = 0; i < galleryImages.length; i++) {
         const img = galleryImages[i];
@@ -284,7 +287,12 @@ export function DesignCanvas() {
           };
         } catch (uploadErr) {
           console.error(`[DesignCanvas] Failed to upload image ${img.id}:`, uploadErr);
+          failedUploads.push(img.id);
         }
+      }
+
+      if (failedUploads.length > 0 && Object.keys(imageEntries).length === 0) {
+        throw new Error('All image uploads failed');
       }
 
       // Save canvas with images
@@ -300,6 +308,9 @@ export function DesignCanvas() {
       }
 
       setSaveSuccess(true);
+      if (failedUploads.length > 0) {
+        console.warn(`[DesignCanvas] Saved with ${failedUploads.length} failed uploads`);
+      }
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err: any) {
       console.error('[DesignCanvas] Save failed:', err);

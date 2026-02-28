@@ -67,6 +67,9 @@ export default function TemplateBuilderPage() {
     files.forEach(file => {
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
+      reader.onerror = () => {
+        console.error('Failed to read file:', file.name);
+      };
       reader.onload = (event) => {
         const result = event.target?.result as string;
         if (!result) return;
@@ -74,7 +77,7 @@ export default function TemplateBuilderPage() {
         if (parts.length < 2) return;
         
         const newImg: ImageAsset = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: Math.random().toString(36).substring(2, 11),
           original: { data: parts[1], mimeType: file.type },
           isStylizing: false
         };
@@ -103,10 +106,10 @@ export default function TemplateBuilderPage() {
         images: [{ data: img.original.data, mimeType: img.original.mimeType }]
       });
 
-      if (result && result.images && result.images.length > 0) {
+      if (result && result.image) {
         setImages(prev => prev.map(item => 
           item.id === imageId 
-            ? { ...item, stylized: { data: result.images[0].image, mimeType: result.images[0].mimeType || 'image/png' }, isStylizing: false }
+            ? { ...item, stylized: { data: result.image, mimeType: result.mimeType || 'image/png' }, isStylizing: false }
             : item
         ));
         return true;
@@ -168,22 +171,27 @@ export default function TemplateBuilderPage() {
     ];
 
     let currentProgress = 0;
+    const targetSimulatedProgress = 75;
     for (const phase of phases) {
       setExportPhase(phase.name);
-      const stepSize = phase.speed / 10;
+      // Weight each phase's contribution to get to 75 total
+      const percentOfTotal = phase.speed / (phases.reduce((acc, p) => acc + p.speed, 0));
+      const phaseContribution = percentOfTotal * targetSimulatedProgress;
+      const stepSize = phaseContribution / 10;
+
       for (let i = 0; i < 10; i++) {
         currentProgress += stepSize;
-        setExportProgress(Math.floor(currentProgress));
+        setExportProgress(Math.floor(Math.min(currentProgress, targetSimulatedProgress)));
         await new Promise(r => setTimeout(r, 150));
       }
     }
 
-    setExportProgress(100);
-    await new Promise(r => setTimeout(r, 500));
+    setExportProgress(75);
+    await new Promise(r => setTimeout(r, 300));
     
-    // START MP4 RECORDING LOGIC
+    // START WEBM RECORDING LOGIC
     try {
-      setExportPhase("Mastering MP4 Video");
+      setExportPhase("Mastering Cinematic Video");
       const canvas = document.createElement('canvas');
       canvas.width = 720; // High quality 9:16
       canvas.height = 1280;
@@ -196,7 +204,7 @@ export default function TemplateBuilderPage() {
       recorder.ondataavailable = (e) => chunks.push(e.data);
       
       const recordPromise = new Promise<Blob>((resolve) => {
-        recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/mp4' }));
+        recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
       });
 
       recorder.start();
@@ -236,9 +244,10 @@ export default function TemplateBuilderPage() {
         const originalData = `data:${img.original.mimeType};base64,${img.original.data}`;
         const stylizedData = img.stylized ? `data:${img.stylized.mimeType};base64,${img.stylized.data}` : null;
         
-        const loadImg = (src: string) => new Promise<HTMLImageElement>((res) => {
+        const loadImg = (src: string) => new Promise<HTMLImageElement>((res, rej) => {
           const el = new Image();
           el.onload = () => res(el);
+          el.onerror = () => rej(new Error(`Failed to load image for frame ${i + 1}`));
           el.src = src;
         });
 
@@ -251,7 +260,7 @@ export default function TemplateBuilderPage() {
           ctx.fillStyle = '#050505'; 
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           drawCover(originalImg);
-          await new Promise(r => requestAnimationFrame(r));
+          await new Promise(r => setTimeout(r, 1000 / 30));
         }
 
         // 2. Transition to Stylized
@@ -282,24 +291,25 @@ export default function TemplateBuilderPage() {
             drawCover(stylizedImg, offset);
             
             ctx.globalAlpha = 1;
-            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => setTimeout(r, 1000 / 30));
           }
           // 3. Stylized (3 seconds)
           for (let f = 0; f < 90; f++) {
             ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawCover(stylizedImg);
-            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => setTimeout(r, 1000 / 30));
           }
         }
       }
 
       recorder.stop();
       const videoBlob = await recordPromise;
+      setExportProgress(100);
       const url = URL.createObjectURL(videoBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `imagestudiolab-reel-${Date.now()}.mp4`;
+      link.download = `imagestudiolab-reel-${Date.now()}.webm`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -538,7 +548,7 @@ export default function TemplateBuilderPage() {
                  <h3 className="text-xs font-black uppercase tracking-tighter">AI Lab Blueprint</h3>
               </div>
               <p className="text-[11px] text-zinc-400 leading-relaxed font-medium">
-                This template uses our proprietary **{template.style}** logic. Our AI will analyze your features and reconstruct them into a cinematic masterpiece while maintaining your original likeness.
+                This template uses our proprietary <span className="font-bold text-white">{template.style}</span> logic. Our AI will analyze your features and reconstruct them into a cinematic masterpiece while maintaining your original likeness.
               </p>
            </div>
         </div>
@@ -616,7 +626,7 @@ function MontagePreview({
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [activeIndex, images.length, isGenerating]); // Removed transition so it doesn't reset mid-play
+  }, [activeIndex, images, isGenerating]); // Removed transition so it doesn't reset mid-play
 
   const activeImg = images[activeIndex];
   if (!activeImg) return null;

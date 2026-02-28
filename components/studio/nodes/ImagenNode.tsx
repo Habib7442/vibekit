@@ -36,7 +36,7 @@ export function ImagenNode({ id, data, selected }: NodeProps<ImagenNodeData>) {
         images: [{ data: data.image, mimeType: 'image/png' }]
       });
 
-      const newImage = result.images[0].image;
+      const newImage = result.image;
       updateNodeData({ image: newImage, prompt: editPrompt });
       setEditMode(false);
       setEditPrompt('');

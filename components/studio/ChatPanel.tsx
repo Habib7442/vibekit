@@ -14,7 +14,7 @@ import { IdentityLab } from './IdentityLab';
 import { StudioModel } from '@/lib/actions/identity.actions';
 
 function getImageSrc(image: string, mimeType: string) {
-  if (image.startsWith('http')) return image;
+  if (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/')) return image;
   return `data:${mimeType};base64,${image}`;
 }
 
@@ -53,6 +53,11 @@ export function ChatPanel() {
   const [identityImages, setIdentityImages] = useState<{ data?: string; url?: string; mimeType: string }[]>([]);
   const [isIdentitySyncing, setIsIdentitySyncing] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
+
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // Sync identity images whenever the selection changes
   useEffect(() => {
@@ -271,7 +276,11 @@ export function ChatPanel() {
     } finally {
       setIsGenerating(false);
       // Reset progress after a short delay
-      setTimeout(() => setGenerationProgress({ total: 0, completed: 0 }), 2000);
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setGenerationProgress({ total: 0, completed: 0 });
+        }
+      }, 2000);
     }
   };
 

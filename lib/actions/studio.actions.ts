@@ -132,7 +132,20 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
 }
 
 export async function uploadImageToStudio(base64: string, filename: string) {
-  if (base64.startsWith('http')) return base64; // Already uploaded
+  // If already a URL, validate it belongs to our storage bucket
+  if (base64.startsWith('http://') || base64.startsWith('https://')) {
+    const supabase = await createClient();
+    const { data: { publicUrl: bucketBaseUrl } } = supabase.storage
+      .from('studio_assets')
+      .getPublicUrl('');
+    
+    // Check if it belongs to our studio bucket
+    if (!base64.startsWith(bucketBaseUrl)) {
+      console.warn('[uploadImageToStudio] Rejected untrusted external URL origin:', base64);
+      throw new Error('Invalid image URL origin — untrusted asset detected');
+    }
+    return base64; // Safe, internal URL
+  }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

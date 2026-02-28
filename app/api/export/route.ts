@@ -117,10 +117,31 @@ export async function POST(req: NextRequest) {
     let base64ForAI = '';
 
     if (image.startsWith('http')) {
-      const fetchRes = await fetch(image);
-      const arrayBuffer = await fetchRes.arrayBuffer();
-      imageBuffer = Buffer.from(arrayBuffer);
-      base64ForAI = imageBuffer.toString('base64');
+      // Security: Validate URL to prevent SSRF and handle fetch errors
+      try {
+        const url = new URL(image);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          return NextResponse.json({ error: 'Invalid image URL protocol' }, { status: 400 });
+        }
+
+        // Prevent access to internal networks/metadata endpoints
+        const isInternal = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(url.hostname);
+        if (isInternal) {
+          return NextResponse.json({ error: 'Restricted image URL' }, { status: 403 });
+        }
+
+        const fetchRes = await fetch(image);
+        if (!fetchRes.ok) {
+          console.error(`[Export] Failed to fetch URL: ${image}`, fetchRes.status);
+          return NextResponse.json({ error: 'Could not retrieve image from the provided URL' }, { status: 400 });
+        }
+        
+        const arrayBuffer = await fetchRes.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
+        base64ForAI = imageBuffer.toString('base64');
+      } catch (err) {
+        return NextResponse.json({ error: 'Malformed image URL' }, { status: 400 });
+      }
     } else {
       imageBuffer = Buffer.from(image, 'base64');
       base64ForAI = image;

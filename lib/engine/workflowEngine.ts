@@ -69,7 +69,7 @@ export const nodeExecutors: Record<string, (id: string, inputs: any, config: any
       aspectRatio: finalAspectRatio
     });
 
-    const result = data.images[0];
+    const result = data;
     return { image: result.image, prompt }; 
   },
 

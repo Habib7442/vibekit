@@ -39,7 +39,7 @@ export function AppScreenNode({ id, data, selected }: NodeProps<AppScreenNodeDat
         images: [{ data: data.image, mimeType: 'image/png' }]
       });
 
-      const newImage = result.images[0].image;
+      const newImage = result.image;
       updateNodeData({ image: newImage, prompt: editPrompt });
       setEditMode(false);
       setEditPrompt('');

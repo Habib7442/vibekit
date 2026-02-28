@@ -28,22 +28,43 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     
-    Array.from(files).slice(0, 3 - productImages.length).forEach(file => {
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`File ${file.name} exceeds 5MB limit`);
-        return;
+    const filesToProcess = Array.from(files)
+      .slice(0, 3 - productImages.length)
+      .filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          console.warn(`File ${file.name} exceeds 5MB limit`);
+          return false;
+        }
+        return true;
+      });
+
+    Promise.all(
+      filesToProcess.map(file => 
+        new Promise<{ data: string; mimeType: string } | null>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64 = event.target?.result as string;
+            if (!base64) {
+              resolve(null);
+              return;
+            }
+            const [, data] = base64.split(',');
+            resolve({ data, mimeType: file.type });
+          };
+          reader.onerror = () => {
+            console.error(`Failed to read file: ${file.name}`);
+            resolve(null);
+          };
+          reader.readAsDataURL(file);
+        })
+      )
+    ).then(results => {
+      const validImages = results.filter((r): r is { data: string; mimeType: string } => r !== null);
+      if (validImages.length > 0) {
+        setProductImages(prev => [...prev, ...validImages].slice(0, 3));
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        const [, data] = base64.split(',');
-        setProductImages(prev => [...prev.slice(0, 2), { data, mimeType: file.type }]);
-      };
-      reader.onerror = () => {
-        console.error(`Failed to read file: ${file.name}`);
-      };
-      reader.readAsDataURL(file);
     });
+
     e.target.value = '';
   };
 
@@ -308,7 +329,7 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
                 <label className="w-16 h-16 rounded-xl border-2 border-dashed border-zinc-800 hover:border-indigo-500/40 flex flex-col items-center justify-center cursor-pointer transition-all group">
                   <Upload size={14} className="text-zinc-700 group-hover:text-indigo-400 transition-colors" />
                   <span className="text-[7px] text-zinc-700 group-hover:text-zinc-500 mt-0.5">Add</span>
-                  <input type="file" className="hidden" accept="image/*" onChange={handleProductImageUpload} />
+                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleProductImageUpload} />
                 </label>
               )}
             </div>

@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Dodo API Error:", response.status, errorText);
-      return NextResponse.json({ error: "Payment service error", details: errorText }, { status: 502 });
+      return NextResponse.json({ error: "Payment service error" }, { status: 502 });
     }
 
     const data = await response.json();

@@ -74,7 +74,10 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
       // If it's a URL (new records), USE URL DIRECTLY
       if (refImage.startsWith('http')) {
          setProductImageUrl(refImage);
-         setProductMimeType('image/jpeg');
+         // Infer MIME type from URL extension, default to jpeg
+         const ext = refImage.split('.').pop()?.toLowerCase().split('?')[0];
+         const mimeMap: Record<string, string> = { png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
+         setProductMimeType(mimeMap[ext || ''] || 'image/jpeg');
          setProductImage(null);
          console.log('[Campaign] Using image URL directly for AI optimization');
       }
@@ -175,14 +178,15 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
       const zip = new JSZip();
       const folder = zip.folder('campaign')!;
 
-      for (const asset of results) {
+      for (const [i, asset] of results.entries()) {
         try {
           const ext = asset.mimeType?.includes('png') ? 'png' : 'jpg';
-          const safeName = asset.label.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+          const safeName = asset.label.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') || `asset_${i + 1}`;
           
           let bytes: Uint8Array;
           if (asset.image.startsWith('http')) {
             const res = await fetch(asset.image);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const blob = await res.blob();
             const arrayBuffer = await blob.arrayBuffer();
             bytes = new Uint8Array(arrayBuffer);
@@ -190,8 +194,8 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
             // Convert base64 to binary
             const binary = atob(asset.image);
             bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-              bytes[i] = binary.charCodeAt(i);
+            for (let j = 0; j < binary.length; j++) {
+              bytes[j] = binary.charCodeAt(j);
             }
           }
           folder.file(`${safeName}.${ext}`, bytes);

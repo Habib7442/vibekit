@@ -142,7 +142,16 @@ export async function generateAIImage(params: {
 
     if (effectiveUrl) {
       try {
-        const res = await fetch(effectiveUrl);
+        // Validate URL is a public HTTP(S) URL
+        const parsedUrl = new URL(effectiveUrl);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          throw new Error('Invalid URL protocol');
+        }
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        const res = await fetch(effectiveUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const arrayBuffer = await res.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
@@ -247,7 +256,8 @@ export async function generateAIImage(params: {
     imageUrl = publicUrl;
   } catch (uploadErr: any) {
     console.error('[Generate] Storage upload failed, using base64 fallback:', uploadErr);
-    imageUrl = imagePart.inlineData.data;
+    // Correct fallback: must be a full data URL
+    imageUrl = `data:${imagePart.inlineData.mimeType || 'image/png'};base64,${imagePart.inlineData.data}`;
   }
 
   // Deduct credits for the successful generation (2 per image)
@@ -731,10 +741,11 @@ export async function generateCampaignBatchAction(params: {
   const planBatchKey = profile?.plan || 'free';
   const currentResolution = (PLANS[planBatchKey as PlanType] ?? PLANS.free).resolution;
 
-  // Check credits before starting
-  const check = await checkCredits(selectedFormats.length);
+  // Check credits before starting (2 per asset)
+  const requiredCredits = selectedFormats.length * 2;
+  const check = await checkCredits(requiredCredits);
   if (!check.canProceed) {
-    throw new Error(`Insufficient credits (${check.credits} remaining). Please upgrade your plan or wait for your credits to reset.`);
+    throw new Error(`Insufficient credits (${check.credits} remaining, need ${requiredCredits}). Please upgrade your plan or wait for your credits to reset.`);
   }
 
   // Step 1: Use Gemini to plan the campaign visual direction
@@ -940,7 +951,8 @@ Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
       } catch (uploadErr: any) {
         console.error('[Campaign] Storage upload failed:', uploadErr);
         // Fallback to base64 if upload fails, but this might hit the serialization limit
-        imageUrl = imagePart.inlineData.data;
+        // Correct fallback: must be a full data URL
+        imageUrl = `data:${imagePart.inlineData.mimeType || 'image/png'};base64,${imagePart.inlineData.data}`;
       }
 
       results.push({

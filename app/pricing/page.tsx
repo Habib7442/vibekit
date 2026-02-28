@@ -196,7 +196,10 @@ export default function PricingPage() {
 
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingPlan(null);
+        }} 
       />
     </div>
   );

@@ -1,7 +1,7 @@
 export interface CampaignFormat {
   key: string;
   label: string;
-  aspectRatio: '1:1' | '9:16' | '16:9' | '4:5' | '4:3' | '2:3' | '3:2' | '21:9';
+  aspectRatio: '1:1' | '9:16' | '16:9' | '4:5' | '4:3' | '2:3' | '3:2' | '21:9' | '3:1' | '16:5';
   width: number;
   height: number;
 }
@@ -15,6 +15,6 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
   { key: 'pinterest',    label: 'Pinterest Pin',     aspectRatio: '2:3',  width: 1000, height: 1500 },
   { key: 'youtube',      label: 'YouTube Thumbnail', aspectRatio: '16:9', width: 1280, height: 720 },
   { key: 'linkedin',     label: 'LinkedIn Post',     aspectRatio: '16:9', width: 1200, height: 675 },
-  { key: 'email',        label: 'Email Header',      aspectRatio: '21:9', width: 1200, height: 400 },
-  { key: 'web_banner',   label: 'Website Banner',    aspectRatio: '21:9', width: 1920, height: 600 },
+  { key: 'email',        label: 'Email Header',      aspectRatio: '3:1',   width: 1200, height: 400 },
+  { key: 'web_banner',   label: 'Website Banner',    aspectRatio: '16:5', width: 1920, height: 600 },
 ];

@@ -54,14 +54,21 @@ export async function deductCredit(amount: number = 1) {
     const planDetails = PLANS[planKey as PlanType] ?? PLANS.free;
     
     // Atomic reset: only update if last_reset_at hasn't changed to prevent race conditions
-    const { data: resetProfile, error: resetError } = await admin
+    let query = admin
       .from('profiles')
       .update({ 
         credits: planDetails.credits,
         last_reset_at: now.toISOString()
       })
-      .eq('id', user.id)
-      .eq('last_reset_at', profile.last_reset_at) // Concurrency check
+      .eq('id', user.id);
+
+    if (profile.last_reset_at) {
+      query = query.eq('last_reset_at', profile.last_reset_at);
+    } else {
+      query = query.is('last_reset_at', null);
+    }
+
+    const { data: resetProfile, error: resetError } = await query
       .select('*')
       .single();
     
@@ -114,6 +121,9 @@ export async function deductCredit(amount: number = 1) {
 }
 
 export async function checkCredits(amount: number = 1) {
+  if (amount <= 0 || !Number.isInteger(amount)) {
+    throw new Error('Invalid credit amount');
+  }
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

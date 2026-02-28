@@ -21,7 +21,7 @@ export function TemplateGallery() {
       </div>
 
       <div className="flex justify-center">
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[400px] flex flex-col gap-8">
         {REEL_TEMPLATES.map((template) => (
           <Link
             key={template.id}

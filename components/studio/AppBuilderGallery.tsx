@@ -338,7 +338,7 @@ function EditOverlay({
           onChange={(e) => setEditPrompt(e.target.value)}
           onPaste={handlePaste}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && (editPrompt.trim() || images.length > 0)) { 
+            if (e.key === 'Enter' && !e.shiftKey && !isUpdating && (editPrompt.trim() || images.length > 0)) { 
               e.preventDefault(); 
               setIsUpdating(true);
               onUpdate(editPrompt, images).finally(() => setIsUpdating(false)); 

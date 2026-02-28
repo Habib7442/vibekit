@@ -11,6 +11,14 @@ export interface PlanDetails {
   description?: string;
 }
 
+const SOLO_ID = process.env.NEXT_PUBLIC_DODO_SOLO_ID;
+const PRO_ID = process.env.NEXT_PUBLIC_DODO_PRO_ID;
+
+// Validate essential IDs for production, fallback to 'dev' for local builds if missing
+if (process.env.NODE_ENV === 'production' && (!SOLO_ID || !PRO_ID)) {
+  console.error('[Configuration Error] Dodo Payments Plan IDs are missing in production environment');
+}
+
 export const PLANS: Record<PlanType, PlanDetails> = {
   free: {
     id: 'free',
@@ -28,7 +36,7 @@ export const PLANS: Record<PlanType, PlanDetails> = {
     ]
   },
   solo: {
-    id: process.env.NEXT_PUBLIC_DODO_SOLO_ID!,
+    id: SOLO_ID || 'solo_dev_fallback',
     name: "Solo",
     price: 29,
     credits: 200,
@@ -44,7 +52,7 @@ export const PLANS: Record<PlanType, PlanDetails> = {
     ]
   },
   pro: {
-    id: process.env.NEXT_PUBLIC_DODO_PRO_ID!,
+    id: PRO_ID || 'pro_dev_fallback',
     name: "Pro",
     price: 89,
     credits: 1000,

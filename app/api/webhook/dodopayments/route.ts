@@ -12,15 +12,14 @@ export const POST = Webhooks({
   webhookKey: (() => {
     const key = process.env.DODO_PAYMENTS_WEBHOOK_KEY;
     const isProd = process.env.NODE_ENV === 'production';
+    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
     
-    // During build or in development, we can use a dummy key if the real one is missing
     if (!key) {
-      if (isProd) {
-        // This might still be a build phase, but we'll return a dummy to allow build to succeed.
-        // In a real production runtime, the library will fail to verify signatures if this is dummy.
-        return "dummy_build_key_unauthorized";
+      if (isProd && !isBuildPhase) {
+        throw new Error('DODO_PAYMENTS_WEBHOOK_KEY is required in production');
       }
-      return "dev_dummy_key";
+      // During build phase or development, use a placeholder
+      return "placeholder_key_for_build";
     }
     
     return key;
@@ -69,7 +68,7 @@ export const POST = Webhooks({
           throw new Error(`Failed to update credits: ${rpcError.message}`);
         }
       } else {
-        console.warn("No user_id found in webhook payload metadata");
+        throw new Error(`No user_id found in webhook payload for event ${eventType}, payment_id: ${data.payment_id || data.id}`);
       }
     }
   },

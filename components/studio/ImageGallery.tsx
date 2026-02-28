@@ -11,7 +11,7 @@ import { ExportModal } from './ExportModal';
 import { CampaignBatchModal } from './CampaignBatchModal';
 
 function getImageSrc(image: string, mimeType: string) {
-  if (image.startsWith('http')) return image;
+  if (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/')) return image;
   return `data:${mimeType};base64,${image}`;
 }
 
@@ -156,7 +156,7 @@ export function ImageGallery() {
                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="flex flex-col items-center">
                     <span className="text-white font-black text-3xl tracking-tighter">{progress}%</span>
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1">Ready</span>
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1">Generating</span>
                   </div>
                </div>
             </div>
