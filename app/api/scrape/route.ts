@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateUrlSecurity } from '@/lib/ssrf';
 
 // Note: Puppeteer is heavy and often fails in serverless environments like Vercel.
 // We'll use a hybrid approach: A lightweight fetch-based scraper for production reliability,
@@ -19,32 +20,12 @@ export async function POST(req: Request) {
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
-    // SSRF Protection: Prevent access to internal networks/metadata endpoints
-    let hostname = '';
+    // --- SSRF & DNS Rebinding Protection ---
     try {
-      const parsedUrl = new URL(url);
-      hostname = parsedUrl.hostname.toLowerCase();
-      console.log(`[SCRAPE] Starting scrape for host: ${hostname}`);
-
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        return NextResponse.json({ error: 'Invalid URL protocol' }, { status: 400 });
-      }
-      
-      // Block IPv6 loopback and private ranges
-      const isIPv6Internal = /^\[?(::1|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|fe80:|fc00:|fd00:)/i.test(hostname);
-      
-      // Block IPv4 private ranges, localhost, and common bypasses (0.0.0.0, etc.)
-      const isIPv4Internal = /^(localhost|0\.0\.0\.0|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(hostname);
-      
-      // Block decimal/octal/hex IP representations (any all-numeric or suspicious numeric hostname)
-      const isNumericIP = /^\d+$/.test(hostname);
-      
-      if (isIPv6Internal || isIPv4Internal || isNumericIP) {
-        console.warn(`[SCRAPE] Restricted URL blocked from ${hostname}`);
-        return NextResponse.json({ error: 'Restricted URL origin' }, { status: 403 });
-      }
-    } catch (err) {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+      await validateUrlSecurity(url, 'Scrape');
+    } catch (err: any) {
+      console.warn(`[SCRAPE] Security Validation Failed: ${err.message}`);
+      return NextResponse.json({ error: err.message }, { status: 403 });
     }
 
     // --- PHASE 1: Lightweight Fetch Scraper (Production Safe) ---
@@ -54,6 +35,7 @@ export async function POST(req: Request) {
 
       const response = await fetch(url, {
         signal: controller.signal,
+        redirect: 'error',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',

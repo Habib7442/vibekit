@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import JSZip from 'jszip';
+import { validateUrlSecurity } from '@/lib/ssrf';
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
@@ -117,34 +118,17 @@ export async function POST(req: NextRequest) {
     let base64ForAI = '';
 
     if (image.startsWith('http')) {
-      // Security: Validate URL to prevent SSRF and handle fetch errors
+      // Security: Validate URL to prevent SSRF and DNS Rebinding
       try {
-        const url = new URL(image);
-        if (!['http:', 'https:'].includes(url.protocol)) {
-          return NextResponse.json({ error: 'Invalid image URL protocol' }, { status: 400 });
-        }
-
-        // Prevent access to internal networks/metadata endpoints
-        const hostname = url.hostname.toLowerCase();
-        
-        // Block IPv6 loopback and private ranges
-        const isIPv6Internal = /^\[?(::1|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|fe80:|fc00:|fd00:)/i.test(hostname);
-        
-        // Block IPv4 private ranges, localhost, and common bypasses (0.0.0.0, etc.)
-        const isIPv4Internal = /^(localhost|0\.0\.0\.0|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(hostname);
-        
-        // Block decimal/octal/hex IP representations (any all-numeric or suspicious numeric hostname)
-        const isNumericIP = /^\d+$/.test(hostname);
-        
-        if (isIPv6Internal || isIPv4Internal || isNumericIP) {
-          console.warn(`[Export] Restricted URL blocked from ${hostname}`);
-          return NextResponse.json({ error: 'Restricted image URL' }, { status: 403 });
-        }
+        const { hostname } = await validateUrlSecurity(image, 'Export');
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-        const fetchRes = await fetch(image, { signal: controller.signal });
+        const fetchRes = await fetch(image, { 
+          signal: controller.signal,
+          redirect: 'error' // PRO-TIP: Prevent open redirects to internal IPs
+        });
         clearTimeout(timeoutId);
 
         if (!fetchRes.ok) {

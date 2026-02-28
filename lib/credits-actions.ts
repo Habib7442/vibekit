@@ -180,6 +180,13 @@ export async function refundCredit(amount: number = 1) {
   const admin = createAdminClient();
   // We use the same RPC but with a negative deduction to add credits
   // amount of 2 becomes deduction of -2, which means credits = credits - (-2) = credits + 2
-  await admin.rpc('deduct_credits', { user_id: user.id, deduction: -amount });
+  const { data: updatedCredits, error } = await admin.rpc('deduct_credits', { user_id: user.id, deduction: -amount });
+
+  if (error) {
+    console.error('[Credit Refund] RPC Error:', error.message);
+    throw new Error('Refund failed. Please contact support.');
+  }
+
+  return { success: true, remaining: updatedCredits };
 }
 

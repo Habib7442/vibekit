@@ -5,6 +5,7 @@ import { CAMPAIGN_FORMATS } from '@/lib/campaign-formats';
 import { createClient } from '@/lib/supabase/server';
 import { PLANS, PlanType } from '@/lib/plans';
 import { deductCredit, checkCredits, refundCredit } from "@/lib/credits-actions";
+import { validateUrlSecurity } from "@/lib/ssrf";
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
@@ -145,32 +146,15 @@ export async function generateAIImage(params: {
 
     if (effectiveUrl) {
       try {
-        // Validate URL is a public HTTP(S) URL
-        const parsedUrl = new URL(effectiveUrl);
-        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-          throw new Error('Invalid URL protocol');
-        }
-        
-        // SSRF Protection: Prevent access to internal networks/metadata endpoints
-        const hostname = parsedUrl.hostname.toLowerCase();
-        
-        // Block IPv6 loopback and private ranges
-        const isIPv6Internal = /^\[?(::1|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|fe80:|fc00:|fd00:)/i.test(hostname);
-        
-        // Block IPv4 private ranges, localhost, and common bypasses (0.0.0.0, etc.)
-        const isIPv4Internal = /^(localhost|0\.0\.0\.0|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(hostname);
-        
-        // Block decimal/octal/hex IP representations (any all-numeric or suspicious numeric hostname)
-        const isNumericIP = /^\d+$/.test(hostname);
-        
-        if (isIPv6Internal || isIPv4Internal || isNumericIP) {
-          console.warn(`[Generate] Restricted URL blocked from ${hostname}`);
-          throw new Error('Restricted image URL origin');
-        }
+        // SSRF & DNS Rebinding Protection
+        const { hostname } = await validateUrlSecurity(effectiveUrl, 'Generate');
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-        const res = await fetch(effectiveUrl, { signal: controller.signal });
+        const res = await fetch(effectiveUrl, { 
+          signal: controller.signal,
+          redirect: 'error'
+        });
         clearTimeout(timeoutId);
 
         if (res.ok) {
@@ -779,7 +763,8 @@ export async function generateCampaignBatchAction(params: {
   const requiredCredits = selectedFormats.length * 2;
   await deductCredit(requiredCredits);
 
-  // Step 1: Use Gemini to plan the campaign visual direction
+  try {
+    // Step 1: Use Gemini to plan the campaign visual direction
   const identityContext = brandDNA 
     ? `${brandDNA.type === 'brand' ? 'Brand' : 'Subject'}: ${brandDNA.name}. Description: ${brandDNA.description}. ${brandDNA.colors?.length ? `Colors: ${brandDNA.colors.join(', ')}.` : ''}`
     : '';
@@ -1021,10 +1006,15 @@ Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
     }
   }
 
-  return {
-    plan: campaignPlan,
-    assets: results.filter(r => r.image),
-    errors: results.filter(r => r.error),
-    totalRequested: selectedFormats.length,
-  };
+    return {
+      plan: campaignPlan,
+      assets: results.filter(r => r.image),
+      errors: results.filter(r => r.error),
+      totalRequested: selectedFormats.length,
+    };
+  } catch (err) {
+    // Full refund on catastrophic failure
+    await refundCredit(requiredCredits);
+    throw err;
+  }
 }
