@@ -147,11 +147,16 @@ export async function generateAIImage(params: {
     if (effectiveUrl) {
       try {
         // SSRF & DNS Rebinding Protection
-        const { hostname } = await validateUrlSecurity(effectiveUrl, 'Generate');
+        const { hostname, address } = await validateUrlSecurity(effectiveUrl, 'Generate');
+        
+        const urlObj = new URL(effectiveUrl);
+        urlObj.hostname = address;
+        const pinnedUrl = urlObj.toString();
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-        const res = await fetch(effectiveUrl, { 
+        const res = await fetch(pinnedUrl, { 
+          headers: { 'Host': hostname },
           signal: controller.signal,
           redirect: 'error'
         });

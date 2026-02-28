@@ -120,12 +120,17 @@ export async function POST(req: NextRequest) {
     if (image.startsWith('http')) {
       // Security: Validate URL to prevent SSRF and DNS Rebinding
       try {
-        const { hostname } = await validateUrlSecurity(image, 'Export');
+        const { hostname, address } = await validateUrlSecurity(image, 'Export');
+
+        const urlObj = new URL(image);
+        urlObj.hostname = address;
+        const pinnedUrl = urlObj.toString();
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-        const fetchRes = await fetch(image, { 
+        const fetchRes = await fetch(pinnedUrl, { 
+          headers: { 'Host': hostname },
           signal: controller.signal,
           redirect: 'error' // PRO-TIP: Prevent open redirects to internal IPs
         });
