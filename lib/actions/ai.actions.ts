@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { CAMPAIGN_FORMATS } from '@/lib/campaign-formats';
 import { createClient } from '@/lib/supabase/server';
 import { PLANS, PlanType } from '@/lib/plans';
-import { deductCredit, checkCredits } from "@/lib/credits-actions";
+import { deductCredit, checkCredits, refundCredit } from "@/lib/credits-actions";
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
@@ -133,8 +133,11 @@ export async function generateAIImage(params: {
   const planName = profile?.plan || 'free';
   const currentResolution = (PLANS[planName as PlanType] ?? PLANS.free).resolution;
 
-  // Single generation at a time for progress tracking
-  const parts: any[] = [];
+  // Deduct credits upfront to prevent race conditions during long AI operations
+  await deductCredit(2);
+
+  try {
+    const parts: any[] = [];
   
   for (const img of uploadedImages) {
     // Check if the data field actually contains a URL (common in editing)
@@ -148,12 +151,41 @@ export async function generateAIImage(params: {
           throw new Error('Invalid URL protocol');
         }
         
+        // SSRF Protection: Prevent access to internal networks/metadata endpoints
+        const hostname = parsedUrl.hostname.toLowerCase();
+        
+        // Block IPv6 loopback and private ranges
+        const isIPv6Internal = /^\[?(::1|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|fe80:|fc00:|fd00:)/i.test(hostname);
+        
+        // Block IPv4 private ranges, localhost, and common bypasses (0.0.0.0, etc.)
+        const isIPv4Internal = /^(localhost|0\.0\.0\.0|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(hostname);
+        
+        // Block decimal/octal/hex IP representations (any all-numeric or suspicious numeric hostname)
+        const isNumericIP = /^\d+$/.test(hostname);
+        
+        if (isIPv6Internal || isIPv4Internal || isNumericIP) {
+          console.warn(`[Generate] Restricted URL blocked from ${hostname}`);
+          throw new Error('Restricted image URL origin');
+        }
+        
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
         const res = await fetch(effectiveUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
+
         if (res.ok) {
+          // Limit reference image size (e.g., 20MB max)
+          const contentLength = res.headers.get('content-length');
+          const MAX_REF_SIZE = 20 * 1024 * 1024;
+          if (contentLength && parseInt(contentLength, 10) > MAX_REF_SIZE) {
+            throw new Error('Reference image too large (max 20MB)');
+          }
+
           const arrayBuffer = await res.arrayBuffer();
+          if (arrayBuffer.byteLength > MAX_REF_SIZE) {
+            throw new Error('Reference image too large (max 20MB)');
+          }
+          
           const base64 = Buffer.from(arrayBuffer).toString('base64');
           parts.push({
             inlineData: {
@@ -260,13 +292,15 @@ export async function generateAIImage(params: {
     imageUrl = `data:${imagePart.inlineData.mimeType || 'image/png'};base64,${imagePart.inlineData.data}`;
   }
 
-  // Deduct credits for the successful generation (2 per image)
-  await deductCredit(2);
-
-  return {
-    image: imageUrl,
-    mimeType: imagePart.inlineData.mimeType || 'image/png',
-  };
+    return {
+      image: imageUrl,
+      mimeType: imagePart.inlineData.mimeType || 'image/png',
+    };
+  } catch (err) {
+    // Refund credits on failure
+    await refundCredit(2);
+    throw err;
+  }
 }
 
 export async function planAppAction(prompt: string) {
@@ -741,12 +775,9 @@ export async function generateCampaignBatchAction(params: {
   const planBatchKey = profile?.plan || 'free';
   const currentResolution = (PLANS[planBatchKey as PlanType] ?? PLANS.free).resolution;
 
-  // Check credits before starting (2 per asset)
+  // Atomic upfront deduction to prevent race conditions during long AI operations
   const requiredCredits = selectedFormats.length * 2;
-  const check = await checkCredits(requiredCredits);
-  if (!check.canProceed) {
-    throw new Error(`Insufficient credits (${check.credits} remaining, need ${requiredCredits}). Please upgrade your plan or wait for your credits to reset.`);
-  }
+  await deductCredit(requiredCredits);
 
   // Step 1: Use Gemini to plan the campaign visual direction
   const identityContext = brandDNA 
@@ -980,10 +1011,14 @@ Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
     }
   }
 
-  // Deduct credits for successful generations (2 per asset)
+  // Synchronize actual deduction with generated results
   const successfulCount = results.filter(r => r.image).length;
-  if (successfulCount > 0) {
-    await deductCredit(successfulCount * 2);
+  if (successfulCount < selectedFormats.length) {
+    const refundAmount = (selectedFormats.length - successfulCount) * 2;
+    if (refundAmount > 0) {
+      console.log(`[Campaign] Refunding ${refundAmount} credits for ${selectedFormats.length - successfulCount} failed assets`);
+      await refundCredit(refundAmount);
+    }
   }
 
   return {

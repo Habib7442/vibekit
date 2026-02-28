@@ -125,18 +125,44 @@ export async function POST(req: NextRequest) {
         }
 
         // Prevent access to internal networks/metadata endpoints
-        const isInternal = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(url.hostname);
-        if (isInternal) {
+        const hostname = url.hostname.toLowerCase();
+        
+        // Block IPv6 loopback and private ranges
+        const isIPv6Internal = /^\[?(::1|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|fe80:|fc00:|fd00:)/i.test(hostname);
+        
+        // Block IPv4 private ranges, localhost, and common bypasses (0.0.0.0, etc.)
+        const isIPv4Internal = /^(localhost|0\.0\.0\.0|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(hostname);
+        
+        // Block decimal/octal/hex IP representations (any all-numeric or suspicious numeric hostname)
+        const isNumericIP = /^\d+$/.test(hostname);
+        
+        if (isIPv6Internal || isIPv4Internal || isNumericIP) {
+          console.warn(`[Export] Restricted URL blocked from ${hostname}`);
           return NextResponse.json({ error: 'Restricted image URL' }, { status: 403 });
         }
 
-        const fetchRes = await fetch(image);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        const fetchRes = await fetch(image, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (!fetchRes.ok) {
-          console.error(`[Export] Failed to fetch URL: ${image}`, fetchRes.status);
+          console.error(`[Export] Failed to fetch URL from ${hostname}:`, fetchRes.status);
           return NextResponse.json({ error: 'Could not retrieve image from the provided URL' }, { status: 400 });
+        }
+
+        // Limit response size (e.g., 50MB max)
+        const contentLength = fetchRes.headers.get('content-length');
+        const MAX_SIZE = 50 * 1024 * 1024;
+        if (contentLength && parseInt(contentLength, 10) > MAX_SIZE) {
+          return NextResponse.json({ error: 'Image too large (max 50MB)' }, { status: 400 });
         }
         
         const arrayBuffer = await fetchRes.arrayBuffer();
+        if (arrayBuffer.byteLength > MAX_SIZE) {
+          return NextResponse.json({ error: 'Image too large (max 50MB)' }, { status: 400 });
+        }
         imageBuffer = Buffer.from(arrayBuffer);
         base64ForAI = imageBuffer.toString('base64');
       } catch (err) {

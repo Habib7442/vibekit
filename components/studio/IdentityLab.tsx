@@ -21,10 +21,11 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
   const [newType, setNewType] = useState<'person' | 'product' | 'brand'>('person');
   const [newDesc, setNewDesc] = useState('');
   const [productImages, setProductImages] = useState<{ data: string; mimeType: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleProductImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || isUploading) return;
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     
@@ -38,6 +39,12 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
         return true;
       });
 
+    if (filesToProcess.length === 0) {
+      e.target.value = '';
+      return;
+    }
+
+    setIsUploading(true);
     Promise.all(
       filesToProcess.map(file => 
         new Promise<{ data: string; mimeType: string } | null>((resolve) => {
@@ -63,6 +70,8 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
       if (validImages.length > 0) {
         setProductImages(prev => [...prev, ...validImages].slice(0, 3));
       }
+    }).finally(() => {
+      setIsUploading(false);
     });
 
     e.target.value = '';
@@ -325,12 +334,17 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
                 </div>
               ))}
               
-              {productImages.length < 3 && (
+              {productImages.length < 3 && !isUploading && (
                 <label className="w-16 h-16 rounded-xl border-2 border-dashed border-zinc-800 hover:border-indigo-500/40 flex flex-col items-center justify-center cursor-pointer transition-all group">
                   <Upload size={14} className="text-zinc-700 group-hover:text-indigo-400 transition-colors" />
                   <span className="text-[7px] text-zinc-700 group-hover:text-zinc-500 mt-0.5">Add</span>
                   <input type="file" className="hidden" accept="image/*" multiple onChange={handleProductImageUpload} />
                 </label>
+              )}
+              {isUploading && (
+                <div className="w-16 h-16 rounded-xl border border-white/5 bg-zinc-900/30 flex items-center justify-center">
+                  <Loader2 size={14} className="text-indigo-500 animate-spin" />
+                </div>
               )}
             </div>
           </div>

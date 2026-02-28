@@ -16,7 +16,7 @@ const PRO_ID = process.env.NEXT_PUBLIC_DODO_PRO_ID;
 
 // Validate essential IDs for production, fallback to 'dev' for local builds if missing
 if (process.env.NODE_ENV === 'production' && (!SOLO_ID || !PRO_ID)) {
-  console.error('[Configuration Error] Dodo Payments Plan IDs are missing in production environment');
+  throw new Error('[Configuration Error] Dodo Payments Plan IDs are missing in production environment. Set NEXT_PUBLIC_DODO_SOLO_ID and NEXT_PUBLIC_DODO_PRO_ID.');
 }
 
 export const PLANS: Record<PlanType, PlanDetails> = {

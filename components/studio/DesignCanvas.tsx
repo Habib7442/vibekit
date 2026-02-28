@@ -310,6 +310,7 @@ export function DesignCanvas() {
       setSaveSuccess(true);
       if (failedUploads.length > 0) {
         console.warn(`[DesignCanvas] Saved with ${failedUploads.length} failed uploads`);
+        alert(`Canvas saved, but ${failedUploads.length} image(s) failed to upload. Please try saving again or check your connections.`);
       }
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err: any) {

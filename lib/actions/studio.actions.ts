@@ -139,8 +139,14 @@ export async function uploadImageToStudio(base64: string, filename: string) {
       .from('studio_assets')
       .getPublicUrl('');
     
+    // Ensure base URL ends with separator to prevent prefix bypass
+    // e.g., prevent studio_assets_malicious from matching studio_assets
+    const normalizedBucketUrl = bucketBaseUrl.endsWith('/') 
+      ? bucketBaseUrl 
+      : bucketBaseUrl + '/';
+    
     // Check if it belongs to our studio bucket
-    if (!base64.startsWith(bucketBaseUrl)) {
+    if (!base64.startsWith(normalizedBucketUrl)) {
       console.warn('[uploadImageToStudio] Rejected untrusted external URL origin:', base64);
       throw new Error('Invalid image URL origin — untrusted asset detected');
     }

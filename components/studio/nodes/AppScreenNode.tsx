@@ -40,6 +40,9 @@ export function AppScreenNode({ id, data, selected }: NodeProps<AppScreenNodeDat
       });
 
       const newImage = result.image;
+      if (!newImage) {
+        throw new Error('No image returned from AI generation');
+      }
       updateNodeData({ image: newImage, prompt: editPrompt });
       setEditMode(false);
       setEditPrompt('');

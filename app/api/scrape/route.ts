@@ -19,8 +19,33 @@ export async function POST(req: Request) {
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
+    // SSRF Protection: Prevent access to internal networks/metadata endpoints
+    let hostname = '';
+    try {
+      const parsedUrl = new URL(url);
+      hostname = parsedUrl.hostname.toLowerCase();
+      console.log(`[SCRAPE] Starting scrape for host: ${hostname}`);
 
-    console.log(`[SCRAPE] Starting scrape for: ${url}`);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return NextResponse.json({ error: 'Invalid URL protocol' }, { status: 400 });
+      }
+      
+      // Block IPv6 loopback and private ranges
+      const isIPv6Internal = /^\[?(::1|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|fe80:|fc00:|fd00:)/i.test(hostname);
+      
+      // Block IPv4 private ranges, localhost, and common bypasses (0.0.0.0, etc.)
+      const isIPv4Internal = /^(localhost|0\.0\.0\.0|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(hostname);
+      
+      // Block decimal/octal/hex IP representations (any all-numeric or suspicious numeric hostname)
+      const isNumericIP = /^\d+$/.test(hostname);
+      
+      if (isIPv6Internal || isIPv4Internal || isNumericIP) {
+        console.warn(`[SCRAPE] Restricted URL blocked from ${hostname}`);
+        return NextResponse.json({ error: 'Restricted URL origin' }, { status: 403 });
+      }
+    } catch (err) {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    }
 
     // --- PHASE 1: Lightweight Fetch Scraper (Production Safe) ---
     try {
@@ -38,7 +63,17 @@ export async function POST(req: Request) {
       clearTimeout(timeoutId);
 
       if (response.ok) {
+        // Limit response size (e.g., 5MB max for HTML)
+        const contentLength = response.headers.get('content-length');
+        const MAX_HTML_SIZE = 5 * 1024 * 1024;
+        if (contentLength && parseInt(contentLength, 10) > MAX_HTML_SIZE) {
+          throw new Error('Page too large (max 5MB)');
+        }
+
         const html = await response.text();
+        if (html.length > MAX_HTML_SIZE) {
+          throw new Error('Page too large (max 5MB)');
+        }
         
         // Basic extraction using regex (fast and serverless-safe)
         const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);

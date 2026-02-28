@@ -37,6 +37,9 @@ export function ImagenNode({ id, data, selected }: NodeProps<ImagenNodeData>) {
       });
 
       const newImage = result.image;
+      if (!newImage) {
+        throw new Error('No image returned from AI generation');
+      }
       updateNodeData({ image: newImage, prompt: editPrompt });
       setEditMode(false);
       setEditPrompt('');

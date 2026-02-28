@@ -181,7 +181,7 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
       for (const [i, asset] of results.entries()) {
         try {
           const ext = asset.mimeType?.includes('png') ? 'png' : 'jpg';
-          const safeName = asset.label.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') || `asset_${i + 1}`;
+          const safeName = (asset.label || '').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_') || `asset_${i + 1}`;
           
           let bytes: Uint8Array;
           if (asset.image.startsWith('http')) {

@@ -169,3 +169,17 @@ export async function checkCredits(amount: number = 1) {
   };
 }
 
+export async function refundCredit(amount: number = 1) {
+  if (amount <= 0 || !Number.isInteger(amount)) {
+    throw new Error('Invalid refund amount');
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return; // Silent return for refund if no user session
+
+  const admin = createAdminClient();
+  // We use the same RPC but with a negative deduction to add credits
+  // amount of 2 becomes deduction of -2, which means credits = credits - (-2) = credits + 2
+  await admin.rpc('deduct_credits', { user_id: user.id, deduction: -amount });
+}
+

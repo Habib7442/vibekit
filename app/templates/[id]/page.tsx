@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { generateAIImage } from '@/lib/actions/ai.actions';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
@@ -329,7 +329,7 @@ export default function TemplateBuilderPage() {
     }
 
     setIsExporting(false);
-    alert('Your Cinematic MP4 Reel has been exported successfully!');
+    alert('Your Cinematic WebM Reel has been exported successfully!');
   };
 
   return (
@@ -591,6 +591,9 @@ function MontagePreview({
   const [showStylized, setShowStylized] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Memoize IDs to prevent effect resets when image properties (like stylizing state) change
+  const imageIds = useMemo(() => images.map(img => img.id).join(','), [images]);
+
   useEffect(() => {
     if (images.length === 0) return;
 
@@ -626,7 +629,7 @@ function MontagePreview({
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [activeIndex, images, isGenerating]); // Removed transition so it doesn't reset mid-play
+  }, [activeIndex, imageIds, isGenerating]); // Use imageIds to ignore property-only updates
 
   const activeImg = images[activeIndex];
   if (!activeImg) return null;
