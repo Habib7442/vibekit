@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const isTest = environment === "test_mode";
   const apiUrl = isTest 
     ? "https://test.dodopayments.com/checkouts"
-    : "https://api.dodopayments.com/checkouts";
+    : "https://live.dodopayments.com/checkouts";
 
   console.log(`[Checkout] Creating checkout for user ${userId}, product ${productId}, env: ${environment}`);
 
