@@ -170,6 +170,12 @@ function LandingPageContent() {
         />
         
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full flex flex-col items-center relative z-10">
+           {/* Nano Banana Signature */}
+           <div className="mb-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#f5e1c8]/5 border border-[#f5e1c8]/10 text-[9px] font-black text-[#f5e1c8] uppercase tracking-[0.3em] backdrop-blur-md shadow-2xl animate-in fade-in zoom-in duration-1000">
+             <div className="w-1 h-1 rounded-full bg-[#f5e1c8] animate-pulse shadow-[0_0_8px_rgba(245,225,200,0.8)]" />
+             Powered by Nano Banana 2 🍌
+           </div>
+           
            <h1 className="text-5xl md:text-[6rem] font-bold text-white tracking-tight leading-[1.0] max-w-5xl mb-6">
              Professional AI Studio. <br /> 
              <span className="italic font-[family-name:var(--font-playfair)] font-light text-[#f5e1c8]">For High-End Brands.</span>
@@ -333,7 +339,7 @@ function LandingPageContent() {
            <Link href="/terms" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
            <Link href="/cookies" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>
         </div>
-        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. POWERED BY GEMINI. 4K ASSETS ONLY.</p>
+        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. POWERED BY NANO BANANA 2 🍌. 4K ASSETS ONLY.</p>
       </footer>
 
       <AuthModal 
