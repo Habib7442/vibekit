@@ -1,5 +1,5 @@
 # Product Requirements Document
-## VisualAI Studio — AI-Native Design Platform for E-Commerce & Marketing Teams
+## ImageStudioLab — AI-Native Design Platform for E-Commerce & Marketing Teams
 
 **Version:** 1.0  
 **Date:** February 25, 2026  
@@ -29,13 +29,13 @@
 
 ## 1. Executive Summary
 
-**VisualAI Studio** is an AI-native design platform that lets small businesses, e-commerce sellers, and marketing teams produce professional-quality visual assets — product photos, ad creatives, social media posts, brand kits — without hiring a designer or knowing design software.
+**ImageStudioLab** is an AI-native design platform that lets small businesses, e-commerce sellers, and marketing teams produce professional-quality visual assets — product photos, ad creatives, social media posts, brand kits — without hiring a designer or knowing design software.
 
 The core insight: every existing design tool (Canva, Pixlr, Kittl, Lovart) either requires design skill, has weak AI that doesn't follow instructions, treats every asset as a one-off, or is unreliable. None of them can take a brand brief and generate 40 campaign-consistent assets in one session. None of them can replace a $200 product photoshoot with a phone photo and a text prompt.
 
 We solve this using two Google Gemini APIs:
 - **Gemini 3 Pro** (`gemini-3-pro-preview`) — brand reasoning, design critique, campaign planning, copy writing
-- **Nano Banana Pro** (`gemini-3-pro-image-preview`) — 4K image generation, conversational editing, grounded real-time generation, up to 14 reference image compositing
+- **Nano Banana Pro** (`gemini-3.1-flash-image-preview`) — 4K image generation, conversational editing, grounded real-time generation, up to 14 reference image compositing
 
 **Beachhead market:** E-commerce product photography replacement.  
 **Expansion:** Brand kit generation → Campaign asset batching → Agency workflow tools.
@@ -161,7 +161,7 @@ No competitor has all four of:
 ## 6. Product Overview
 
 ### Product Name
-**VisualAI Studio**
+**ImageStudioLab**
 
 ### Tagline
 *"Your brand. Any asset. 4K. In minutes."*
@@ -241,7 +241,7 @@ Upload one or more photos of a product (taken on a phone, any background) and ge
 - Quantity (generate 1, 3, or 6 variations per request)
 
 **Behavior:**
-- Nano Banana Pro (`gemini-3-pro-image-preview`) receives the product images as reference inputs
+- Nano Banana Pro (`gemini-3.1-flash-image-preview`) receives the product images as reference inputs
 - System prompt instructs model to preserve product appearance with high fidelity while placing it in requested scene
 - Model uses Thinking mode to reason about composition before generating final output
 - All Thought Signatures are automatically managed by the SDK in chat mode
@@ -486,10 +486,10 @@ All generated assets are saved automatically in a searchable library. Users can 
 | Campaign concept planning | `gemini-3-pro-preview` | `high` | Creative reasoning required |
 | Design critique | `gemini-3-pro-preview` | `high` | Detailed multimodal analysis |
 | Copy writing / headlines | `gemini-3-flash-preview` | `low` | Fast, simple text generation |
-| Product photography | `gemini-3-pro-image-preview` | Thinking on by default | Nano Banana Pro — best fidelity |
-| Campaign assets (all formats) | `gemini-3-pro-image-preview` | Thinking on by default | Nano Banana Pro — text rendering |
+| Product photography | `gemini-3.1-flash-image-preview` | Thinking on by default | Nano Banana Pro — best fidelity |
+| Campaign assets (all formats) | `gemini-3.1-flash-image-preview` | Thinking on by default | Nano Banana Pro — text rendering |
 | Quick icons / backgrounds | `gemini-2.5-flash-image` | N/A | Nano Banana — fast/cheap |
-| Grounded generation | `gemini-3-pro-image-preview` + `googleSearch` tool | Thinking on by default | Real-time data visuals |
+| Grounded generation | `gemini-3.1-flash-image-preview` + `googleSearch` tool | Thinking on by default | Real-time data visuals |
 
 ### Thought Signature Management
 - All image generation uses the official `@google/genai` JavaScript SDK in `chat` mode
@@ -620,7 +620,7 @@ A smaller feature set that works perfectly beats a large feature set that occasi
 - Up to 10 brand kits (one per client)
 - Multi-user workspace (up to 5 seats)
 - Client sharing links (read-only for client review)
-- White-label export option (no VisualAI watermark on client-facing materials)
+- White-label export option (no ImageStudioLab watermark on client-facing materials)
 - Bulk export / campaign ZIP
 - Target: Small agencies, freelancers with multiple clients
 
@@ -716,7 +716,7 @@ A smaller feature set that works perfectly beats a large feature set that occasi
 
 ## 15. Open Questions
 
-1. **Model naming:** The image generation API is called "Nano Banana Pro" in Google's documentation. This is the marketing name for `gemini-3-pro-image-preview`. Should we mention this model name in our UI, or refer to it generically as "our AI"?
+1. **Model naming:** The image generation API is called "Nano Banana Pro" in Google's documentation. This is the marketing name for `gemini-3.1-flash-image-preview`. Should we mention this model name in our UI, or refer to it generically as "our AI"?
 
 2. **Offline/export quality:** For print-ready CMYK export, we need server-side color conversion. Should we use a dedicated color management library (like `colorjs`) or a headless LibreOffice conversion pipeline?
 

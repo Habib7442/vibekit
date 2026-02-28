@@ -66,7 +66,7 @@ export default async function GenerationsPage() {
              <p className="text-zinc-600 text-xs text-center max-w-xs px-6">Save your designs or visuals from the studio to see them here.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
             {canvases.map((canvas) => (
               <CanvasCard 
                 key={canvas.id} 

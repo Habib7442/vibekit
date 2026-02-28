@@ -13,6 +13,11 @@ import { AuthModal } from '@/components/studio/AuthModal';
 import { IdentityLab } from './IdentityLab';
 import { StudioModel } from '@/lib/actions/identity.actions';
 
+function getImageSrc(image: string, mimeType: string) {
+  if (image.startsWith('http')) return image;
+  return `data:${mimeType};base64,${image}`;
+}
+
 const ASPECT_RATIOS = [
   { label: '1:1', value: '1:1' },
   { label: '4:5', value: '4:5' },
@@ -33,7 +38,7 @@ export function ChatPanel() {
   const { 
     messages, isGenerating, addMessage, updateMessage, addGalleryImages, setIsGenerating, 
     selectedIdentity, setSelectedIdentity, imageCount, setImageCount, aspectRatio, setAspectRatio,
-    clearChat, clearGallery
+    clearChat, clearGallery, setGenerationProgress
   } = useImageChatStore();
   const { user, loading: authLoading } = useAuth();
   
@@ -44,13 +49,16 @@ export function ChatPanel() {
   const [isPlanning, setIsPlanning] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
 
-  const [selectedImages, setSelectedImages] = useState<{ data: string; mimeType: string }[]>([]);
-  const [identityImages, setIdentityImages] = useState<{ data: string; mimeType: string }[]>([]);
+  const [selectedImages, setSelectedImages] = useState<{ data?: string; url?: string; mimeType: string }[]>([]);
+  const [identityImages, setIdentityImages] = useState<{ data?: string; url?: string; mimeType: string }[]>([]);
   const [isIdentitySyncing, setIsIdentitySyncing] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
 
   // Sync identity images whenever the selection changes
   useEffect(() => {
+    let isCancelled = false;
+    const controller = new AbortController();
+
     const syncIdentityImages = async () => {
       if (!selectedIdentity?.reference_images || selectedIdentity.reference_images.length === 0) {
         setIdentityImages([]);
@@ -59,7 +67,7 @@ export function ChatPanel() {
       }
 
       setIsIdentitySyncing(true);
-      const images: { data: string; mimeType: string }[] = [];
+      const images: { data?: string; url?: string; mimeType: string }[] = [];
       
       try {
         for (const ref of selectedIdentity.reference_images) {
@@ -70,31 +78,26 @@ export function ChatPanel() {
             continue;
           }
 
-          // Handle URL (Supabase Storage)
+          // Handle URL (Supabase Storage) - SEND URL DIRECTLY TO SERVER
           if (ref.startsWith('http')) {
-            const response = await fetch(ref);
-            const blob = await response.blob();
-            const reader = new FileReader();
-            const base64Promise = new Promise<string>((resolve) => {
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-            const result = await base64Promise;
-            const match = result.match(/^data:([^;]+);base64,(.+)$/);
-            if (match) {
-              images.push({ mimeType: match[1], data: match[2] });
-            }
+            images.push({ url: ref, mimeType: 'image/jpeg' }); // Default to jpeg, server will fetch
+            continue;
           }
         }
-        setIdentityImages(images);
+        if (!isCancelled) setIdentityImages(images);
       } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
         console.error('[ChatPanel] Error fetching identity image:', err);
       } finally {
-        setIsIdentitySyncing(false);
+        if (!isCancelled) setIsIdentitySyncing(false);
       }
     };
 
     syncIdentityImages();
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
   }, [selectedIdentity]);
 
   useEffect(() => {
@@ -106,13 +109,17 @@ export function ChatPanel() {
 
   useEffect(() => {
     const p = searchParams.get('prompt');
+    let timeoutId: NodeJS.Timeout;
     if (p && messages.length === 0 && !isGenerating && !authLoading) {
       setInput(decodeURIComponent(p));
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         handleGenerate(decodeURIComponent(p));
       }, 500);
     }
-  }, [searchParams, messages, isGenerating, authLoading]);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [searchParams, messages.length, isGenerating, authLoading]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -151,6 +158,23 @@ export function ChatPanel() {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) files.push(file);
+      }
+    }
+
+    if (files.length > 0) {
+      processFiles(files);
+    }
+  };
+
   const handleGenerate = async (overridePrompt?: string) => {
     let prompt = overridePrompt || input.trim();
     if (selectedIdentity) {
@@ -177,12 +201,21 @@ export function ChatPanel() {
     
     const imageDatas = [...identityImages, ...selectedImages];
     const template = currentTemplate;
+    const totalToGenerate = imageCount;
+    
     setInput('');
     setSelectedImages([]);
     setIsGenerating(true);
+    setGenerationProgress({ total: totalToGenerate, completed: 0 });
     if (isMobile) setShowMobileChat(true);
 
-    addMessage({ id: assistantMsgId, role: 'assistant', content: '', isLoading: true, timestamp: Date.now() });
+    addMessage({ 
+      id: assistantMsgId, 
+      role: 'assistant', 
+      content: `I'm on it! Drafting ${totalToGenerate} unique variant${totalToGenerate > 1 ? 's' : ''} for you. Please have patience while I craft your masterpiece...`, 
+      isLoading: true, 
+      timestamp: Date.now() 
+    });
 
     if (!user) {
       setShowAuthModal(true);
@@ -192,39 +225,79 @@ export function ChatPanel() {
     }
 
     try {
-      await deductCredit(2 * imageCount);
-      const data = await generateAIImage({
-        prompt: prompt,
-        aspectRatio,
-        count: imageCount,
-        template: template || undefined,
-        images: imageDatas.map(img => ({ data: img.data, mimeType: img.mimeType }))
-      });
+      const generatedImages: GeneratedImage[] = [];
+      
+      for (let i = 0; i < totalToGenerate; i++) {
+        // Update progress for current variant
+        setGenerationProgress({ total: totalToGenerate, completed: i });
+        
+        const data = await generateAIImage({
+          prompt: prompt,
+          aspectRatio,
+          count: 1, // Always 1 per call now
+          template: template || undefined,
+          images: imageDatas
+        });
 
-      const generatedImages: GeneratedImage[] = data.images.map((img, i) => ({
-        id: `img_${Date.now()}_${i}`,
-        image: img.image,
-        mimeType: img.mimeType || 'image/png',
-        prompt: prompt || `Template: ${template}`,
-        aspectRatio,
-        timestamp: Date.now(),
-      }));
+        const newImg: GeneratedImage = {
+          id: `img_${Date.now()}_${i}`,
+          image: data.image,
+          mimeType: data.mimeType,
+          prompt: prompt || `Template: ${template}`,
+          aspectRatio,
+          timestamp: Date.now(),
+        };
 
+        generatedImages.push(newImg);
+        
+        // Update UI progressively
+        updateMessage(assistantMsgId, {
+          content: `Crafting your vision... (${i + 1}/${totalToGenerate} complete)`,
+          images: [...generatedImages],
+        });
+        
+        // Add to gallery immediately so user can see them one by one
+        addGalleryImages([newImg]);
+      }
+
+      setGenerationProgress({ total: totalToGenerate, completed: totalToGenerate });
       updateMessage(assistantMsgId, {
         content: `Ready! Generated ${generatedImages.length} variants.`,
         images: generatedImages,
         isLoading: false,
       });
-      addGalleryImages(generatedImages);
     } catch (err: any) {
       updateMessage(assistantMsgId, { content: `Error: ${err.message}`, isLoading: false });
     } finally {
       setIsGenerating(false);
+      // Reset progress after a short delay
+      setTimeout(() => setGenerationProgress({ total: 0, completed: 0 }), 2000);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
+  };
+
+  const handleMagicWand = async () => {
+    if (!input.trim() || isPlanning) return;
+    
+    setIsPlanning(true);
+    try {
+      const identityParam = selectedIdentity ? {
+        name: selectedIdentity.name,
+        description: selectedIdentity.description
+      } : undefined;
+
+      const result = await planVisualAction(input, identityParam);
+      if (result?.detailedPrompt) {
+        setInput(result.detailedPrompt);
+      }
+    } catch (err) {
+      console.error("[MagicWand] Failed to plan:", err);
+    } finally {
+      setIsPlanning(false);
+    }
   };
 
   const renderTabs = () => (
@@ -267,6 +340,7 @@ export function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder="Talk to Design AI..."
             rows={1}
             className="w-full bg-[#111118] border border-zinc-800/60 rounded-2xl py-4 pl-4 pr-12 text-white text-xs focus:outline-none focus:border-indigo-500/40 resize-none transition-all shadow-2xl"
@@ -274,6 +348,16 @@ export function ChatPanel() {
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
              <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors">
                <ImageIcon size={18} />
+             </button>
+             <button 
+               onClick={handleMagicWand}
+               disabled={!input.trim() || isPlanning || isGenerating}
+               className={cn(
+                 "p-1.5 text-indigo-400/60 hover:text-indigo-400 transition-colors",
+                 isPlanning && "animate-pulse"
+               )}
+             >
+               {isPlanning ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
              </button>
              <button 
                onClick={() => handleGenerate()}
@@ -336,10 +420,16 @@ export function ChatPanel() {
                    value={input}
                    onChange={(e) => setInput(e.target.value)}
                    onKeyDown={handleKeyDown}
+                   onPaste={handlePaste}
                    placeholder="Prompt..."
                    className="w-full bg-zinc-900 border border-white/5 rounded-xl py-3 px-4 text-xs text-white"
                  />
-                 <button onClick={() => handleGenerate()} className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 p-1.5"><Send size={18}/></button>
+                 <button onClick={() => handleGenerate()} 
+                    disabled={(!input.trim() && selectedImages.length === 0) || isGenerating || isIdentitySyncing}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 p-1.5 disabled:opacity-40 transition-all active:scale-95"
+                  >
+                    {(isGenerating || isIdentitySyncing) ? <Loader2 size={18} className="animate-spin" /> : <Send size={18}/>}
+                  </button>
               </div>
 
               <Sheet>
@@ -391,11 +481,11 @@ export function ChatPanel() {
                     {msg.isLoading ? <Loader2 size={12} className="animate-spin" /> : msg.content}
                  </div>
                  {msg.images && (
-                   <div className="grid grid-cols-2 gap-2 mt-1">
-                     {msg.images.map((img, i) => (
-                       <img key={i} src={`data:${img.mimeType};base64,${img.image}`} className="w-28 h-28 object-cover rounded-xl border border-zinc-800" />
-                     ))}
-                   </div>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      {msg.images.map((img, i) => (
+                        <img key={i} src={getImageSrc(img.image, img.mimeType)} alt={`Generated image ${i + 1}`} className="w-28 h-28 object-cover rounded-xl border border-zinc-800" />
+                      ))}
+                    </div>
                  )}
               </div>
             ))}

@@ -132,6 +132,8 @@ export async function saveCanvasAction(params: SaveCanvasParams) {
 }
 
 export async function uploadImageToStudio(base64: string, filename: string) {
+  if (base64.startsWith('http')) return base64; // Already uploaded
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

@@ -3,6 +3,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export interface StudioModel {
   id: string;
   name: string;
@@ -31,7 +40,6 @@ export async function getMyIdentities() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[Identities] Fetch Error:', error);
     return [];
   }
 
@@ -64,9 +72,16 @@ export async function createIdentityAction(params: {
       
       if (match) {
         const mimeType = match[1];
+        if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
+          continue;
+        }
         const data = match[2];
         const buffer = Buffer.from(data, 'base64');
-        const fileExt = mimeType.split('/')[1] || 'jpg';
+
+        if (buffer.length > MAX_IMAGE_SIZE) {
+          continue;
+        }
+        const fileExt = MIME_TO_EXT[mimeType];
         const fileName = `${Date.now()}-${i}.${fileExt}`;
         const filePath = `${user.id}/identities/${fileName}`;
 
@@ -78,7 +93,6 @@ export async function createIdentityAction(params: {
           });
 
         if (uploadError) {
-          console.error('[Storage] Upload Error:', uploadError);
           continue;
         }
 
@@ -182,7 +196,7 @@ Return ONLY a valid JSON object:
 
   let text = "";
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -193,8 +207,6 @@ Return ONLY a valid JSON object:
     });
 
     if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      console.error("[analyzeBrandDNAAction] API error:", response.status, errorBody);
       throw new Error(`Failed to analyze brand DNA: ${response.status}`);
     }
 
@@ -212,7 +224,6 @@ Return ONLY a valid JSON object:
   try {
     return JSON.parse(text);
   } catch (err) {
-    console.error("[analyzeBrandDNAAction] JSON parse error:", err);
     throw new Error("Invalid response from AI");
   }
 }

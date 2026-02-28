@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  allowedDevOrigins: ["unrealistically-unbungling-milania.ngrok-free.dev"],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

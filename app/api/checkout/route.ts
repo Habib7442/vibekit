@@ -4,7 +4,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const productId = searchParams.get("productId");
   const userId = searchParams.get("userId");
+  const email = searchParams.get("email");
   const credits = searchParams.get("credits");
+  const plan = searchParams.get("plan");
 
   if (!productId) {
     return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
@@ -21,8 +23,8 @@ export async function GET(request: Request) {
   
   const isTest = environment === "test_mode";
   const apiUrl = isTest 
-    ? "https://test.dodopayments.com/api/v1/checkout"
-    : "https://api.dodopayments.com/api/v1/checkout";
+    ? "https://test.dodopayments.com/checkouts"
+    : "https://api.dodopayments.com/checkouts";
 
   try {
     const response = await fetch(apiUrl, {
@@ -32,31 +34,37 @@ export async function GET(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        product_id: productId,
-        quantity: 1,
+        product_cart: [
+          {
+            product_id: productId,
+            quantity: 1,
+          }
+        ],
         return_url: returnUrl,
         ...(userId && {
           metadata: {
             user_id: userId,
-            ...(credits && { credits })
+            ...(credits && { credits }),
+            ...(plan && { plan })
           },
           customer: {
-            external_id: userId
+            external_id: userId,
+            ...(email && { email })
           }
         })
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Dodo API Error:", response.status, errorData);
-      return NextResponse.json({ error: "Payment service error" }, { status: 502 });
+      const errorText = await response.text();
+      console.error("Dodo API Error:", response.status, errorText);
+      return NextResponse.json({ error: "Payment service error", details: errorText }, { status: 502 });
     }
 
     const data = await response.json();
     
-    if (data.url) {
-      return NextResponse.redirect(data.url);
+    if (data.checkout_url) {
+      return NextResponse.redirect(data.checkout_url);
     } else {
       console.error("Dodo Checkout Error: No URL returned", data);
       return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });

@@ -5,7 +5,7 @@ const API_KEY = process.env.GEMINI_API_KEY || "";
 const ENDPOINTS = {
   VISION: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
   TEXT: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
-  IMAGE: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
+  IMAGE: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent"
 };
 
 async function callGemini(endpoint: string, body: any) {
@@ -187,12 +187,11 @@ export async function generateAIImage(prompt: string, aspectRatio: "1:1" | "4:5"
       parts: [{ text: `Generate a high-quality, professional, studio-shot style image for a premium social media carousel. TOPIC: ${prompt}. AESTHETIC: High-end, editorial, clean lighting.` }]
     }],
     generationConfig: {
-      imageConfig: {
-        aspectRatio: aspectRatio,
-        imageSize: "1024x1024"
-      }
+      response_modalities: ["IMAGE"],
     }
   };
+
+  // Image configuration is handled via prompt instructions for these endpoints
 
   try {
     const data = await callGemini(ENDPOINTS.IMAGE, body);

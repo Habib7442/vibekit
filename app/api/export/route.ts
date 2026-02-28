@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import JSZip from 'jszip';
 
-const API_KEY = process.env.GEMINI_API_KEY || "";
-const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
+const API_KEY = process.env.GEMINI_API_KEY;
+
+if (!API_KEY) {
+  console.warn('[Export API] GEMINI_API_KEY not configured - AI expansion will be disabled');
+}
+
+const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent";
 
 // Platform export presets
 const PRESETS: Record<string, { width: number; height: number; format: 'jpeg' | 'png'; quality: number; label: string }> = {
@@ -26,6 +31,7 @@ const PRESETS: Record<string, { width: number; height: number; format: 'jpeg' | 
 
 // Get the aspect ratio key (e.g., "16:9", "1:1") for grouping
 function getAspectRatioKey(w: number, h: number): string {
+  if (w === 0 || h === 0) return "0:0";
   const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
   const d = gcd(w, h);
   return `${w / d}:${h / d}`;
@@ -33,6 +39,7 @@ function getAspectRatioKey(w: number, h: number): string {
 
 // Check if two aspect ratios are similar enough to just resize (within 5% tolerance)
 function isSimilarAspectRatio(origW: number, origH: number, targetW: number, targetH: number): boolean {
+  if (origH === 0 || targetH === 0) return false;
   const origRatio = origW / origH;
   const targetRatio = targetW / targetH;
   const diff = Math.abs(origRatio - targetRatio) / Math.max(origRatio, targetRatio);
@@ -62,9 +69,12 @@ async function aiExpandImage(imageBase64: string, mimeType: string, targetW: num
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
-    const res = await fetch(`${IMAGE_ENDPOINT}?key=${API_KEY}`, {
+    const res = await fetch(IMAGE_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-goog-api-key': API_KEY || '',
+      },
       body: JSON.stringify(reqBody),
       signal: controller.signal,
     });
@@ -102,8 +112,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing image or platforms' }, { status: 400 });
     }
 
-    // Decode the base64 image
-    const imageBuffer = Buffer.from(image, 'base64');
+    // Decode the base64 image or fetch URL
+    let imageBuffer: Buffer;
+    let base64ForAI = '';
+
+    if (image.startsWith('http')) {
+      const fetchRes = await fetch(image);
+      const arrayBuffer = await fetchRes.arrayBuffer();
+      imageBuffer = Buffer.from(arrayBuffer);
+      base64ForAI = imageBuffer.toString('base64');
+    } else {
+      imageBuffer = Buffer.from(image, 'base64');
+      base64ForAI = image;
+    }
     
     // Get original image metadata
     const metadata = await sharp(imageBuffer).metadata();
@@ -114,7 +135,7 @@ export async function POST(req: NextRequest) {
     const exportFolder = zip.folder(filename || 'exports')!;
 
     // If AI expand is enabled, group platforms by aspect ratio to minimize API calls
-    const expandedCache: Record<string, Buffer<ArrayBufferLike>> = {};
+    const expandedCache: Record<string, typeof imageBuffer> = {};
 
     for (const platformKey of platforms) {
       const preset = PRESETS[platformKey];
@@ -129,10 +150,10 @@ export async function POST(req: NextRequest) {
           
           // Check cache — reuse expanded images for same aspect ratio
           if (expandedCache[ratioKey]) {
-            sourceBuffer = expandedCache[ratioKey] as any;
+            sourceBuffer = expandedCache[ratioKey];
           } else {
             console.log(`[AI Expand] Expanding for ${preset.label} (${ratioKey})...`);
-            const expandedBase64 = await aiExpandImage(image, mimeType, preset.width, preset.height);
+            const expandedBase64 = await aiExpandImage(base64ForAI, mimeType, preset.width, preset.height);
             
             if (expandedBase64) {
               sourceBuffer = Buffer.from(expandedBase64, 'base64');
@@ -157,7 +178,7 @@ export async function POST(req: NextRequest) {
               fit: fitMode,
               position: 'centre',
             })
-            .png({ quality: preset.quality })
+            .png({ compressionLevel: 9 })
             .toBuffer();
         } else {
           resized = await sharp(sourceBuffer)
@@ -184,10 +205,15 @@ export async function POST(req: NextRequest) {
       compressionOptions: { level: 6 }
     });
 
+    // Sanitize filename for Content-Disposition header
+    const safeFilename = (filename || 'exports')
+      .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+      .substring(0, 200);
+
     return new NextResponse(new Uint8Array(zipBuffer), {
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${filename || 'exports'}.zip"`,
+        'Content-Disposition': `attachment; filename="${safeFilename}.zip"`,
       },
     });
   } catch (err: any) {

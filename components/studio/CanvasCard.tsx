@@ -55,8 +55,8 @@ export function CanvasCard({ canvas, isOwner }: CanvasCardProps) {
     <Link 
       href={`/studio/generations/${canvas.id}`}
       className={cn(
-        "group relative flex flex-col bg-[#0A0A0F]/80 border border-white/[0.04] rounded-[40px] overflow-hidden hover:border-white/10 transition-all hover:bg-[#0C0C14] hover:shadow-2xl hover:shadow-black/60",
-        (canvas.type === 'web' || canvas.type === 'component' || canvas.type === 'visual') && "md:col-span-2"
+        "group relative flex flex-col bg-[#0A0A0F]/80 border border-white/[0.04] rounded-3xl overflow-hidden hover:border-white/10 transition-all hover:bg-[#0C0C14] hover:shadow-2xl hover:shadow-black/60",
+        (canvas.type === 'web' || canvas.type === 'component') && "md:col-span-2"
       )}
     >
       {/* Dynamic Preview Area */}

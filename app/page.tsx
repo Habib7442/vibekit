@@ -13,6 +13,8 @@ import { AuthModal } from '@/components/studio/AuthModal';
 import { signOut } from '@/lib/auth-actions';
 import { ShowcaseGrid } from '@/components/studio/ShowcaseGrid';
 import { AssetShowcase } from '@/components/studio/AssetShowcase';
+import { TemplateGallery } from '@/components/studio/TemplateGallery';
+import { planAppAction, planVisualAction } from '@/lib/actions/ai.actions';
 
 function LandingPageContent() {
   const router = useRouter();
@@ -28,6 +30,7 @@ function LandingPageContent() {
   const [type, setType] = useState<'app' | 'ui' | 'web' | 'image'>('image');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isPlanning, setIsPlanning] = useState(false);
   const [pendingTargetUrl, setPendingTargetUrl] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
 
@@ -61,19 +64,34 @@ function LandingPageContent() {
     router.push(targetUrl);
   };
 
-  const handlePlan = () => {
+  const handlePlan = async () => {
+    if (!prompt.trim()) return;
+
     if (type === 'web' && websiteUrl.trim() && !websiteUrl.trim().toLowerCase().startsWith('https://')) {
       alert('❌ Security Error: Please enter a secure website URL starting with https://');
       return;
     }
-    const targetUrl = getTargetUrl(true);
-    if (!user && !authLoading) {
-      setPendingTargetUrl(targetUrl);
-      setShowAuthModal(true);
-      return;
+
+    setIsPlanning(true);
+    try {
+      let result;
+      if (type === 'image') {
+        result = await planVisualAction(prompt);
+      } else {
+        result = await planAppAction(prompt);
+      }
+
+      if (result && result.detailedPrompt) {
+        setPrompt(result.detailedPrompt);
+      }
+    } catch (err) {
+      console.error("Planning failed:", err);
+      // Fallback: just go to studio
+      const targetUrl = getTargetUrl(true);
+      router.push(targetUrl);
+    } finally {
+      setIsPlanning(false);
     }
-    if (authLoading && !user) return; // Still loading session
-    router.push(targetUrl);
   };
 
   return (
@@ -92,7 +110,7 @@ function LandingPageContent() {
                 className="object-contain"
               />
             </div>
-            <span className="font-bold text-sm tracking-tight text-white uppercase italic hidden sm:inline-block">VisualAI Studio</span>
+            <span className="font-bold text-sm tracking-tight text-white uppercase italic hidden sm:inline-block">ImageStudioLab</span>
           </div>
           
           <div className="flex items-center gap-3 md:gap-8">
@@ -158,7 +176,7 @@ function LandingPageContent() {
            </h1>
            
            <p className="text-zinc-500 text-sm md:text-lg max-w-3xl mx-auto mb-10 leading-relaxed uppercase tracking-[0.2em] font-black opacity-80">
-             Turn one reference into a full 4K Campaign. <br className="hidden md:block" />
+             Turn one reference into a full Campaign. <br className="hidden md:block" />
              <span className="text-zinc-600">Identity Preservation Meets High-Fidelity Rendering.</span>
            </p>
 
@@ -181,7 +199,7 @@ function LandingPageContent() {
                <textarea 
                  value={prompt}
                  onChange={(e) => setPrompt(e.target.value)}
-                 placeholder={type === 'web' ? "Describe how you want to redesign it (e.g. Minimalist luxury, glassmorphism, dark mode...)" : "Describe what you want to create (e.g. A luxury skincare app, a 3D product shot, etc.)"}
+                 placeholder={type === 'web' ? "Describe how you want to redesign it (e.g. Minimalist luxury, glassmorphism, dark mode...)" : "Describe what you want to create (e.g. A futuristic watch photoshoot, a 3D product shot, etc.)"}
                  className="w-full bg-transparent border-none focus:ring-0 text-sm md:text-base text-zinc-100 placeholder:text-zinc-700 resize-none h-24 mb-2 scrollbar-hide"
                />
                
@@ -234,10 +252,18 @@ function LandingPageContent() {
                   <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto sm:justify-end">
                     <button 
                       onClick={handlePlan}
-                      disabled={!prompt.trim()}
-                      className="px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-xs font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      disabled={!prompt.trim() || isPlanning}
+                      className={cn(
+                        "px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[#f5e1c8] text-xs font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2",
+                        isPlanning && "animate-pulse"
+                      )}
                     >
-                      Plan
+                      {isPlanning ? (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-[#f5e1c8] animate-ping" />
+                          Planning...
+                        </>
+                      ) : 'Plan'}
                     </button>
 
                     <button 
@@ -255,15 +281,20 @@ function LandingPageContent() {
           </div>
 
            {/* Expertise Tags */}
-            <div className="flex flex-wrap justify-center gap-3 max-w-4xl px-4">
-              {['Identity Preservation', '4K Rendering', 'Campaign Bulk Export', 'Pixel-Perfect Sync', 'Golden-Ratio Composition', 'Luxury Brand Grading'].map((tag) => (
-                <span key={tag} className="px-5 py-2 rounded-full bg-black border border-[#f5e1c8]/10 text-[10px] font-black text-[#f5e1c8]/80 uppercase tracking-widest shadow-2xl hover:border-[#f5e1c8]/30 transition-all cursor-default">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2 md:gap-3 max-w-4xl px-4">
+              {['Identity Preservation', 'HD Rendering', 'Campaign Bulk Export', 'Pixel-Perfect Sync', 'Golden-Ratio Composition', 'Luxury Brand Grading'].map((tag) => (
+                <span key={tag} className="px-3 md:px-5 py-2 rounded-full bg-black border border-[#f5e1c8]/10 text-[9px] md:text-[10px] font-black text-[#f5e1c8]/80 uppercase tracking-widest shadow-2xl hover:border-[#f5e1c8]/30 transition-all cursor-default text-center flex items-center justify-center">
                  {tag}
                </span>
              ))}
             </div>
         
       </section>
+
+      {/* Template Gallery */}
+      <div id="templates">
+        <TemplateGallery />
+      </div>
 
       {/* Platform Features Showcase */}
       <AssetShowcase />
@@ -272,12 +303,12 @@ function LandingPageContent() {
       <ShowcaseGrid />
 
       {/* Final CTA Area */}
-      <section className="mx-6 mb-24 max-w-5xl md:mx-auto rounded-[3rem] bg-[#f5e1c8] p-12 md:p-20 text-center text-black shadow-2xl">
+      <section className="mx-6 mb-24 max-w-5xl md:mx-auto rounded-[3rem] bg-[#f5e1c8] px-6 py-12 md:p-20 text-center text-black shadow-2xl flex flex-col items-center">
         <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-8 uppercase leading-tight">Scale Your <br />Brand Identity.</h2>
-        <p className="text-black/60 text-sm md:text-base max-w-xl mx-auto mb-10 font-bold uppercase tracking-widest">
+        <p className="text-black/60 text-xs md:text-base max-w-xl mx-auto mb-10 font-bold uppercase tracking-widest leading-relaxed">
           Join the elite e-commerce teams generating 4K visuals with pixel-perfect identity preservation.
         </p>
-        <Link href="/studio" className="inline-block px-12 py-5 rounded-full bg-black text-white font-black text-xs uppercase tracking-[0.25em] hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-2xl">
+        <Link href="/studio" className="w-full sm:w-auto px-8 md:px-12 py-5 rounded-full bg-black text-white font-black text-xs uppercase tracking-[0.25em] hover:scale-105 active:scale-95 transition-all whitespace-nowrap shadow-2xl">
           Launch Your Studio
         </Link>
       </section>
@@ -294,7 +325,7 @@ function LandingPageContent() {
               className="object-contain grayscale brightness-200"
             />
           </div>
-          <span className="font-bold text-xs tracking-tight text-white uppercase italic">VisualAI Studio</span>
+          <span className="font-bold text-xs tracking-tight text-white uppercase italic">ImageStudioLab</span>
         </div>
         <div className="flex justify-center flex-wrap gap-8 mb-8 px-6">
            <Link href="/pricing" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Pricing</Link>
@@ -302,7 +333,7 @@ function LandingPageContent() {
            <Link href="/terms" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Terms</Link>
            <Link href="/cookies" className="text-xs text-zinc-600 font-bold uppercase tracking-widest hover:text-white transition-colors">Cookies</Link>
         </div>
-        <p className="text-xs text-zinc-800 font-bold">© 2026 VISUALAI STUDIO. POWERED BY GEMINI. 4K ASSETS ONLY.</p>
+        <p className="text-xs text-zinc-800 font-bold">© 2026 IMAGESTUDIOLAB. POWERED BY GEMINI. 4K ASSETS ONLY.</p>
       </footer>
 
       <AuthModal 

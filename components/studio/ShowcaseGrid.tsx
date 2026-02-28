@@ -34,9 +34,9 @@ export function ShowcaseGrid() {
   if (isLoading) {
     return (
       <div className="py-24 px-6 bg-[#050505]">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="aspect-[3/4] rounded-[40px] bg-white/[0.03] animate-pulse border border-white/[0.05]" />
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="aspect-[3/4] rounded-3xl bg-white/[0.03] animate-pulse border border-white/[0.05]" />
           ))}
         </div>
       </div>
@@ -48,7 +48,10 @@ export function ShowcaseGrid() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col items-center text-center mb-16 space-y-6">
            <div className="space-y-4 flex flex-col items-center">
-              <h2 className="text-5xl md:text-8xl font-bold tracking-tighter text-white">Community <br /> Showcase</h2>
+              <h2 className="text-5xl md:text-8xl font-black tracking-tighter text-white uppercase leading-none">
+                Community <br /> 
+                <span className="text-[#f5e1c8] italic font-light lowercase font-[family-name:var(--font-playfair)]">Showcase</span>
+              </h2>
               <p className="text-zinc-500 text-xs font-black uppercase tracking-[0.3em] max-w-md leading-relaxed">Latest generations from our top creators</p>
               <Link href="/studio/generations" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#f5e1c8] hover:text-white transition-all group">
                 View All Vaults 
@@ -66,7 +69,7 @@ export function ShowcaseGrid() {
              <p className="text-zinc-700 text-xs font-bold uppercase tracking-widest max-w-[240px]">Go to your vault and toggle a project to "Public" to see it featured here.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {canvases.map((canvas) => (
               <CanvasCard 
                 key={canvas.id} 

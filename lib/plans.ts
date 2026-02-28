@@ -1,7 +1,7 @@
-export type PlanType = 'free' | 'solo' | 'pro' | 'lifetime';
+export type PlanType = 'free' | 'solo' | 'pro';
 
 export interface PlanDetails {
-  id: PlanType;
+  id: string;
   name: string;
   price: number;
   credits: number;
@@ -16,11 +16,11 @@ export const PLANS: Record<PlanType, PlanDetails> = {
     id: 'free',
     name: "Starter",
     price: 0,
-    credits: 10,
+    credits: 50,
     resolution: '1K',
     identities: 1,
     features: [
-      "10 Credits / month",
+      "50 Credits / month",
       "1K Standard Resolution",
       "1 Identity Slot",
       "Basic Photoshoots",
@@ -28,7 +28,7 @@ export const PLANS: Record<PlanType, PlanDetails> = {
     ]
   },
   solo: {
-    id: 'solo',
+    id: process.env.NEXT_PUBLIC_DODO_SOLO_ID!,
     name: "Solo",
     price: 29,
     credits: 200,
@@ -44,34 +44,19 @@ export const PLANS: Record<PlanType, PlanDetails> = {
     ]
   },
   pro: {
-    id: 'pro',
+    id: process.env.NEXT_PUBLIC_DODO_PRO_ID!,
     name: "Pro",
     price: 89,
     credits: 1000,
-    resolution: '4K',
+    resolution: '2K',
     identities: 999, // Unlimited
     features: [
       "1,000 Credits / month",
-      "4K Ultra-HD Resolution",
+      "2K High-Resolution Output",
       "Unlimited Identity Slots",
       "Campaign Batch Mode",
       "Grounded Generation (Live Search)",
       "Dedicated Support"
-    ]
-  },
-  lifetime: {
-    id: 'lifetime',
-    name: "Lifetime Founder",
-    price: 499,
-    credits: 150, // per month for life
-    resolution: '4K',
-    identities: 999,
-    features: [
-      "One-time payment",
-      "150 Credits / month (Life reset)",
-      "4K Resolution Forever",
-      "Exclusive Founder Badge",
-      "All future features included"
     ]
   }
 };

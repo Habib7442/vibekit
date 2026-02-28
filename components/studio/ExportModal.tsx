@@ -145,7 +145,11 @@ export function ExportModal({ image, mimeType, prompt, onClose }: ExportModalPro
             </h2>
             <p className="text-zinc-500 text-xs mt-1">Select platforms → Download as organized ZIP</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-500 hover:text-white transition-all">
+          <button 
+            onClick={onClose} 
+            aria-label="Close export modal"
+            className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-500 hover:text-white transition-all"
+          >
             <X size={18} />
           </button>
         </div>
@@ -156,7 +160,7 @@ export function ExportModal({ image, mimeType, prompt, onClose }: ExportModalPro
           {/* Image Preview Thumbnail */}
           <div className="flex items-center gap-4 bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800/30">
             <img 
-              src={`data:${mimeType};base64,${image}`}
+              src={image.startsWith('http') ? image : `data:${mimeType};base64,${image}`}
               alt="Export preview"
               className="w-20 h-20 rounded-xl object-cover border border-zinc-700/30"
             />
@@ -178,8 +182,12 @@ export function ExportModal({ image, mimeType, prompt, onClose }: ExportModalPro
           </div>
 
           {/* AI Fill Toggle */}
-          <div 
+          <button 
+            type="button"
             onClick={() => setUseAI(!useAI)}
+            role="switch"
+            aria-checked={useAI}
+            aria-label="AI Smart Fill"
             className={cn(
               "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
               useAI 
@@ -193,7 +201,7 @@ export function ExportModal({ image, mimeType, prompt, onClose }: ExportModalPro
             )}>
               <Wand2 size={18} className={useAI ? "text-white" : "text-zinc-500"} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 text-left">
               <div className="flex items-center gap-2">
                 <p className={cn("text-sm font-bold", useAI ? "text-white" : "text-zinc-400")}>AI Smart Fill</p>
                 <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-violet-600/20 text-violet-400 uppercase tracking-wider">Pro</span>
@@ -201,7 +209,7 @@ export function ExportModal({ image, mimeType, prompt, onClose }: ExportModalPro
               <p className="text-[11px] text-zinc-500 mt-0.5">AI extends the background naturally to fit every size — no black bars, no cropping</p>
             </div>
             <div className={cn(
-              "w-10 h-6 rounded-full p-0.5 transition-all",
+              "w-10 h-6 rounded-full p-0.5 transition-all relative",
               useAI ? "bg-violet-600" : "bg-zinc-700"
             )}>
               <div className={cn(
@@ -209,7 +217,7 @@ export function ExportModal({ image, mimeType, prompt, onClose }: ExportModalPro
                 useAI ? "translate-x-4" : "translate-x-0"
               )} />
             </div>
-          </div>
+          </button>
 
           {/* Platform Categories */}
           {CATEGORIES.map(cat => {

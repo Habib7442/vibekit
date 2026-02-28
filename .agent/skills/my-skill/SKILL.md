@@ -35,12 +35,12 @@ x-goog-api-key: $GEMINI_API_KEY
 Content-Type: application/json
 ```
 
-### Gemini Image Generation (gemini-3-pro-image-preview)
+### Gemini Image Generation (gemini-3.1-flash-image-preview)
 **Purpose:** Generate custom branded visuals for media kits
 
 **Endpoint:**
 ```
-https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent
+https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent
 ```
 
 ---
@@ -251,7 +251,7 @@ export default function MediaKit() {
 
 ```bash
 curl -s -X POST \
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent" \
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent" \
   -H "x-goog-api-key: $GEMINI_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -702,7 +702,7 @@ Vision Analysis:
 POST /v1alpha/models/gemini-3-pro-preview:generateContent
 
 Image Generation:
-POST /v1beta/models/gemini-3-pro-image-preview:generateContent
+POST /v1beta/models/gemini-3.1-flash-image-preview:generateContent
 ```
 
 ### Essential Headers

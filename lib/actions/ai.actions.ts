@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import { CAMPAIGN_FORMATS } from '@/lib/campaign-formats';
 import { createClient } from '@/lib/supabase/server';
 import { PLANS, PlanType } from '@/lib/plans';
-import { deductCredit } from "@/lib/credits-actions";
+import { deductCredit, checkCredits } from "@/lib/credits-actions";
 
-const API_KEY = process.env.GEMINI_API_KEY || "";
-const SEARCH_API_KEY = process.env.GOOGLE_SEARCH_API_KEY || "";
-const SEARCH_CX = process.env.GOOGLE_SEARCH_CX || "";
+const API_KEY = process.env.GEMINI_API_KEY;
 
-const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
+const IMAGE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent";
 const TEXT_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
 
 // Single-shot fetch with timeout — no retries, one request only
@@ -32,9 +30,7 @@ async function fetchWithRetry(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      const msg = errBody?.error?.message || `API error ${res.status}`;
-      console.error(`[Gemini API] ${res.status}: ${msg}`);
+      // Don't consume body here; let the caller handle it for better error logging
     }
     
     return res;
@@ -45,34 +41,6 @@ async function fetchWithRetry(
       throw new Error("Request timed out. The AI server is busy — please try again.");
     }
     throw err;
-  }
-}
-
-// Helper to fetch Pinterest references via Google Custom Search
-async function searchPinterestReferences(query: string): Promise<{ title: string, link: string, snippet: string }[]> {
-  if (!SEARCH_API_KEY || !SEARCH_CX) {
-    console.log("[Search API] Keys missing, skipping live search.");
-    return [];
-  }
-  
-  const url = `https://www.googleapis.com/customsearch/v1?key=${SEARCH_API_KEY}&cx=${SEARCH_CX}&q=${encodeURIComponent(query + ' poster design pinterest')}&searchType=image&num=5`;
-  
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      console.warn("[Search API] Error:", res.status, JSON.stringify(errBody?.error?.message || errBody));
-      return [];
-    }
-    const data = await res.json();
-    return data.items?.map((item: any) => ({
-      title: item.title,
-      link: item.link,
-      snippet: item.snippet
-    })) || [];
-  } catch (err) {
-    console.error("[Pinterest Search] Failed:", err);
-    return [];
   }
 }
 
@@ -147,14 +115,13 @@ export async function generateAIImage(params: {
   prompt: string;
   aspectRatio?: string;
   count?: number;
-  images?: { data: string; mimeType: string }[];
+  images?: { data?: string; mimeType: string; url?: string }[];
   template?: string;
 }) {
   const { prompt, aspectRatio = '1:1', count = 1, images: uploadedImages = [], template } = params;
 
   if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-  const imageCount = Math.min(Math.max(1, count), 5);
   const basePrompt = prompt || (template ? `A high-end ${template.replace('-', ' ')} concept.` : (uploadedImages.length > 0 ? "Transform and combine these images into a single artistic advertisement." : ""));
   const masterPrompt = buildMasterPrompt(basePrompt, aspectRatio, template);
   
@@ -163,119 +130,132 @@ export async function generateAIImage(params: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user?.id).single();
-  const planName = (profile?.plan || 'free') as PlanType;
-  const currentResolution = PLANS[planName].resolution;
+  const planName = profile?.plan || 'free';
+  const currentResolution = (PLANS[planName as PlanType] ?? PLANS.free).resolution;
 
-  // Deduct credits before starting
-  await deductCredit(imageCount);
-
-  const results = [];
-  for (let i = 0; i < imageCount; i++) {
-    const parts: any[] = [];
-    
-    uploadedImages.forEach((img: any) => {
-      if (img.data && img.mimeType) {
-        parts.push({
-          inlineData: {
-            data: img.data,
-            mimeType: img.mimeType
-          }
-        });
-      }
-    });
-
-    let taskPrefix = "";
-    if (uploadedImages.length === 1) {
-      taskPrefix = "TASK: TRANSFORM/EDIT THE UPLOADED IMAGE.";
-    } else if (uploadedImages.length > 1) {
-      taskPrefix = `TASK: COMBINE THE ${uploadedImages.length} UPLOADED IMAGES INTO ONE COHESIVE PRODUCT ADVERTISEMENT OR CREATIVE COMPOSITION. THE FINAL IMAGE MUST BE A SINGLE INTEGRATED SCENE.`;
-    }
-
-    const hasIdentity = basePrompt.includes("SUBJECT IDENTITY");
-    const text = isEditing 
-      ? `TASK: RECOMPOSE THIS PHOTOGRAPH for a ${aspectRatio} frame.
-
-         You have a reference photo of a person/subject. Your job is to RECREATE this EXACT scene but ZOOMED OUT to show MORE of the person and their surroundings, fitting perfectly into a ${aspectRatio} aspect ratio.
-
-         MANDATORY:
-         1. ZOOM OUT — SHOW THE FULL PERSON: The output MUST show the person's FULL BODY visible in the frame. If the reference shows only a head/face/shoulders close-up, you must zoom out to reveal their full torso, arms, waist, hips, and legs. The person should look like they were photographed from further away to capture their entire body.
-         2. IDENTICAL PERSON: The person in the output must be the EXACT same person as in the reference — same face, same features, same expression, same makeup, same accessories (sunglasses, jewelry, etc.), same skin tone. DO NOT change anything about WHO they are.
-         3. IDENTICAL SCENE: Keep the same background, colors, lighting, mood, and environment from the reference. The expanded view should continue the scene naturally.
-         4. NATURAL COMPOSITION: The final ${aspectRatio} image must look like a professionally taken photograph — the person should be naturally posed and fully visible with no body parts cut off at any edge. Imagine the photographer simply stepped back to capture a wider/taller shot.
-         5. NO CROPPING: Do NOT crop or cut off ANY part of the person — their head, hair, hands, fingers, arms, legs, and feet must all be fully visible within the frame.
-         6. NO SPLIT SCREEN / NO SEAMS: The entire output image must look like ONE single photograph taken in ONE shutter click. There must be ZERO visible seams, boundaries, or lines where one part of the image looks different from another. Specifically:
-            - UNIFORM LIGHTING: The light source, shadow direction, and brightness must be consistent across the ENTIRE image — left to right, top to bottom.
-            - UNIFORM COLOR: The color temperature, contrast, and color grading must be identical everywhere. No part should look warmer/cooler or brighter/darker than another.
-            - CONTINUOUS PERSPECTIVE: All vanishing points, perspective lines (walls, roads, floors) must flow smoothly through the entire image without breaks or misalignment.
-            - NO COLLAGE EFFECT: The image must NEVER look like two photos stitched together. It must be one seamless, cohesive photograph.
-         
-         ${hasIdentity ? "IDENTITY LOCK: Maintain the exact facial features, expression, and identity of the person while showing their full body." : "Show the complete person naturally composed in the frame."}
-         
-         SCENE DIRECTION: ${basePrompt}
-         ${masterPrompt}`
-      : (imageCount > 1 
-        ? `${masterPrompt}\n\nVARIATION ${i + 1} of ${imageCount}: Give me a unique creative variation focused on detail and composition. FILL THE ENTIRE ${aspectRatio} FRAME.`
-        : masterPrompt);
-
-    parts.push({ text });
-
-    const body = {
-      contents: [{ parts }],
-      generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: { 
-          aspectRatio,
-          imageSize: currentResolution
-        }
-      }
-    };
-
-    const response = await fetchWithRetry(IMAGE_ENDPOINT, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-goog-api-key": API_KEY
-      },
-      body: JSON.stringify(body),
-    }, 0, 120000); // 120s timeout for image generation
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      results.push({ error: errorData?.error?.message || `Failed (${response.status})`, index: i });
-      continue;
-    }
-
-    const data = await response.json();
-    const responseParts = data.candidates?.[0]?.content?.parts || [];
-    const imagePart = responseParts.find((p: any) => p.inlineData);
-    
-    if (!imagePart?.inlineData?.data) {
-      results.push({ error: 'No image returned', index: i });
-      continue;
-    }
-
-    results.push({ 
-      image: imagePart.inlineData.data,
-      mimeType: imagePart.inlineData.mimeType || 'image/png',
-      index: i,
-    });
-    
-    // Small gap between requests
-    if (imageCount > 1 && i < imageCount - 1) await new Promise(r => setTimeout(r, 500));
-  }
-
-  const images = results.filter((r: any) => r.image);
-  const errors = results.filter((r: any) => r.error);
+  // Single generation at a time for progress tracking
+  const parts: any[] = [];
   
-  if (images.length === 0) {
-    const lastError = errors[errors.length - 1]?.error || "Unknown error";
-    throw new Error(`Generation failed: ${lastError}. This usually happens when the AI quota is exceeded. Please wait a minute and try again.`);
+  for (const img of uploadedImages) {
+    // Check if the data field actually contains a URL (common in editing)
+    const effectiveUrl = img.url || (img.data?.startsWith('http') ? img.data : null);
+
+    if (effectiveUrl) {
+      try {
+        const res = await fetch(effectiveUrl);
+        if (res.ok) {
+          const arrayBuffer = await res.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          parts.push({
+            inlineData: {
+              data: base64,
+              mimeType: img.mimeType || 'image/png'
+            }
+          });
+        }
+      } catch (err) {
+        console.error('[Generate] Failed to fetch input image URL:', effectiveUrl, err);
+      }
+    } else if (img.data && img.mimeType) {
+      // Strip any potential data URL prefix if it exists
+      const base64Data = img.data.replace(/^data:[^;]+;base64,/, '');
+      parts.push({
+        inlineData: {
+          data: base64Data,
+          mimeType: img.mimeType
+        }
+      });
+    }
   }
+
+  const isTemplate = !!template;
+
+  const text = isEditing 
+    ? `VISUAL REFERENCE PROVIDED: Use the attached images as inspiration for style, mood, color, and subject matter.
+       
+       OBJECTIVE: Create a masterpiece that evolves the concept shown in the reference.
+       
+       GUIDELINES:
+       1. CREATIVE EVOLUTION: You are NOT required to match the composition perfectly. Focus on achieving the "vibe" and specific details mentioned in the prompt.
+       2. SUBJECT CONSISTENCY: Maintain the essence of the person/product if applicable, but feel free to explore different angles, poses, and framing (e.g., top-down, wide-angle) as per the prompt.
+       3. ${isTemplate ? `STYLE DIRECTION: ${template.toUpperCase()} STYLE.` : ''}
+       
+       SCENE DIRECTION: ${basePrompt}
+       ${masterPrompt}`
+    : masterPrompt;
+
+  parts.push({ text });
+
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
+      response_modalities: ["IMAGE"],
+    }
+  };
+
+  // Note: image_generation_config is not supported by current preview endpoints
+  // We'll rely on the prompt instructions for aspect ratio for now.
+
+  const response = await fetchWithRetry(IMAGE_ENDPOINT, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "x-goog-api-key": API_KEY || ""
+    },
+    body: JSON.stringify(body),
+  }, 0, 120000);
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error(`[generateAIImage] API Error ${response.status}:`, errorBody);
+    
+    let errorMsg = `AI generation failed: ${response.status}`;
+    try {
+      const errorData = JSON.parse(errorBody);
+      errorMsg = errorData?.error?.message || errorMsg;
+    } catch (e) {}
+    
+    throw new Error(errorMsg);
+  }
+
+  const data = await response.json();
+  const responseParts = data.candidates?.[0]?.content?.parts || [];
+  const imagePart = responseParts.find((p: any) => p.inlineData);
+  
+  if (!imagePart?.inlineData?.data) {
+    throw new Error("No image was returned. The AI may have blocked the content.");
+  }
+
+  let imageUrl = '';
+  try {
+    const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
+    const filename = `${user?.id || 'anon'}/studio/${Date.now()}.png`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('studio_assets')
+      .upload(filename, buffer, {
+        contentType: imagePart.inlineData.mimeType || 'image/png',
+        upsert: true
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('studio_assets')
+      .getPublicUrl(filename);
+    
+    imageUrl = publicUrl;
+  } catch (uploadErr: any) {
+    console.error('[Generate] Storage upload failed, using base64 fallback:', uploadErr);
+    imageUrl = imagePart.inlineData.data;
+  }
+
+  // Deduct credits for the successful generation (2 per image)
+  await deductCredit(2);
 
   return {
-    images: images.map(img => ({ image: img.image, mimeType: img.mimeType })),
-    total: images.length,
-    errors: errors.length > 0 ? errors.map(e => e.error) : undefined
+    image: imageUrl,
+    mimeType: imagePart.inlineData.mimeType || 'image/png',
   };
 }
 
@@ -534,7 +514,7 @@ export async function generateScreenImageAction(params: {
   });
 
   return {
-    image: data.images[0].image,
+    image: data.image,
     screenName
   };
 }
@@ -610,11 +590,8 @@ export async function generateAdCampaignAction(params: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user?.id).single();
-  const plan = (profile?.plan || 'free') as PlanType;
-  const resolution = PLANS[plan].resolution;
-
-  // Deduct credits for campaign
-  await deductCredit(count);
+  const planKey = profile?.plan || 'free';
+  const resolution = (PLANS[planKey as PlanType] ?? PLANS.free).resolution;
 
   const results = [];
   const brandColors = brandDNA.colors?.join(' and ') || brandDNA.color || 'vivid signature colors';
@@ -704,45 +681,10 @@ export async function generateAdCampaignAction(params: {
     },
   ];
 
-  // REAL-TIME PINTEREST TREND ANALYSIS (optional enrichment)
-  const references = await searchPinterestReferences(`${brandName} ${brandCategory} ${goal}`);
-  
-  let pinterestTrendInsight = "";
-  if (references.length > 0) {
-    const trendContext = references.map(r => `- ${r.title}: ${r.snippet}`).join('\n');
-    const analyzeBody = {
-      contents: [{
-        parts: [{
-          text: `You are a commercial brand photographer. Based on these Pinterest search results for "${brandCategory} ${goal}", give 2 sentences of specific visual direction to enrich the ad composition. Focus only on lighting, color, and composition details.\n\nRESULTS:\n${trendContext}`
-        }]
-      }]
-    };
-    
-    try {
-      const trendRes = await fetch(TEXT_ENDPOINT, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-goog-api-key': API_KEY
-        },
-        body: JSON.stringify(analyzeBody)
-      });
-      if (!trendRes.ok) {
-        console.warn("[Trend Analysis] API error:", trendRes.status);
-      } else {
-        const trendData = await trendRes.json();
-        pinterestTrendInsight = trendData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      }
-    } catch (err) {
-      // Silently fail — Pinterest search is optional enhancement
-    }
-  }
-
   for (let i = 0; i < count; i++) {
     try {
       const archetype = creativeArchetypes[i % creativeArchetypes.length];
-      const pinterestReference = pinterestTrendInsight ? `PINTEREST TREND DIRECTION: ${pinterestTrendInsight}` : "";
-      const finalPrompt = `[BRAND: ${brandName}] [VIBE: ${brandTone}] [DNA: ${brandDesc}]\n\n${pinterestReference}\n\nSTYLING ARCHETYPE: ${archetype.prompt}`;
+      const finalPrompt = `[BRAND: ${brandName}] [VIBE: ${brandTone}] [DNA: ${brandDesc}]\n\nSTYLING ARCHETYPE: ${archetype.prompt}`;
 
       const data = await generateAIImage({
         prompt: finalPrompt,
@@ -753,8 +695,8 @@ export async function generateAdCampaignAction(params: {
       results.push({
         name: archetype.name,
         prompt: finalPrompt,
-        image: data.images[0].image,
-        mimeType: data.images[0].mimeType,
+        image: data.image, 
+        mimeType: data.mimeType,
         ratio: aspectRatio,
         caption: hasMessage 
           ? `🔥 ${message}\n\n${brandName} #brandad #${goal.replace(/\s+/g, '').toLowerCase()}`
@@ -778,7 +720,7 @@ export async function generateCampaignBatchAction(params: {
   brandDNA?: any;    // optional brand identity
   tone?: string;
   offer?: string;
-  productImages?: { data: string; mimeType: string }[];
+  productImages?: { data?: string; mimeType: string; url?: string }[];
 }) {
   const { brief, formats, brandDNA, tone, offer, productImages = [] } = params;
   const selectedFormats = CAMPAIGN_FORMATS.filter(f => formats.includes(f.key));
@@ -786,11 +728,14 @@ export async function generateCampaignBatchAction(params: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user?.id).single();
-  const planBatch = (profile?.plan || 'free') as PlanType;
-  const currentResolution = PLANS[planBatch].resolution;
+  const planBatchKey = profile?.plan || 'free';
+  const currentResolution = (PLANS[planBatchKey as PlanType] ?? PLANS.free).resolution;
 
-  // Deduct credits for batch
-  await deductCredit(selectedFormats.length);
+  // Check credits before starting
+  const check = await checkCredits(selectedFormats.length);
+  if (!check.canProceed) {
+    throw new Error(`Insufficient credits (${check.credits} remaining). Please upgrade your plan or wait for your credits to reset.`);
+  }
 
   // Step 1: Use Gemini to plan the campaign visual direction
   const identityContext = brandDNA 
@@ -821,11 +766,11 @@ Return EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
   };
 
   try {
-    const planRes = await fetch(`${TEXT_ENDPOINT}?key=${API_KEY}`, {
+    const planRes = await fetch(TEXT_ENDPOINT, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'x-goog-api-key': API_KEY 
+        'x-goog-api-key': API_KEY || ''
       },
       body: JSON.stringify({
         contents: [{ 
@@ -932,18 +877,19 @@ Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
           ] 
         }],
         generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
-          imageConfig: { 
-            aspectRatio: format.aspectRatio,
-            imageSize: currentResolution
-          }
+          response_modalities: ["IMAGE"],
         }
       };
 
-      const response = await fetchWithRetry(`${IMAGE_ENDPOINT}?key=${API_KEY}`, {
+      (body as any).image_generation_config = {
+        aspect_ratio: format.aspectRatio
+      };
+
+      const response = await fetchWithRetry(IMAGE_ENDPOINT, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
+          "x-goog-api-key": API_KEY || ''
         },
         body: JSON.stringify(body),
       }, 0, 120000);
@@ -971,16 +917,42 @@ Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
         continue;
       }
 
+      // UPLOAD TO STORAGE TO PREVENT SERIALIZATION ERRORS (Large data blobs in Server Actions)
+      let imageUrl = '';
+      try {
+        const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
+        const filename = `${user?.id || 'anon'}/campaign/${Date.now()}_${format.key}.png`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('studio_assets')
+          .upload(filename, buffer, {
+            contentType: imagePart.inlineData.mimeType || 'image/png',
+            upsert: true
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('studio_assets')
+          .getPublicUrl(filename);
+        
+        imageUrl = publicUrl;
+      } catch (uploadErr: any) {
+        console.error('[Campaign] Storage upload failed:', uploadErr);
+        // Fallback to base64 if upload fails, but this might hit the serialization limit
+        imageUrl = imagePart.inlineData.data;
+      }
+
       results.push({
         key: format.key,
         label: format.label,
         aspectRatio: format.aspectRatio,
-        image: imagePart.inlineData.data,
+        image: imageUrl,
         mimeType: imagePart.inlineData.mimeType || 'image/png',
         prompt: fullPrompt,
       });
 
-      console.log(`[Campaign] Generated ${format.label} (${i + 1}/${selectedFormats.length})`);
+      console.log(`[Campaign] Generated & Uploaded ${format.label} (${i + 1}/${selectedFormats.length})`);
 
       // Delay between requests to avoid rate limiting
       if (i < selectedFormats.length - 1) {
@@ -994,6 +966,12 @@ Quality: 8K photorealistic commercial chromatography. Ultra premium.`;
         error: err.message
       });
     }
+  }
+
+  // Deduct credits for successful generations (2 per asset)
+  const successfulCount = results.filter(r => r.image).length;
+  if (successfulCount > 0) {
+    await deductCredit(successfulCount * 2);
   }
 
   return {

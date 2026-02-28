@@ -338,9 +338,8 @@ function EditOverlay({
           onChange={(e) => setEditPrompt(e.target.value)}
           onPaste={handlePaste}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { 
+            if (e.key === 'Enter' && !e.shiftKey && (editPrompt.trim() || images.length > 0)) { 
               e.preventDefault(); 
-              if (!editPrompt.trim() && images.length === 0) return;
               setIsUpdating(true);
               onUpdate(editPrompt, images).finally(() => setIsUpdating(false)); 
             }
@@ -361,7 +360,7 @@ function EditOverlay({
                <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
                  <Paperclip size={12} />
                </div>
-               <span className="text-[10px] items-center font-black uppercase tracking-widest hidden sm:inline">Attach</span>
+               <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Attach</span>
              </button>
              <input 
                ref={fileInputRef}

@@ -33,7 +33,7 @@ interface CampaignBatchModalProps {
 }
 
 export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
-  const { selectedIdentity, addGalleryImages, clearGallery } = useImageChatStore();
+  const { selectedIdentity, addGalleryImages } = useImageChatStore();
   
   const [step, setStep] = useState<Step>('brief');
   const [brief, setBrief] = useState('');
@@ -47,6 +47,7 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
   const [exportAsset, setExportAsset] = useState<any>(null);
 
   const [productImage, setProductImage] = useState<string | null>(null);
+  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [productMimeType, setProductMimeType] = useState<string | null>(null);
 
   // Auto-sync the product image whenever the selected identity changes
@@ -70,27 +71,12 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
         return;
       }
 
-      // If it's a URL (new records), fetch and convert to base64 for Gemini
+      // If it's a URL (new records), USE URL DIRECTLY
       if (refImage.startsWith('http')) {
-        try {
-          console.log('[Campaign] Fetching identity image from URL:', refImage);
-          const response = await fetch(refImage);
-          const blob = await response.blob();
-          const reader = new FileReader();
-          
-          reader.onloadend = () => {
-            const result = reader.result as string;
-            const match = result.match(/^data:([^;]+);base64,(.+)$/);
-            if (match) {
-              setProductMimeType(match[1]);
-              setProductImage(match[2]);
-              console.log('[Campaign] Successfully converted URL to base64 for AI');
-            }
-          };
-          reader.readAsDataURL(blob);
-        } catch (err) {
-          console.error('[Campaign] Error fetching identity image URL:', err);
-        }
+         setProductImageUrl(refImage);
+         setProductMimeType('image/jpeg');
+         setProductImage(null);
+         console.log('[Campaign] Using image URL directly for AI optimization');
       }
     };
 
@@ -106,6 +92,7 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
       const base64 = event.target?.result as string;
       const [header, data] = base64.split(',');
       setProductImage(data);
+      setProductImageUrl(null);
       setProductMimeType(file.type);
     };
     reader.readAsDataURL(file);
@@ -130,9 +117,6 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
 
   const handleGenerate = async () => {
     if (selectedFormats.size === 0 || !brief.trim()) return;
-    
-    // Clear previous results to prevent memory lag
-    clearGallery();
 
     setStep('generating');
     setIsGenerating(true);
@@ -149,7 +133,11 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
         formats: Array.from(selectedFormats),
         brandDNA: selectedIdentity || undefined,
         offer: offer.trim() || undefined,
-        productImages: (productImage && productMimeType) ? [{ data: productImage, mimeType: productMimeType }] : [],
+        productImages: (productImage || productImageUrl) ? [{ 
+          data: productImage || undefined, 
+          url: productImageUrl || undefined,
+          mimeType: productMimeType || 'image/png' 
+        }] : [],
       });
 
       setCampaignPlan(data.plan);
@@ -187,18 +175,30 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
       const zip = new JSZip();
       const folder = zip.folder('campaign')!;
 
-      results.forEach((asset: any) => {
-        const ext = asset.mimeType?.includes('png') ? 'png' : 'jpg';
-        const safeName = asset.label.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
-        
-        // Convert base64 to binary
-        const binary = atob(asset.image);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
+      for (const asset of results) {
+        try {
+          const ext = asset.mimeType?.includes('png') ? 'png' : 'jpg';
+          const safeName = asset.label.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+          
+          let bytes: Uint8Array;
+          if (asset.image.startsWith('http')) {
+            const res = await fetch(asset.image);
+            const blob = await res.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            bytes = new Uint8Array(arrayBuffer);
+          } else {
+            // Convert base64 to binary
+            const binary = atob(asset.image);
+            bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+          }
+          folder.file(`${safeName}.${ext}`, bytes);
+        } catch (err) {
+          console.error(`[Campaign] Failed to process asset ${asset.label}:`, err);
         }
-        folder.file(`${safeName}.${ext}`, bytes);
-      });
+      }
 
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
@@ -407,11 +407,8 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
             </div>
             {/* Progress bar */}
             <div className="w-full max-w-xs">
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-1000 animate-pulse"
-                  style={{ width: '60%' }}
-                />
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden relative">
+                <div className="h-full w-1/3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]" />
               </div>
             </div>
           </div>
@@ -438,7 +435,7 @@ export function CampaignBatchModal({ onClose }: CampaignBatchModalProps) {
                 <div key={i} className="group relative rounded-2xl overflow-hidden border border-zinc-800/40 bg-zinc-900/30">
                   <div className="aspect-square relative">
                     <img
-                      src={`data:${asset.mimeType};base64,${asset.image}`}
+                      src={asset.image.startsWith('http') ? asset.image : `data:${asset.mimeType};base64,${asset.image}`}
                       alt={asset.label}
                       className="w-full h-full object-cover"
                     />

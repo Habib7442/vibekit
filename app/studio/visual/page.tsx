@@ -10,7 +10,7 @@ export default function VisualArtistPage() {
   const isBrand = selectedIdentity?.type === 'brand';
 
   return (
-    <div className="flex h-full animate-in fade-in duration-500 overflow-hidden">
+    <div className="relative flex h-full animate-in fade-in duration-500 overflow-hidden">
       {/* Left Sidebar: Settings & Chat */}
       <div className="hidden md:block w-[360px] shrink-0 h-full border-r border-zinc-800/50">
         <ChatPanel />
@@ -21,16 +21,13 @@ export default function VisualArtistPage() {
         <ImageGallery />
       </div>
 
-      {/* Right Sidebar: Campaign Tools (Conditional) */}
-      {isBrand && (
-        <div className="hidden lg:block">
-          <CampaignPanel />
-        </div>
-      )}
+
 
       {/* Mobile: ChatPanel as overlay */}
       <div className="md:hidden absolute inset-0 pointer-events-none z-[100]">
-        <ChatPanel />
+        <div className="pointer-events-auto h-full">
+          <ChatPanel />
+        </div>
       </div>
     </div>
   );

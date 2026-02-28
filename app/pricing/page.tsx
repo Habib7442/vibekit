@@ -5,7 +5,8 @@ import { Check, ArrowRight, Zap, Shield, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
-
+import { useState, useEffect } from 'react';
+import { AuthModal } from '@/components/studio/AuthModal';
 
 import { PLANS, PlanType, PlanDetails } from '@/lib/plans';
 
@@ -15,15 +16,28 @@ const DISPLAY_PLANS: (PlanDetails & { color: string, popular: boolean })[] = [
   { ...PLANS.pro, color: 'amber', popular: false, description: "Total powerhouse for high-volume high-end brands." }
 ];
 
-const LIFETIME_DEAL = PLANS.lifetime;
-
 export default function PricingPage() {
   const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<{ id: string, credits: string, name: string } | null>(null);
 
-  const getCheckoutUrl = (productId: string, credits: string) => {
+  useEffect(() => {
+    if (user && pendingPlan) {
+      handleUpgrade(pendingPlan.id, pendingPlan.credits, pendingPlan.name);
+      setPendingPlan(null);
+    }
+  }, [user, pendingPlan]);
+
+  const handleUpgrade = (productId: string, credits: string, planName: string) => {
+    if (!user) {
+      setPendingPlan({ id: productId, credits, name: planName });
+      setShowAuthModal(true);
+      return;
+    }
+    
     const baseUrl = `/api/checkout?productId=${encodeURIComponent(productId)}`;
-    if (!user) return `/auth?next=${encodeURIComponent('/pricing')}`;
-    return `${baseUrl}&userId=${encodeURIComponent(user.id)}&credits=${encodeURIComponent(credits)}`;
+    const finalUrl = `${baseUrl}&userId=${encodeURIComponent(user.id)}&credits=${encodeURIComponent(credits)}&plan=${encodeURIComponent(planName)}&email=${encodeURIComponent(user.email || '')}`;
+    window.location.href = finalUrl;
   };
 
   return (
@@ -87,6 +101,9 @@ export default function PricingPage() {
                     <span className="text-5xl font-bold tracking-tighter">${plan.price}</span>
                     <span className="text-zinc-600 text-[11px] font-bold uppercase tracking-widest">/ month</span>
                   </div>
+                  {plan.price > 0 && (
+                    <span className="text-zinc-500 text-[10px] font-medium block mt-1">+ applicable taxes</span>
+                  )}
                   <p className="text-zinc-500 text-xs mt-4 font-medium leading-relaxed">{plan.description}</p>
                 </div>
 
@@ -110,13 +127,7 @@ export default function PricingPage() {
                   </Link>
                 ) : (
                   <button 
-                    onClick={() => {
-                      if (user) {
-                        window.location.href = `https://www.dodopayments.com/buy/${plan.id}?customer_id=${user.id}`;
-                      } else {
-                        window.location.href = `/auth?next=${encodeURIComponent('/pricing')}`;
-                      }
-                    }}
+                    onClick={() => handleUpgrade(plan.id, plan.credits.toString(), plan.name.toLowerCase())}
                     className={cn(
                       "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center transition-all shadow-xl active:scale-95",
                       plan.popular
@@ -131,61 +142,7 @@ export default function PricingPage() {
             ))}
           </div>
 
-          {/* Lifetime Deal Section */}
-          <div className="w-full max-w-5xl rounded-[3rem] p-1 border border-white/5 bg-gradient-to-tr from-zinc-900 via-black to-zinc-900 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000">
-             <div className="rounded-[2.8rem] bg-black p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden">
-                {/* Background Decor */}
-                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
-                
-                <div className="relative z-10 flex-1">
-                   <div className="flex items-center gap-3 mb-6">
-                      <div className="px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-[9px] font-black uppercase tracking-[0.2em]">
-                        One-Time Deal
-                      </div>
-                      <div className="flex items-center gap-2 text-zinc-500">
-                        <Zap size={14} className="text-amber-400" />
-                        <span className="text-[9px] font-black uppercase tracking-widest italic"> Founder Edition </span>
-                      </div>
-                   </div>
-                   
-                   <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">The Lifetime <br />Founder Plan.</h2>
-                   <p className="text-zinc-500 text-sm max-w-md mb-10 leading-relaxed font-medium">Be part of the early-bird group. Pay once today, and we refill your credits every single month for life. No more subscriptions.</p>
-                   
-                   <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                      {LIFETIME_DEAL.features.map((feature: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-3">
-                          <Check size={12} className="text-indigo-400" />
-                          <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">{feature}</span>
-                        </div>
-                      ))}
-                   </div>
-                </div>
 
-                <div className="relative z-10 shrink-0 w-full md:w-auto text-center md:text-right flex flex-col gap-6">
-                    <div className="flex flex-col">
-                       <span className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em] mb-2">One-time payment</span>
-                       <div className="flex items-baseline justify-center md:justify-end gap-2">
-                         <span className="text-6xl md:text-[5.5rem] font-bold tracking-tighter">${LIFETIME_DEAL.price}</span>
-                         <span className="text-2xl text-zinc-700 line-through font-light opacity-50">$999</span>
-                       </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => {
-                        if (user) {
-                          window.location.href = `https://www.dodopayments.com/buy/${LIFETIME_DEAL.id}?customer_id=${user.id}`;
-                        } else {
-                          window.location.href = `/auth?next=${encodeURIComponent('/pricing')}`;
-                        }
-                      }}
-                      className="w-full md:w-80 py-5 rounded-2xl bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all hover:bg-indigo-500 active:scale-95 block"
-                    >
-                      Claim Lifetime access
-                    </button>
-                    <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic text-center md:text-right">Limited to the first 500 members only.</p>
-                </div>
-             </div>
-          </div>
 
           {/* Secure & FAQ Minimal Section */}
           <div className="mt-40 grid grid-cols-1 md:grid-cols-3 gap-16 w-full max-w-5xl text-center">
@@ -237,6 +194,10 @@ export default function PricingPage() {
         <p className="text-[8px] text-zinc-900 font-black tracking-[0.2em] uppercase">© 2026 IMAGESTUDIOLAB. CRAFTED FOR VISIONARIES.</p>
       </footer>
 
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 }

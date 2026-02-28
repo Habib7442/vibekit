@@ -25,13 +25,22 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
   const handleProductImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     
     Array.from(files).slice(0, 3 - productImages.length).forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        console.warn(`File ${file.name} exceeds 5MB limit`);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
         const [, data] = base64.split(',');
         setProductImages(prev => [...prev.slice(0, 2), { data, mimeType: file.type }]);
+      };
+      reader.onerror = () => {
+        console.error(`Failed to read file: ${file.name}`);
       };
       reader.readAsDataURL(file);
     });
@@ -183,17 +192,12 @@ export function IdentityLab({ onSelect, selectedId }: IdentityLabProps) {
           identities.map((item) => (
             <div
               key={item.id}
-              onClick={() => {
-                console.log('[IdentityLab] Selected Identity Data:', item);
-                console.log('[IdentityLab] Reference Image:', item.reference_images?.[0] || 'No Image');
-                onSelect(item);
-              }}
+              onClick={() => onSelect(item)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  console.log('[IdentityLab] Selected Identity Data (via Keyboard):', item);
                   onSelect(item);
                 }
               }}

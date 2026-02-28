@@ -42,6 +42,8 @@ interface ImageChatState {
   clearGallery: () => void;
   savedCanvasId: string | null;
   setSavedCanvasId: (id: string | null) => void;
+  generationProgress: { total: number; completed: number };
+  setGenerationProgress: (progress: { total: number; completed: number }) => void;
 }
 
 export const useImageChatStore = create<ImageChatState>((set, get) => ({
@@ -52,6 +54,7 @@ export const useImageChatStore = create<ImageChatState>((set, get) => ({
   imageCount: 1,
   aspectRatio: '1:1',
   savedCanvasId: null,
+  generationProgress: { total: 0, completed: 0 },
 
   addMessage: (msg) => set({ messages: [...get().messages, msg] }),
   
@@ -79,4 +82,5 @@ export const useImageChatStore = create<ImageChatState>((set, get) => ({
   clearChat: () => set({ messages: [] }),
   clearGallery: () => set({ galleryImages: [], savedCanvasId: null }),
   setSavedCanvasId: (id: string | null) => set({ savedCanvasId: id }),
+  setGenerationProgress: (progress) => set({ generationProgress: progress }),
 }));

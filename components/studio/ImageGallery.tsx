@@ -10,15 +10,28 @@ import { deductCredit } from '@/lib/credits-actions';
 import { ExportModal } from './ExportModal';
 import { CampaignBatchModal } from './CampaignBatchModal';
 
-function downloadImage(base64: string, mimeType: string, filename: string) {
+function getImageSrc(image: string, mimeType: string) {
+  if (image.startsWith('http')) return image;
+  return `data:${mimeType};base64,${image}`;
+}
+
+function downloadImage(image: string, mimeType: string, filename: string) {
   const a = document.createElement('a');
-  a.href = `data:${mimeType};base64,${base64}`;
+  a.href = getImageSrc(image, mimeType);
   a.download = filename;
   a.click();
 }
 
 export function ImageGallery() {
-  const { galleryImages, updateGalleryImage, removeGalleryImage, savedCanvasId, setSavedCanvasId } = useImageChatStore();
+  const { 
+    galleryImages, 
+    updateGalleryImage, 
+    removeGalleryImage, 
+    savedCanvasId, 
+    setSavedCanvasId,
+    isGenerating,
+    generationProgress
+  } = useImageChatStore();
   const [lightboxImage, setLightboxImage] = useState<GeneratedImage | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; image: GeneratedImage } | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
@@ -74,7 +87,7 @@ export function ImageGallery() {
         images: [{ data: image.image, mimeType: image.mimeType }]
       });
 
-      updateGalleryImage(image.id, { image: result.images[0].image, prompt: editPrompt });
+      updateGalleryImage(image.id, { image: result.image, prompt: editPrompt });
       setEditingImage(null);
       setEditPrompt('');
     } catch (err: any) {
@@ -93,24 +106,23 @@ export function ImageGallery() {
     try {
       // 1. Upload all images to storage and get URLs
       const imageUploads = await Promise.all(
-        galleryImages.map(img => uploadImageToStudio(img.image, `img_${img.id}.png`))
+        galleryImages.map(async (img) => {
+          const publicUrl = await uploadImageToStudio(img.image, `gallery_${img.id}.png`);
+          return { id: img.id, url: publicUrl, prompt: img.prompt, aspectRatio: img.aspectRatio };
+        })
       );
 
-      // 2. Save canvas and image metadata
-      const firstPrompt = galleryImages[0]?.prompt || 'New Visual Arts';
-      
+      // 2. Save canvas entry
+      const imageEntries: Record<string, { imageUrl: string; prompt?: string; aspectRatio?: string }> = {};
+      imageUploads.forEach(upload => {
+        imageEntries[upload.id] = { imageUrl: upload.url, prompt: upload.prompt, aspectRatio: upload.aspectRatio };
+      });
+
       const result = await saveCanvasAction({
         canvasId: savedCanvasId || undefined,
-        name: firstPrompt.slice(0, 50),
+        name: galleryImages[0]?.prompt || 'Studio Creative',
         type: 'visual',
-        images: Object.fromEntries(galleryImages.map((img, idx) => [
-          img.id,
-          {
-            imageUrl: imageUploads[idx],
-            prompt: img.prompt,
-            aspectRatio: img.aspectRatio
-          }
-        ]))
+        images: imageEntries,
       });
 
       if (result.canvasId) {
@@ -128,8 +140,55 @@ export function ImageGallery() {
     }
   };
 
+  const progress = generationProgress.total > 0 
+    ? Math.round((generationProgress.completed / generationProgress.total) * 100) 
+    : 0;
+
   return (
     <div className="w-full h-full bg-[#050505] relative overflow-hidden" onClick={closeContextMenu}>
+      
+      {/* Generation Progress Overlay */}
+      {isGenerating && (
+        <div className="absolute inset-0 z-50 bg-[#050505]/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+          <div className="w-full max-w-md space-y-10">
+            <div className="relative flex justify-center">
+               <div className="w-32 h-32 rounded-[2.5rem] border-4 border-indigo-600/20 border-t-indigo-500 animate-spin" />
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <span className="text-white font-black text-3xl tracking-tighter">{progress}%</span>
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1">Ready</span>
+                  </div>
+               </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-white font-black text-2xl uppercase tracking-tighter">Drafting Masterpieces</h3>
+                <p className="text-zinc-500 text-xs font-medium uppercase tracking-[0.2em]">Crafting your vision... Please have patience</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-zinc-600 px-1">
+                  <span>Variant {Math.min(generationProgress.completed + 1, generationProgress.total)} of {generationProgress.total}</span>
+                  <span>{generationProgress.completed} done</span>
+                </div>
+                {/* Progress Bar */}
+                <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-white/5 p-0.5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-indigo-600 to-violet-500 rounded-full transition-all duration-700 shadow-[0_0_20px_rgba(79,70,229,0.4)]"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-10 flex items-center justify-center gap-8 opacity-30">
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" /><span className="text-[10px] text-white font-black uppercase tracking-widest">AI Cluster Active</span></div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[10px] text-white font-black uppercase tracking-widest">Fiber Pipeline</span></div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Empty State */}
       {galleryImages.length === 0 && (
@@ -218,7 +277,7 @@ export function ImageGallery() {
                 {/* Image Container */}
                 <div className="relative rounded-2xl overflow-hidden border border-zinc-800/30 hover:border-zinc-700/50 transition-all shadow-2xl shadow-black/60 bg-black/20 flex justify-center">
                     <img
-                      src={`data:${img.mimeType};base64,${img.image}`}
+                      src={getImageSrc(img.image, img.mimeType)}
                       alt={img.prompt}
                       className={cn(
                         "max-w-full max-h-[60vh] md:max-h-[calc(100vh-160px)] object-contain cursor-pointer transition-all duration-300",
@@ -275,7 +334,7 @@ export function ImageGallery() {
                         value={editPrompt}
                         onChange={(e) => setEditPrompt(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEdit(img); }
+                          if (e.key === 'Enter' && !e.shiftKey && editPrompt.trim()) { e.preventDefault(); handleEdit(img); }
                           if (e.key === 'Escape') { setEditingImage(null); setEditPrompt(''); }
                         }}
                         placeholder="Describe your edit..."
@@ -359,7 +418,7 @@ export function ImageGallery() {
             <X size={20} />
           </button>
           <img
-            src={`data:${lightboxImage.mimeType};base64,${lightboxImage.image}`}
+            src={getImageSrc(lightboxImage.image, lightboxImage.mimeType)}
             alt="Full view"
             className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}

@@ -757,7 +757,8 @@ export function AppDesignerChatPanel() {
   };
 
   const handleGenerate = (builderMode === 'app' || builderMode === 'web') ? handleGenerateApp : handleGenerateComponent;
-  const isProjectStarted = (builderMode === 'app' || builderMode === 'web') && messages.length > 0;
+  const hasGeneratedScreens = messages.some(m => m.screens && m.screens.length > 0);
+  const isProjectStarted = (builderMode === 'app' || builderMode === 'web') && hasGeneratedScreens;
   const canGenerate = appDescription.trim() && !isGenerating && !isPlanning && !isProjectStarted;
 
   if (isMobile) {

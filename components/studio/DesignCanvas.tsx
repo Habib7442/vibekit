@@ -89,7 +89,7 @@ export function DesignCanvas() {
       canvas.on('mouse:up', function() {
         canvas.setViewportTransform(canvas.viewportTransform!);
         isDragging = false;
-        canvas.selection = mode === 'select';
+        canvas.selection = getMode() === 'select';
       });
 
       // Enable Zooming
@@ -195,7 +195,8 @@ export function DesignCanvas() {
             const loadedImages: { fImg: any; id: string }[] = [];
             for (const img of newImages) {
                 try {
-                    const fImg = await fabric.FabricImage.fromURL(`data:${img.mimeType};base64,${img.image}`);
+                    const imgSrc = img.image.startsWith('http') ? img.image : `data:${img.mimeType};base64,${img.image}`;
+                    const fImg = await fabric.FabricImage.fromURL(imgSrc);
                     loadedImages.push({ fImg, id: img.id });
                 } catch (err) {
                     console.error('Failed to load image:', err);
@@ -260,7 +261,7 @@ export function DesignCanvas() {
     };
 
     syncImages();
-  }, [galleryImages, isLoaded]);
+  }, [galleryImages, isLoaded, mode]);
 
   const handleSave = async () => {
     if (galleryImages.length === 0 || isSaving) return;
@@ -268,12 +269,42 @@ export function DesignCanvas() {
     setSaveSuccess(false);
 
     try {
-      // Logic for saving (similar to ImageGallery)
-      // For now, just a placeholder or call the existing action
-      setIsSaving(false);
+      // Upload each gallery image to storage and collect URLs
+      const imageEntries: Record<string, { imageUrl: string; prompt?: string; aspectRatio?: string; order?: number }> = {};
+
+      for (let i = 0; i < galleryImages.length; i++) {
+        const img = galleryImages[i];
+        try {
+          const publicUrl = await uploadImageToStudio(img.image, `canvas_${img.id}.png`);
+          imageEntries[img.id] = {
+            imageUrl: publicUrl,
+            prompt: img.prompt,
+            aspectRatio: img.aspectRatio,
+            order: i,
+          };
+        } catch (uploadErr) {
+          console.error(`[DesignCanvas] Failed to upload image ${img.id}:`, uploadErr);
+        }
+      }
+
+      // Save canvas with images
+      const result = await saveCanvasAction({
+        canvasId: savedCanvasId || undefined,
+        name: galleryImages[0]?.prompt || 'Visual Canvas',
+        type: 'visual',
+        images: imageEntries,
+      });
+
+      if (result.canvasId) {
+        setSavedCanvasId(result.canvasId);
+      }
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[DesignCanvas] Save failed:', err);
+      alert(`Save failed: ${err.message}`);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -334,7 +365,7 @@ export function DesignCanvas() {
         <div className="flex items-center gap-1 px-2">
             <button onClick={() => {
                  if (fabricCanvas.current) {
-                    const newZoom = fabricCanvas.current.getZoom() * 1.1;
+                    const newZoom = Math.min(fabricCanvas.current.getZoom() * 1.1, 20);
                     fabricCanvas.current.setZoom(newZoom);
                     setZoom(newZoom);
                  }
@@ -342,7 +373,7 @@ export function DesignCanvas() {
             <span className="text-[10px] font-black text-zinc-500 w-12 text-center">{Math.round(zoom * 100)}%</span>
             <button onClick={() => {
                  if (fabricCanvas.current) {
-                    const newZoom = fabricCanvas.current.getZoom() / 1.1;
+                    const newZoom = Math.max(fabricCanvas.current.getZoom() / 1.1, 0.01);
                     fabricCanvas.current.setZoom(newZoom);
                     setZoom(newZoom);
                  }
