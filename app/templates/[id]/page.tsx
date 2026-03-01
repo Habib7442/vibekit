@@ -123,9 +123,48 @@ export default function TemplateBuilderPage() {
       });
 
       if (result && result.image) {
+        // Normalize: generateAIImage returns either a full data URL, a Supabase public URL, or raw base64.
+        // The preview & export code expects RAW base64 in stylized.data.
+        let rawBase64 = result.image;
+        let finalMimeType = result.mimeType || 'image/png';
+
+        if (rawBase64.startsWith('data:')) {
+          // Full data URL like "data:image/png;base64,iVBOR..."
+          const commaIndex = rawBase64.indexOf(',');
+          if (commaIndex !== -1) {
+            // Extract mimeType from the data URL header
+            const header = rawBase64.substring(0, commaIndex);
+            const mimeMatch = header.match(/data:([^;]+)/);
+            if (mimeMatch) finalMimeType = mimeMatch[1];
+            rawBase64 = rawBase64.substring(commaIndex + 1);
+          }
+        } else if (rawBase64.startsWith('http://') || rawBase64.startsWith('https://')) {
+          // Supabase public URL — fetch and convert to base64 on the client
+          try {
+            const fetchRes = await fetch(rawBase64);
+            if (!fetchRes.ok) throw new Error(`Fetch failed: ${fetchRes.status}`);
+            const blob = await fetchRes.blob();
+            finalMimeType = blob.type || finalMimeType;
+            rawBase64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                const commaIdx = dataUrl.indexOf(',');
+                resolve(commaIdx !== -1 ? dataUrl.substring(commaIdx + 1) : dataUrl);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (fetchErr) {
+            console.error('[Template] Failed to fetch stylized image from URL:', fetchErr);
+            throw new Error('Failed to load generated image');
+          }
+        }
+        // else: already raw base64
+
         setImages(prev => prev.map(item => 
           item.id === imageId 
-            ? { ...item, stylized: { data: result.image, mimeType: result.mimeType || 'image/png' }, isStylizing: false }
+            ? { ...item, stylized: { data: rawBase64, mimeType: finalMimeType }, isStylizing: false }
             : item
         ));
         return true;
@@ -139,6 +178,7 @@ export default function TemplateBuilderPage() {
       return false;
     }
   };
+
 
   const handleMagicGenerate = async () => {
     if (images.length === 0) return;
@@ -215,7 +255,20 @@ export default function TemplateBuilderPage() {
       if (!ctx) throw new Error("Canvas context failed");
 
       const stream = canvas.captureStream(30);
-      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      
+      // Codec fallback: try vp9 → vp8 → plain webm
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        throw new Error('Your browser does not support WebM video recording. Please try Chrome or Firefox.');
+      }
+      
+      const recorder = new MediaRecorder(stream, { mimeType });
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => chunks.push(e.data);
       
@@ -253,6 +306,11 @@ export default function TemplateBuilderPage() {
         }
       };
 
+      // Helper: wait for next animation frame + a minimum time (ensures canvas is painted before capture)
+      const waitFrame = () => new Promise<void>(resolve => {
+        requestAnimationFrame(() => setTimeout(resolve, 1000 / 30));
+      });
+
       // Render each image in the reel to the canvas
       for (let i = 0; i < images.length; i++) {
         setExportProgress(Math.floor(75 + (i / images.length) * 25));
@@ -261,7 +319,8 @@ export default function TemplateBuilderPage() {
         const stylizedData = img.stylized ? `data:${img.stylized.mimeType};base64,${img.stylized.data}` : null;
         
         const loadImg = (src: string) => new Promise<HTMLImageElement>((res, rej) => {
-          const el = new Image();
+          const el = new window.Image();
+          el.crossOrigin = 'anonymous';
           el.onload = () => res(el);
           el.onerror = () => rej(new Error(`Failed to load image for frame ${i + 1}`));
           el.src = src;
@@ -276,7 +335,7 @@ export default function TemplateBuilderPage() {
           ctx.fillStyle = '#050505'; 
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           drawCover(originalImg);
-          await new Promise(r => setTimeout(r, 1000 / 30));
+          await waitFrame();
         }
 
         // 2. Transition to Stylized
@@ -307,14 +366,14 @@ export default function TemplateBuilderPage() {
             drawCover(stylizedImg, offset);
             
             ctx.globalAlpha = 1;
-            await new Promise(r => setTimeout(r, 1000 / 30));
+            await waitFrame();
           }
           // 3. Stylized (3 seconds)
           for (let f = 0; f < 90; f++) {
             ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawCover(stylizedImg);
-            await new Promise(r => setTimeout(r, 1000 / 30));
+            await waitFrame();
           }
         }
       }
