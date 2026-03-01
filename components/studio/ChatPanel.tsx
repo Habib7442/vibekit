@@ -413,54 +413,116 @@ export function ChatPanel() {
            </div>
 
            {/* Always visible Bottom Bar */}
-           <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-4 pointer-events-auto flex items-center gap-3">
-              <button 
-                onClick={() => setShowMobileChat(!showMobileChat)}
-                className={cn(
-                  "p-3 rounded-xl transition-all",
-                  showMobileChat ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-500"
-                )}
-              >
-                <MessageSquare size={20} />
-              </button>
-              
-              <div className="relative flex-1">
-                 <input
-                   value={input}
-                   onChange={(e) => setInput(e.target.value)}
-                   onKeyDown={handleKeyDown}
-                   onPaste={handlePaste}
-                   placeholder="Prompt..."
-                   className="w-full bg-zinc-900 border border-white/5 rounded-xl py-3 px-4 text-xs text-white"
-                 />
-                 <button onClick={() => handleGenerate()} 
-                    disabled={(!input.trim() && selectedImages.length === 0) || isGenerating || isIdentitySyncing}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 p-1.5 disabled:opacity-40 transition-all active:scale-95"
-                  >
-                    {(isGenerating || isIdentitySyncing) ? <Loader2 size={18} className="animate-spin" /> : <Send size={18}/>}
-                  </button>
-              </div>
-
-              <Sheet>
-                 <SheetTrigger asChild>
-                    <button className="p-3 bg-zinc-900 text-zinc-500 rounded-xl"><Settings2 size={20}/></button>
-                 </SheetTrigger>
-                 <SheetContent side="bottom" className="h-[70vh] bg-[#050505] rounded-t-[2rem] border-t-white/10 p-6 overflow-y-auto">
-                    <SheetHeader className="mb-6"><SheetTitle className="text-white text-sm font-black uppercase tracking-widest">Studio Config</SheetTitle></SheetHeader>
-                    <div className="space-y-8">
-                       <IdentityLab onSelect={setSelectedIdentity} selectedId={selectedIdentity?.id} />
-                       <div className="space-y-4">
-                          <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Dimensions</label>
-                          <div className="grid grid-cols-4 gap-2">
-                             {ASPECT_RATIOS.map(r => (
-                                <button key={r.value} onClick={() => setAspectRatio(r.value)} className={cn("py-2 rounded-lg text-[10px] border font-bold", aspectRatio === r.value ? "bg-indigo-600 border-indigo-400 text-white" : "bg-zinc-900 border-white/5 text-zinc-500")}>{r.label}</button>
-                             ))}
-                          </div>
-                       </div>
+           <div className="bg-[#0A0A0F]/95 backdrop-blur-2xl border-t border-white/5 p-3 pointer-events-auto space-y-2">
+              {/* Uploaded image previews */}
+              {selectedImages.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+                  {selectedImages.map((img, idx) => (
+                    <div key={idx} className="relative w-10 h-10 shrink-0 group">
+                      <img src={`data:${img.mimeType};base64,${img.data}`} alt="Ref" className="w-full h-full object-cover rounded-lg border border-indigo-500/30" />
+                      <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400"><X size={8} /></button>
                     </div>
-                 </SheetContent>
-              </Sheet>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowMobileChat(!showMobileChat)}
+                  className={cn(
+                    "p-2.5 rounded-xl transition-all shrink-0",
+                    showMobileChat ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-500"
+                  )}
+                >
+                  <MessageSquare size={18} />
+                </button>
+                
+                <div className="relative flex-1 flex items-center">
+                   <textarea
+                     value={input}
+                     onChange={(e) => setInput(e.target.value)}
+                     onKeyDown={handleKeyDown}
+                     onPaste={handlePaste}
+                     placeholder="Prompt..."
+                     rows={1}
+                     className="w-full bg-zinc-900 border border-white/5 rounded-xl py-2.5 pl-3 pr-24 text-xs text-white resize-none min-h-[40px] max-h-[80px]"
+                   />
+                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                      <button 
+                        onClick={() => fileInputRef.current?.click()} 
+                        className="p-1.5 text-zinc-600 hover:text-indigo-400 transition-colors active:scale-90"
+                      >
+                        <ImageIcon size={16} />
+                      </button>
+                      <button 
+                        onClick={handleMagicWand}
+                        disabled={!input.trim() || isPlanning || isGenerating}
+                        className={cn(
+                          "p-1.5 text-indigo-400/60 hover:text-indigo-400 transition-colors disabled:opacity-30",
+                          isPlanning && "animate-pulse"
+                        )}
+                      >
+                        {isPlanning ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                      </button>
+                      <button 
+                        onClick={() => handleGenerate()} 
+                        disabled={(!input.trim() && selectedImages.length === 0) || isGenerating || isIdentitySyncing}
+                        className="p-1.5 rounded-lg bg-indigo-600 text-white disabled:opacity-40 transition-all active:scale-90 shadow-lg shadow-indigo-600/20"
+                      >
+                        {(isGenerating || isIdentitySyncing) ? <Loader2 size={16} className="animate-spin" /> : <Send size={16}/>}
+                      </button>
+                   </div>
+                </div>
+
+                <Sheet>
+                   <SheetTrigger asChild>
+                      <button className="p-2.5 bg-zinc-900 text-zinc-500 rounded-xl shrink-0"><Settings2 size={18}/></button>
+                   </SheetTrigger>
+                   <SheetContent side="bottom" className="bg-[#050505] rounded-t-[2rem] border-t-white/10 p-0 flex flex-col" style={{ height: '85vh' }}>
+                      <SheetHeader className="p-6 pb-4 shrink-0"><SheetTitle className="text-white text-sm font-black uppercase tracking-widest">Studio Config</SheetTitle></SheetHeader>
+                      <div 
+                        className="flex-1 min-h-0 px-6 pb-24 space-y-8"
+                        style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+                      >
+                         <div className="space-y-4">
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Dimensions</label>
+                            <div className="grid grid-cols-4 gap-2">
+                               {ASPECT_RATIOS.map(r => (
+                                  <button key={r.value} onClick={() => setAspectRatio(r.value)} className={cn("py-2 rounded-lg text-[10px] border font-bold", aspectRatio === r.value ? "bg-indigo-600 border-indigo-400 text-white" : "bg-zinc-900 border-white/5 text-zinc-500")}>{r.label}</button>
+                               ))}
+                            </div>
+                         </div>
+                         <div className="space-y-4">
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Variations</label>
+                            <div className="flex gap-2">
+                               {[1, 2, 3, 4].map((count) => (
+                                  <button key={count} onClick={() => setImageCount(count)} className={cn("flex-1 py-3 rounded-xl text-[11px] font-black border transition-all", imageCount === count ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" : "bg-zinc-900 border-zinc-800 text-zinc-500")}>{count}</button>
+                               ))}
+                            </div>
+                         </div>
+                         <div className="space-y-4">
+                            <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Creative Style</label>
+                            <div className="grid grid-cols-1 gap-2">
+                               {TEMPLATES.map((t) => (
+                                  <button key={t.id} onClick={() => setCurrentTemplate(currentTemplate === t.id ? null : t.id)} className={cn("px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-between transition-all", currentTemplate === t.id ? "bg-indigo-600 border-indigo-500 text-white shadow-xl" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-white/10")}>
+                                     <div className="flex items-center gap-3">
+                                       <span className="text-xl">{t.icon}</span>
+                                       <span>{t.label}</span>
+                                     </div>
+                                     {currentTemplate === t.id && <Wand2 size={12} />}
+                                  </button>
+                               ))}
+                            </div>
+                         </div>
+                         <IdentityLab onSelect={setSelectedIdentity} selectedId={selectedIdentity?.id} />
+                      </div>
+                   </SheetContent>
+
+                </Sheet>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
            </div>
+
         </div>
 
         <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
