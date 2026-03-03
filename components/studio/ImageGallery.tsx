@@ -15,11 +15,34 @@ function getImageSrc(image: string, mimeType: string) {
   return `data:${mimeType};base64,${image}`;
 }
 
-function downloadImage(image: string, mimeType: string, filename: string) {
-  const a = document.createElement('a');
-  a.href = getImageSrc(image, mimeType);
-  a.download = filename;
-  a.click();
+async function downloadImage(image: string, mimeType: string, filename: string) {
+  const src = getImageSrc(image, mimeType);
+  
+  if (src.startsWith('http')) {
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      // Fallback to opening in new tab if fetch fails
+      window.open(src, '_blank');
+    }
+  } else {
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }
 
 export function ImageGallery() {

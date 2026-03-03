@@ -25,9 +25,7 @@ export default function VisualArtistPage() {
 
       {/* Mobile: ChatPanel as overlay */}
       <div className="md:hidden absolute inset-0 pointer-events-none z-[100]">
-        <div className="pointer-events-auto h-full">
-          <ChatPanel />
-        </div>
+        <ChatPanel />
       </div>
     </div>
   );

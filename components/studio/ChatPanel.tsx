@@ -23,6 +23,12 @@ const ASPECT_RATIOS = [
   { label: '4:5', value: '4:5' },
   { label: '16:9', value: '16:9' },
   { label: '9:16', value: '9:16' },
+  { label: '3:4', value: '3:4' },
+  { label: '4:3', value: '4:3' },
+  { label: '3:2', value: '3:2' },
+  { label: '2:3', value: '2:3' },
+  { label: '5:4', value: '5:4' },
+  { label: '21:9', value: '21:9' },
 ];
 
 const TEMPLATES = [
@@ -486,7 +492,7 @@ export function ChatPanel() {
                       >
                          <div className="space-y-4">
                             <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Dimensions</label>
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                                {ASPECT_RATIOS.map(r => (
                                   <button key={r.value} onClick={() => setAspectRatio(r.value)} className={cn("py-2 rounded-lg text-[10px] border font-bold", aspectRatio === r.value ? "bg-indigo-600 border-indigo-400 text-white" : "bg-zinc-900 border-white/5 text-zinc-500")}>{r.label}</button>
                                ))}
@@ -568,7 +574,7 @@ export function ChatPanel() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-2 duration-300 p-2">
             <div className="space-y-4">
               <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-black block">Dimensions</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {ASPECT_RATIOS.map((r) => (
                   <button key={r.value} onClick={() => setAspectRatio(r.value)} className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all", aspectRatio === r.value ? "bg-indigo-600 border-indigo-500 text-white shadow-lg" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white")}>{r.label}</button>
                 ))}
