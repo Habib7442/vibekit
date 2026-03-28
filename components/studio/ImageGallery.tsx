@@ -107,7 +107,8 @@ export function ImageGallery() {
 
       const result = await generateAIImage({
         prompt: editPrompt,
-        images: [{ data: image.image, mimeType: image.mimeType }]
+        images: [{ data: image.image, mimeType: image.mimeType }],
+        isRealEdit: true,
       });
 
       updateGalleryImage(image.id, { image: result.image, prompt: editPrompt });

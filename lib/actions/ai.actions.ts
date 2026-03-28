@@ -118,8 +118,9 @@ export async function generateAIImage(params: {
   count?: number;
   images?: { data?: string; mimeType: string; url?: string }[];
   template?: string;
+  isRealEdit?: boolean;
 }) {
-  const { prompt, aspectRatio = '1:1', count = 1, images: uploadedImages = [], template } = params;
+  const { prompt, aspectRatio = '1:1', count = 1, images: uploadedImages = [], template, isRealEdit } = params;
 
   if (!API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
@@ -200,8 +201,13 @@ export async function generateAIImage(params: {
 
   const isTemplate = !!template;
 
-  const text = isEditing 
-    ? `VISUAL REFERENCE PROVIDED: Use the attached images as inspiration for style, mood, color, and subject matter.
+  let text = '';
+  if (isRealEdit) {
+    text = `Apply the following edit to the provided image: ${prompt}.
+Ensure the original composition, people, and objects remain perfectly intact unless explicitly instructed to change them. Do not change the overall image structure, only perform the requested editing action.`;
+  } else {
+    text = isEditing 
+      ? `VISUAL REFERENCE PROVIDED: Use the attached images as inspiration for style, mood, color, and subject matter.
        
        OBJECTIVE: Create a masterpiece that evolves the concept shown in the reference.
        
@@ -212,12 +218,17 @@ export async function generateAIImage(params: {
        
        SCENE DIRECTION: ${basePrompt}
        ${masterPrompt}`
-    : masterPrompt;
+      : masterPrompt;
+  }
 
-  parts.push({ text });
+  // IMPORTANT: For Gemini 3.1, the text prompt must come BEFORE the reference images
+  const finalParts = [
+    { text },
+    ...parts
+  ];
 
   const body = {
-    contents: [{ parts }],
+    contents: [{ parts: finalParts }],
     generationConfig: {
       response_modalities: ["IMAGE"],
     }
